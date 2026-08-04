@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#730b12" />
+    <meta name="description" content="Ulisse (Nessuno): Inferno Edition is an original red-and-black pixel platformer for one or two local players." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ulisse (Nessuno) — Inferno Edition" />
+    <meta property="og:description" content="Fourteen Odyssey trials, instant retries and local two-player mode. Play free in your browser." />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="inferno.css" />
+    <script src="inferno.js" defer></script>
+    <title>Ulisse (Nessuno) — Inferno Edition</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <a href="../../#videogames">← WEBSITE</a>
+      <span aria-label="Ulisse Nessuno Inferno">ULISSE <i>/ NESSUNO</i></span>
+      <button id="muteButton" type="button" aria-pressed="false">SOUND: ON</button>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <p>AN ORIGINAL PIXEL TRIAL · 1–2 LOCAL PLAYERS</p>
+        <h1 id="title">ULISSE<br /><span>INFERNO</span></h1>
+        <p>THE ODYSSEY, REDUCED TO ITS MOST DANGEROUS PIXELS.</p>
+      </section>
+
+      <section class="machine" id="machine" aria-label="Playable game">
+        <div class="screen-wrap">
+          <canvas id="game" width="320" height="180" tabindex="0" aria-label="Pixel platform game. Player one uses A, D and W. Player two uses arrow keys."></canvas>
+
+          <div class="overlay" id="menu">
+            <p class="tiny">ULISSE (NESSUNO)</p>
+            <h2>THE WAY HOME<br />LIES BELOW.</h2>
+            <p>Choose a voyage. Every door may lie.</p>
+            <div class="mode-buttons">
+              <button type="button" data-mode="1"><b>1</b> ONE PLAYER</button>
+              <button type="button" data-mode="2"><b>2</b> TWO PLAYERS</button>
+            </div>
+            <p class="keyline">P1: A D W · P2: ← → ↑ · R: RETRY · ESC: PAUSE</p>
+          </div>
+
+          <div class="overlay compact" id="pause" hidden>
+            <p class="tiny">VOYAGE PAUSED</p>
+            <h2>THE DEAD CAN WAIT.</h2>
+            <button class="single-button" id="resumeButton" type="button">CONTINUE</button>
+          </div>
+
+          <div class="overlay compact" id="ending" hidden>
+            <p class="tiny">ΙΘΑΚΗ · HOME</p>
+            <h2>NOBODY<br />HAS RETURNED.</h2>
+            <p id="endingText">Fourteen trials crossed.</p>
+            <button class="single-button" id="againButton" type="button">VOYAGE AGAIN</button>
+          </div>
+        </div>
+
+        <div class="status" aria-live="polite">
+          <span id="chapterStatus">01 / 14 · TROY</span>
+          <strong id="chapterTitle">THE WOODEN HORSE</strong>
+          <span id="scoreStatus">FALLS 00</span>
+        </div>
+
+        <div class="touch" aria-label="Touch controls">
+          <div class="touch-set p1">
+            <span>P1</span>
+            <button type="button" data-player="0" data-key="left" aria-label="Player one left">◀</button>
+            <button type="button" data-player="0" data-key="right" aria-label="Player one right">▶</button>
+            <button class="jump" type="button" data-player="0" data-key="jump" aria-label="Player one jump">▲</button>
+          </div>
+          <button class="restart" id="restartButton" type="button">RETRY<br /><kbd>R</kbd></button>
+          <div class="touch-set p2" id="touchP2" hidden>
+            <span>P2</span>
+            <button type="button" data-player="1" data-key="left" aria-label="Player two left">◀</button>
+            <button type="button" data-player="1" data-key="right" aria-label="Player two right">▶</button>
+            <button class="jump" type="button" data-player="1" data-key="jump" aria-label="Player two jump">▲</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="manifesto">
+        <p>FROM TROY TO ITHACA</p>
+        <h2>Fourteen rooms.<br />No decorative pixels.</h2>
+        <div>
+          <p>Each single-screen chapter translates an episode of the Odyssey into a compact mechanical trap. The visual system uses integer pixels, three principal colours and no image assets.</p>
+          <p>Solo mode follows Odysseus. In two-player mode, Odysseus and Athena race locally on one keyboard; the first to the door earns the chapter.</p>
+        </div>
+      </section>
+
+      <nav class="editions" aria-label="Other Ulisse editions">
+        <span>OTHER EDITIONS</span>
+        <a href="../ulisse/">PC ORIGINAL ↗</a>
+        <a href="../ulisse-mobile/">SMARTPHONE ↗</a>
+      </nav>
+    </main>
+
+    <footer>
+      <span>AN ORIGINAL BROWSER GAME · CRISTIAN TACCIOLI</span>
+      <a href="https://github.com/tacc-code-tacclab">GITHUB ↗</a>
+    </footer>
+  </body>
+</html>
