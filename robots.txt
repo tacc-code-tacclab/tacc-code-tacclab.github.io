@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tacc-code-tacclab.github.io/sitemap.xml
+
