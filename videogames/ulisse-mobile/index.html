@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1717">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ulisse">
+    <meta
+      name="description"
+      content="Ulisse (Nessuno) Mobile is a lightweight touch-first Odyssey platformer for iPhone and Android. Fourteen chapters, no download."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Ulisse (Nessuno) — Mobile Edition">
+    <meta property="og:description" content="A lightweight fourteen-chapter Odyssey built for smartphones.">
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-mobile/">
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-mobile/">
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../../favicon.svg">
+    <link rel="stylesheet" href="mobile.css">
+    <script src="mobile-levels.js" defer></script>
+    <script src="mobile-game.js" defer></script>
+    <title>Ulisse (Nessuno) — Mobile Edition</title>
+  </head>
+  <body>
+    <div class="mobile-app" id="mobileApp">
+      <header class="topbar">
+        <a class="top-link" href="../../#videogames"><span aria-hidden="true">←</span> Site</a>
+        <div class="mobile-brand" role="img" aria-label="Ulisse Nessuno mobile edition">
+          <span class="mobile-mark" aria-hidden="true">U</span>
+          <span>ULISSE <i>NESSUNO</i><small>Mobile</small></span>
+        </div>
+        <a class="top-link top-link-right" href="../ulisse/">PC version <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <main>
+        <section class="mobile-game" aria-label="Ulisse mobile game">
+          <div class="stage" id="stage">
+            <canvas
+              id="mobileCanvas"
+              width="640"
+              height="360"
+              tabindex="0"
+              role="img"
+              aria-label="Playable mobile platform game. Use the large left, right and jump buttons below the game."
+            ></canvas>
+
+            <div class="mobile-hud" aria-live="polite">
+              <span><small>Chapter</small><strong id="mobileChapter">01 / 14</strong></span>
+              <span class="hud-title"><small id="mobileSetting">Troy</small><strong id="mobileTitle">The Wooden Horse</strong></span>
+              <span class="hud-falls"><small>Falls</small><strong id="mobileDeaths">00</strong></span>
+            </div>
+
+            <button class="stage-button pause-button" id="mobilePause" type="button" aria-label="Pause game">Ⅱ</button>
+            <button class="stage-button sound-button" id="mobileSound" type="button" aria-label="Turn sound off" aria-pressed="true">♪</button>
+
+            <div class="mobile-panel" id="mobileStart">
+              <p class="mobile-overline">Smartphone edition</p>
+              <h1>Ulisse <em>(Nessuno)</em></h1>
+              <p>Fourteen short trials from Troy to Ithaca. Hold a direction and tap Jump.</p>
+              <button class="mobile-primary" id="mobilePlay" type="button">Tap to sail</button>
+              <button class="mobile-secondary" id="mobileFresh" type="button">New voyage</button>
+            </div>
+
+            <div class="chapter-toast" id="mobileToast" aria-live="polite">
+              <span id="mobileNumeral">I</span>
+              <div><small id="mobilePlace">Troy</small><strong id="mobileToastTitle">The Wooden Horse</strong></div>
+            </div>
+
+            <div class="mobile-panel" id="mobilePaused" hidden>
+              <p class="mobile-overline">Voyage paused</p>
+              <h2>The sea can wait.</h2>
+              <button class="mobile-primary" id="mobileResume" type="button">Continue</button>
+            </div>
+
+            <div class="mobile-panel" id="mobileEnd" hidden>
+              <p class="mobile-overline">ΙΘΑΚΗ · Home</p>
+              <h2>Nobody has returned.</h2>
+              <p id="mobileStats">Fourteen chapters crossed.</p>
+              <button class="mobile-primary" id="mobileAgain" type="button">Sail again</button>
+            </div>
+
+            <div class="mobile-flash" id="mobileFlash" aria-hidden="true"></div>
+          </div>
+
+          <div class="touch-pad" role="group" aria-label="Game controls">
+            <div class="direction-pad">
+              <button class="control-button" id="mobileLeft" type="button" aria-label="Move left"><span>◀</span></button>
+              <button class="control-button" id="mobileRight" type="button" aria-label="Move right"><span>▶</span></button>
+            </div>
+            <button class="control-button jump-button" id="mobileJump" type="button" aria-label="Jump"><span>↑</span><small>Jump</small></button>
+          </div>
+
+          <div class="mobile-status">
+            <p><strong id="mobileHintTitle">Athena says</strong><span id="mobileHint">Do not trust the quiet floor.</span></p>
+            <button id="mobileRestart" type="button">Restart</button>
+          </div>
+
+          <p class="orientation-tip">Tip: turn your phone sideways for a wider view. Portrait mode works too.</p>
+        </section>
+
+        <section class="mobile-journey" aria-labelledby="mobile-journey-title">
+          <div>
+            <p class="mobile-overline">Saved on this phone</p>
+            <h2 id="mobile-journey-title">The route home</h2>
+          </div>
+          <ol id="mobileLevelList" class="mobile-level-list"></ol>
+        </section>
+
+        <section class="compatibility-note">
+          <span aria-hidden="true">◎</span>
+          <p><strong>Built light on purpose.</strong> No libraries, downloads or large media files. The game uses a low-resolution Canvas and classic JavaScript so it remains responsive on older iPhone and Android devices.</p>
+        </section>
+      </main>
+
+      <footer>
+        <span>Ulisse (Nessuno) · Mobile edition</span>
+        <a href="../ulisse/">Open the PC edition ↗</a>
+      </footer>
+    </div>
+  </body>
+</html>
