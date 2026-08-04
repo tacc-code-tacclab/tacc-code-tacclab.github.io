@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101817" />
+    <meta
+      name="description"
+      content="Ulisse (Nessuno) is a fast, minimalist browser platformer: survive fourteen chapters of the Odyssey and find the way home to Ithaca."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ulisse (Nessuno) — The Odyssey, one trap at a time" />
+    <meta
+      property="og:description"
+      content="A free fourteen-chapter browser platformer from Troy to Ithaca. No download: click and play."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse/" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="game.css" />
+    <script src="levels.js" defer></script>
+    <script src="game.js" defer></script>
+    <title>Ulisse (Nessuno) — Play in your browser</title>
+  </head>
+  <body>
+    <header class="game-header">
+      <a class="back-link" href="../../#videogames" aria-label="Back to Cristian Taccioli's website">
+        <span aria-hidden="true">←</span> Back to the website
+      </a>
+      <div class="mini-brand" role="img" aria-label="Ulisse, Nessuno">
+        <span class="mini-mark" aria-hidden="true">U</span>
+        <span>ULISSE <i>/ NESSUNO</i></span>
+      </div>
+      <button class="header-action" id="soundButton" type="button" aria-pressed="false">
+        Sound on
+      </button>
+    </header>
+
+    <main>
+      <section class="game-intro" aria-labelledby="game-title">
+        <p class="kicker">A very small epic · Browser game</p>
+        <h1 id="game-title">Fourteen trials.<br /><em>One way home.</em></h1>
+        <p class="intro-copy">
+          You are Odysseus—Ulisse, the man who called himself Nobody. Cross a quick, treacherous Odyssey from the ruins of Troy to the olive trees of Ithaca.
+        </p>
+      </section>
+
+      <section class="play-area" aria-label="Ulisse game">
+        <div class="game-frame" id="gameFrame">
+          <div class="hud" aria-live="polite">
+            <div>
+              <span class="hud-label">Chapter</span>
+              <strong id="hudChapter">01 / 14</strong>
+            </div>
+            <div class="hud-centre">
+              <span class="hud-label" id="hudSetting">Troy</span>
+              <strong id="hudTitle">The Wooden Horse</strong>
+            </div>
+            <div>
+              <span class="hud-label">Falls</span>
+              <strong id="hudDeaths">00</strong>
+            </div>
+          </div>
+
+          <canvas
+            id="gameCanvas"
+            width="960"
+            height="540"
+            tabindex="0"
+            role="img"
+            aria-label="Playable 2D platform game. Use arrow keys or A and D to move, and Space, W or the up arrow to jump."
+          ></canvas>
+
+          <div class="start-screen panel" id="startScreen">
+            <p class="panel-overline">ULISSE <span>(NESSUNO)</span></p>
+            <h2>The sea remembers every mistake.</h2>
+            <p>Reach the marked passage. Expect the world to change after you trust it.</p>
+            <div class="start-actions">
+              <button class="play-button" id="playButton" type="button">Begin the voyage</button>
+              <button class="text-button" id="newVoyageButton" type="button">Start again from Troy</button>
+            </div>
+            <p class="desktop-controls">Move ← → / A D · Jump ↑ / W / Space · Restart R · Pause Esc</p>
+          </div>
+
+          <div class="chapter-card" id="chapterCard" aria-live="polite">
+            <span id="chapterNumber">I</span>
+            <div>
+              <p id="chapterSetting">Troy · The war is over</p>
+              <h2 id="chapterTitle">The Wooden Horse</h2>
+              <p id="chapterStory">Leave the burning city before victory becomes another prison.</p>
+            </div>
+          </div>
+
+          <div class="pause-screen panel" id="pauseScreen" hidden>
+            <p class="panel-overline">Voyage paused</p>
+            <h2>Even heroes need a breath.</h2>
+            <button class="play-button" id="resumeButton" type="button">Continue</button>
+          </div>
+
+          <div class="ending-screen panel" id="endingScreen" hidden>
+            <p class="panel-overline">ΙΘΑΚΗ · Home</p>
+            <h2>Nobody has returned.</h2>
+            <p id="endingStats">Fourteen chapters crossed.</p>
+            <div class="start-actions">
+              <button class="play-button" id="playAgainButton" type="button">Sail again</button>
+              <a class="text-button link-button" href="../../#videogames">Return to the website</a>
+            </div>
+          </div>
+
+          <div class="death-flash" id="deathFlash" aria-hidden="true"></div>
+        </div>
+
+        <div class="touch-controls" role="group" aria-label="Touch controls">
+          <div class="touch-group">
+            <button type="button" data-control="left" aria-label="Move left">←</button>
+            <button type="button" data-control="right" aria-label="Move right">→</button>
+          </div>
+          <button class="jump-control" type="button" data-control="jump" aria-label="Jump">Jump ↑</button>
+        </div>
+
+        <div class="level-note" aria-live="polite">
+          <span class="note-mark" aria-hidden="true">!</span>
+          <p><strong id="hintTitle">A note from Athena</strong><span id="hintText">The safest stone is often the first to move.</span></p>
+          <button id="restartButton" type="button">Restart chapter <kbd>R</kbd></button>
+        </div>
+      </section>
+
+      <section class="journey" aria-labelledby="journey-title">
+        <div class="journey-heading">
+          <div>
+            <p class="kicker">The route</p>
+            <h2 id="journey-title">An Odyssey in fourteen chapters.</h2>
+          </div>
+          <p>Your progress is saved on this device. Completed chapters remain open for a return voyage.</p>
+        </div>
+        <ol class="chapter-list" id="chapterList"></ol>
+      </section>
+
+      <section class="game-about">
+        <p class="kicker">How it plays</p>
+        <div>
+          <h2>Simple to move.<br />Difficult to trust.</h2>
+          <p>
+            Every scene fits on one screen. Learn the trap, retry instantly and keep moving west. The graphics and sounds are generated in the browser, so the game stays fast and lightweight.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>An original browser game by Cristian Taccioli · <span id="year"></span></p>
+      <a href="https://github.com/tacc-code-tacclab">View GitHub profile ↗</a>
+    </footer>
+  </body>
+</html>
