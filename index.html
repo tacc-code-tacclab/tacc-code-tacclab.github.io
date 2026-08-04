@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Cristian Taccioli is a computational and molecular biologist working on generative AI for drug discovery, cancer evolution and genome evolution."
+    />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cristian Taccioli — Computational Biology & Generative AI" />
+    <meta
+      property="og:description"
+      content="Research, open-source projects and teaching at the intersection of biology and artificial intelligence."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem("theme");
+        const preferred = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = saved || preferred;
+      })();
+    </script>
+    <script src="script.js" defer></script>
+    <title>Cristian Taccioli — Computational Biology & Generative AI</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Cristian Taccioli",
+        "url": "https://tacc-code-tacclab.github.io/",
+        "jobTitle": "Associate Professor",
+        "affiliation": [
+          { "@type": "Organization", "name": "University of Padova" },
+          { "@type": "Organization", "name": "University of Cambridge" }
+        ],
+        "sameAs": [
+          "https://github.com/tacc-code-tacclab",
+          "https://github.com/tacclab",
+          "https://orcid.org/0000-0003-2995-5612",
+          "https://scholar.google.com/citations?hl=en&user=UYiLQVYAAAAJ"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <nav class="nav shell" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="Cristian Taccioli, home">
+          <span class="brand-mark" aria-hidden="true">CT</span>
+          <span class="brand-name">Cristian Taccioli</span>
+        </a>
+
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          <span class="sr-only">Open menu</span>
+          <span></span><span></span><span></span>
+        </button>
+
+        <div class="nav-links" id="nav-links">
+          <a href="#research">Research</a>
+          <a href="#projects">Projects</a>
+          <a href="#teaching">Teaching</a>
+          <a href="#contact">Contact</a>
+          <a class="nav-lab" href="https://github.com/tacclab">TACC Lab ↗</a>
+          <button class="theme-toggle" type="button" aria-label="Switch colour theme" title="Switch colour theme">
+            <span class="theme-icon" aria-hidden="true">◐</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero shell" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">Computational biology · Generative AI · Genomics</p>
+          <h1>Building computational methods for <em>molecules, genomes and cancer.</em></h1>
+          <p class="hero-intro">
+            I am a molecular biologist and computational researcher developing artificial-intelligence methods for therapeutic discovery and genome science.
+          </p>
+
+          <div class="affiliations" aria-label="Academic affiliations">
+            <p><strong>Associate Professor</strong><span>University of Padova · MAPS</span></p>
+            <p><strong>Visiting Academic</strong><span>University of Cambridge</span></p>
+          </div>
+
+          <div class="hero-actions">
+            <a class="button primary" href="#projects">Explore projects</a>
+            <a class="button secondary" href="https://scholar.google.com/citations?hl=en&amp;user=UYiLQVYAAAAJ">View publications ↗</a>
+          </div>
+        </div>
+
+        <aside class="focus-card" aria-label="Current research focus">
+          <div class="focus-orbit" aria-hidden="true">
+            <span class="orbit orbit-one"></span>
+            <span class="orbit orbit-two"></span>
+            <span class="orbit-dot dot-one"></span>
+            <span class="orbit-dot dot-two"></span>
+            <span class="focus-core">AI<br />×<br />BIO</span>
+          </div>
+          <div class="focus-meta">
+            <p class="label">Current focus</p>
+            <p>Generative models that connect molecular design with biological phenotype.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section shell" id="research">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <div>
+            <p class="eyebrow">Research</p>
+            <h2>Biology is a design space.</h2>
+          </div>
+        </div>
+
+        <div class="research-grid">
+          <article class="research-card">
+            <span class="card-index">A</span>
+            <h3>AI for drug discovery</h3>
+            <p>Generative and language-model-based methods for designing and repositioning antibiotic and anticancer molecules.</p>
+            <ul class="tags" aria-label="Topics"><li>LLMs</li><li>Flow models</li><li>Molecular design</li></ul>
+          </article>
+          <article class="research-card">
+            <span class="card-index">B</span>
+            <h3>Cancer evolution</h3>
+            <p>Computational approaches connecting molecular perturbations, tumour phenotypes and therapeutic response.</p>
+            <ul class="tags" aria-label="Topics"><li>Multi-omics</li><li>Networks</li><li>Precision oncology</li></ul>
+          </article>
+          <article class="research-card">
+            <span class="card-index">C</span>
+            <h3>Genome evolution</h3>
+            <p>DNA sequence symmetries, Chargaff's second parity rule, genome stability and transposable-element evolution.</p>
+            <ul class="tags" aria-label="Topics"><li>Genomics</li><li>Symmetry</li><li>Evolution</li></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-tinted" id="projects">
+        <div class="shell">
+          <div class="section-heading">
+            <p class="section-number">02</p>
+            <div>
+              <p class="eyebrow">Selected projects</p>
+              <h2>Open tools and active research.</h2>
+            </div>
+          </div>
+
+          <div class="project-list">
+            <article class="project-row">
+              <div class="project-title"><span>01</span><h3>LLMsFOLD</h3></div>
+              <p>Language-model-guided exploration for structure-based molecular design and therapeutic discovery.</p>
+              <div class="project-meta"><span>Python</span><span>Generative AI</span></div>
+              <a href="https://github.com/tacclab/LLMsFold" aria-label="Open the LLMsFOLD repository">Repository ↗</a>
+            </article>
+            <article class="project-row">
+              <div class="project-title"><span>02</span><h3>GBRAP</h3></div>
+              <p>Genome-scale statistics and comparative analysis across high-quality RefSeq assemblies.</p>
+              <div class="project-meta"><span>Python</span><span>Genomics</span></div>
+              <a href="https://github.com/tacclab/GBRAP" aria-label="Open the GBRAP repository">Repository ↗</a>
+            </article>
+            <article class="project-row">
+              <div class="project-title"><span>03</span><h3>Bio Dataset Manager</h3></div>
+              <p>Encoding and data-management tools for DNA, protein and molecular machine-learning workflows.</p>
+              <div class="project-meta"><span>Python</span><span>Data tools</span></div>
+              <a href="https://github.com/tacclab/bio_dataset_manager" aria-label="Open the Bio Dataset Manager repository">Repository ↗</a>
+            </article>
+            <article class="project-row">
+              <div class="project-title"><span>04</span><h3>TumFlow</h3></div>
+              <p>Flow-based generative modelling for cancer research and therapeutic discovery.</p>
+              <div class="project-meta"><span>Research</span><span>In development</span></div>
+              <span class="project-status">Active project</span>
+            </article>
+          </div>
+
+          <div class="lab-callout">
+            <div>
+              <p class="eyebrow">Research group</p>
+              <h3>More work lives at TACC Lab.</h3>
+              <p>Open-source AI for genomics, cancer research and pharmaceutical discovery.</p>
+            </div>
+            <div class="lab-actions">
+              <a class="button primary" href="https://github.com/tacclab">GitHub organisation ↗</a>
+              <a class="button secondary" href="https://tacclab.org/">Group website ↗</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section shell" id="teaching">
+        <div class="section-heading">
+          <p class="section-number">03</p>
+          <div>
+            <p class="eyebrow">Teaching</p>
+            <h2>From biological questions to reproducible code.</h2>
+          </div>
+        </div>
+
+        <div class="teaching-layout">
+          <p class="teaching-intro">My teaching connects molecular biology, genomics and practical computation, with an emphasis on understanding the biological question before choosing the model.</p>
+          <div class="course-list">
+            <article><span>Course</span><h3>Genomics of Nutrition</h3><p>Genome-scale approaches to nutrition, phenotype and health.</p></article>
+            <article><span>Course</span><h3>Applied Bioinformatics</h3><p>Reproducible analysis of biological sequences and omics data.</p></article>
+            <article><span>Course</span><h3>Molecular Biology</h3><p>Molecular mechanisms, regulation and experimental interpretation.</p></article>
+            <article><span>Doctoral training</span><h3>Introduction to Python</h3><p>Practical programming foundations for researchers.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="contact">
+        <div class="shell contact-grid">
+          <div>
+            <p class="eyebrow">Contact</p>
+            <h2>Research, teaching and collaboration.</h2>
+            <p>I welcome conversations around generative AI for biology, genome evolution and open computational research.</p>
+            <a class="button light" href="mailto:cristian.taccioli@unipd.it">cristian.taccioli@unipd.it</a>
+          </div>
+          <div class="link-columns">
+            <div>
+              <p class="link-heading">Academic</p>
+              <a href="https://www.unipd.it/en/contatti/rubrica/?checkout=cerca&amp;detail=Y&amp;key=886E5AC698AAC3B06667554C8AAFE1D8&amp;persona=TACCIOLI&amp;ruolo=1">University of Padova ↗</a>
+              <a href="https://scholar.google.com/citations?hl=en&amp;user=UYiLQVYAAAAJ">Google Scholar ↗</a>
+              <a href="https://orcid.org/0000-0003-2995-5612">ORCID ↗</a>
+            </div>
+            <div>
+              <p class="link-heading">Open source</p>
+              <a href="https://github.com/tacc-code-tacclab">Personal GitHub ↗</a>
+              <a href="https://github.com/tacclab">TACC Lab GitHub ↗</a>
+              <a href="https://tacclab.org/">TACC Lab website ↗</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="shell">
+        <p>© <span id="year"></span> Cristian Taccioli</p>
+        <a href="#top">Back to top ↑</a>
+      </div>
+    </footer>
+  </body>
+</html>
