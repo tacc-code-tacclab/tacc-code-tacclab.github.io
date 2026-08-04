@@ -11,7 +11,7 @@
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="inferno.css?v=20260804-pixel2" />
+    <link rel="stylesheet" href="inferno.css?v=20260805-pixel5" />
     <script src="inferno.js?v=20260805-pixel4" defer></script>
     <title>Ulisse (Nessuno) — Pixel Edition</title>
   </head>
@@ -41,7 +41,7 @@
               <button type="button" data-mode="1"><b>1</b> ONE PLAYER</button>
               <button type="button" data-mode="2"><b>2</b> TWO PLAYERS</button>
             </div>
-            <p class="keyline">P1: A D W · P2: ← → ↑ · R: RETRY · ESC: PAUSE</p>
+            <p class="keyline">KEYBOARD: A D W / ARROWS · MOUSE + PHONE: USE THE LARGE CONTROLS BELOW</p>
           </div>
 
           <div class="overlay compact" id="pause" hidden>
@@ -80,6 +80,53 @@
           </div>
         </div>
         <p class="rotate-note" id="rotateNote">On a phone, use landscape mode for the largest controls.</p>
+      </section>
+
+      <section class="control-manual" id="controls" aria-labelledby="controls-title">
+        <header>
+          <p>HOW TO PLAY</p>
+          <h2 id="controls-title">Choose your controls.</h2>
+        </header>
+
+        <div class="control-grid">
+          <article>
+            <span class="control-number">01 · KEYBOARD</span>
+            <h3>One player</h3>
+            <dl>
+              <div><dt>Move</dt><dd><kbd>A</kbd> <kbd>D</kbd> or <kbd>←</kbd> <kbd>→</kbd></dd></div>
+              <div><dt>Jump</dt><dd><kbd>W</kbd> or <kbd>↑</kbd></dd></div>
+              <div><dt>Retry</dt><dd><kbd>R</kbd></dd></div>
+              <div><dt>Pause</dt><dd><kbd>Esc</kbd></dd></div>
+            </dl>
+            <p>In two-player mode, P1 uses <strong>A D W</strong> and P2 uses the <strong>arrow keys</strong>.</p>
+          </article>
+
+          <article>
+            <span class="control-number">02 · MOUSE</span>
+            <h3>Click to keep moving</h3>
+            <dl>
+              <div><dt>Move</dt><dd>Click <kbd>◀</kbd> or <kbd>▶</kbd></dd></div>
+              <div><dt>Stop</dt><dd>Click the active direction again</dd></div>
+              <div><dt>Jump</dt><dd>Click <kbd>JUMP ▲</kbd> while moving</dd></div>
+              <div><dt>Retry</dt><dd>Click <kbd>RETRY</kbd></dd></div>
+            </dl>
+            <p>Clicking the opposite direction changes course immediately.</p>
+          </article>
+
+          <article>
+            <span class="control-number">03 · SMARTPHONE</span>
+            <h3>Use both thumbs</h3>
+            <dl>
+              <div><dt>Move</dt><dd>Hold <kbd>◀</kbd> or <kbd>▶</kbd> with your left thumb</dd></div>
+              <div><dt>Jump</dt><dd>Press <kbd>JUMP ▲</kbd> with your right thumb</dd></div>
+              <div><dt>Together</dt><dd>Movement and jump support multitouch</dd></div>
+              <div><dt>Best view</dt><dd>Turn the phone horizontally</dd></div>
+            </dl>
+            <p>Two-player mode adds a second, separate row of touch controls.</p>
+          </article>
+        </div>
+
+        <p class="control-warning"><strong>Odyssey rule:</strong> only in the Sirens chapter does the song intentionally reverse left and right.</p>
       </section>
 
       <section class="manifesto">
