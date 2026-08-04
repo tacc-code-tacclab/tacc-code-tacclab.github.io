@@ -133,16 +133,18 @@ button {
 }
 
 .brand-mark {
-  display: grid;
-  width: 2.45rem;
-  height: 2.45rem;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  display: block;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  border-radius: 0.78rem;
+  box-shadow: 0 8px 22px rgba(4, 47, 40, 0.18);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.brand:hover .brand-mark {
+  transform: rotate(-3deg) scale(1.04);
+  box-shadow: 0 11px 28px rgba(4, 47, 40, 0.24);
 }
 
 .brand-name {
@@ -269,6 +271,67 @@ h3 {
   margin: 0 0 2rem;
   color: var(--muted);
   font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+}
+
+.award-badge {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 2rem;
+  padding: 0.58rem 0.72rem 0.58rem 0.58rem;
+  border: 1px solid color-mix(in srgb, var(--accent), var(--line) 55%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft), var(--surface) 42%);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent), transparent 90%);
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.award-badge:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--accent), transparent 84%);
+}
+
+.award-symbol {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--dark);
+  color: var(--warm);
+  font-size: 0.82rem;
+}
+
+.award-copy {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.55rem;
+  line-height: 1.35;
+}
+
+.award-copy strong {
+  font-size: 0.78rem;
+  letter-spacing: -0.01em;
+}
+
+.award-copy span {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.award-arrow {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .affiliations {
@@ -832,6 +895,11 @@ h3 {
     padding-block: 4rem;
   }
 
+  .award-badge {
+    align-items: flex-start;
+    border-radius: 1rem;
+  }
+
   .focus-card {
     min-height: 24rem;
   }
@@ -886,4 +954,3 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
-
