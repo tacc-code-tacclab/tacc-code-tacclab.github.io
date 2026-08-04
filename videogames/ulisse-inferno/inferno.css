@@ -158,20 +158,23 @@ canvas {
 .status span:last-child { justify-self: end; }
 
 .touch {
+  position: relative;
   display: flex;
   width: min(1120px, calc(100% - 24px));
   min-height: 72px;
   align-items: center;
   justify-content: space-between;
   margin: 24px auto 0;
+  touch-action: none;
+  user-select: none;
 }
 
 .touch-set { display: flex; align-items: center; gap: 8px; }
 .touch-set[hidden] { display: none; }
 .touch-set span { color: var(--paper); font-size: 10px; font-weight: 900; }
 .touch button {
-  width: 56px;
-  height: 50px;
+  width: 64px;
+  height: 58px;
   border: 4px solid var(--ink);
   background: var(--field);
   box-shadow: 5px 5px 0 var(--ink);
@@ -179,11 +182,24 @@ canvas {
   cursor: pointer;
   font-size: 18px;
   font-weight: 900;
+  touch-action: none;
 }
 .touch button:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
-.touch .jump { clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 16px; }
+.touch .jump { width: 78px; background: var(--paper); }
+.touch .jump span { display: block; margin-bottom: 2px; font-size: 8px; }
 .touch .restart { width: 70px; color: var(--deep); font-size: 9px; line-height: 1.25; }
 kbd { font: inherit; }
+
+.rotate-note {
+  width: min(1120px, calc(100% - 24px));
+  margin: 10px auto 0;
+  color: var(--paper);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+}
 
 .manifesto {
   display: grid;
@@ -223,7 +239,7 @@ footer {
   letter-spacing: .08em;
 }
 
-@media (max-width: 680px) {
+@media (max-width: 680px), (pointer: coarse) {
   .topbar { grid-template-columns: 1fr 1fr; }
   .topbar > span { display: none; }
   .intro { min-height: 42vh; padding-top: 50px; }
@@ -235,11 +251,50 @@ footer {
   .mode-buttons button { min-width: 112px; padding: 7px; border-width: 3px; font-size: 9px; }
   .status { grid-template-columns: 1fr auto; }
   .status strong { display: none; }
-  .touch { align-items: flex-start; }
-  .touch-set { display: grid; grid-template-columns: repeat(3, 42px); gap: 5px; }
-  .touch-set span { grid-column: 1 / -1; }
-  .touch button { width: 42px; height: 42px; border-width: 3px; box-shadow: 3px 3px 0 var(--ink); }
-  .touch .restart { align-self: flex-end; width: 50px; }
+  .machine { padding-bottom: max(34px, env(safe-area-inset-bottom)); }
+  .touch {
+    width: calc(100% - 16px);
+    min-height: 104px;
+    align-items: center;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .touch-set {
+    display: grid;
+    width: 100%;
+    align-items: center;
+    grid-template-columns: min(21vw, 78px) min(21vw, 78px) 1fr min(25vw, 100px);
+    gap: 7px;
+  }
+  .touch-set > span { display: none; }
+  .touch-set .jump { grid-column: 4; }
+  .touch-set[hidden] { display: none; }
+  .touch button {
+    width: 100%;
+    min-width: 58px;
+    height: 76px;
+    border-width: 4px;
+    box-shadow: 5px 5px 0 var(--ink);
+    font-size: 25px;
+  }
+  .touch .jump { width: 100%; height: 92px; }
+  .touch .jump span { font-size: 10px; }
+  .touch .restart {
+    position: absolute;
+    top: 21px;
+    left: 50%;
+    width: 58px;
+    min-width: 0;
+    height: 54px;
+    transform: translateX(-50%);
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 8px;
+  }
+  .touch .restart:active { transform: translate(calc(-50% + 2px), 2px); }
+  body[data-mode="2"] .touch { min-height: 220px; }
+  body[data-mode="2"] .touch .restart { top: 84px; }
+  .rotate-note { display: block; }
   .manifesto { grid-template-columns: 1fr; }
   .manifesto div { max-width: 48ch; }
   .editions { align-items: flex-start; flex-direction: column; gap: 12px; }
@@ -249,6 +304,16 @@ footer {
 @media (pointer: fine) and (min-width: 900px) {
   .touch { min-height: 36px; }
   .touch-set { opacity: .44; }
+  .rotate-note { display: none; }
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .intro { min-height: 72vh; }
+  .screen-wrap { width: min(850px, calc(100% - 16px)); }
+  .touch { width: min(850px, calc(100% - 24px)); }
+  .touch button { height: 68px; }
+  .touch .jump { height: 76px; }
+  .rotate-note { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
