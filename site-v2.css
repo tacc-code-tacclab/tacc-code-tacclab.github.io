@@ -978,6 +978,17 @@ h3 {
   color: #fff;
 }
 
+.game-showcase .button.inferno {
+  border-color: #e86455;
+  background: #760a12;
+  color: #fff4ec;
+}
+
+.game-showcase .button.inferno:hover {
+  background: #e86455;
+  color: #090607;
+}
+
 .game-preview {
   position: relative;
   display: flex;
