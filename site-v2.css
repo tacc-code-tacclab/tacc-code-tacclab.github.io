@@ -899,6 +899,276 @@ h3 {
   font-weight: 750;
 }
 
+.game-showcase {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  border: 1px solid color-mix(in srgb, var(--dark), var(--line) 35%);
+  border-radius: calc(var(--radius) * 1.15);
+  background: var(--dark);
+  box-shadow: var(--shadow);
+}
+
+.game-copy {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: clamp(1.8rem, 5vw, 4rem);
+  color: #eef5f1;
+}
+
+.game-kicker {
+  margin: 0 0 auto;
+  color: var(--warm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.game-copy h3 {
+  max-width: 9ch;
+  margin: clamp(3rem, 7vw, 6rem) 0 1rem;
+  color: #fff;
+  font-size: clamp(2.6rem, 5.5vw, 5.4rem);
+  line-height: 0.92;
+}
+
+.game-copy h3 em {
+  display: block;
+  margin-top: 0.28em;
+  color: #7bddce;
+  font-size: 0.45em;
+  font-style: normal;
+  letter-spacing: -0.025em;
+}
+
+.game-description {
+  max-width: 42ch;
+  margin: 0 0 1.6rem;
+  color: #b7c9c5;
+  font-size: 0.95rem;
+}
+
+.game-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.game-facts span {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #49605c;
+  border-radius: 999px;
+  color: #d0ddd9;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.game-showcase .button.secondary {
+  border-color: #516764;
+  color: #fff;
+}
+
+.game-preview {
+  position: relative;
+  display: flex;
+  min-height: 42rem;
+  flex-direction: column;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: #dce7df;
+  color: #10201e;
+  text-decoration: none;
+  isolation: isolate;
+}
+
+.game-preview::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(rgba(16, 32, 30, 0.06) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem,
+    linear-gradient(90deg, rgba(16, 32, 30, 0.06) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem;
+  content: "";
+}
+
+.game-preview-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: auto;
+  color: #40504d;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-preview-label::after {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--dark);
+  color: var(--warm);
+  content: "↗";
+  font-family: Inter, sans-serif;
+  font-size: 0.9rem;
+  transition: transform 160ms ease;
+}
+
+.game-preview:hover .game-preview-label::after {
+  transform: translate(2px, -2px);
+}
+
+.game-preview-screen {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-block: clamp(2rem, 6vw, 5rem) 2rem;
+  border: 1px solid #69807b;
+  border-radius: 0.8rem;
+  background: linear-gradient(#9cc7c4 0 62%, #2e6768 62% 100%);
+  box-shadow: 0 22px 50px rgba(20, 61, 57, 0.16);
+}
+
+.game-preview-screen::before,
+.game-preview-screen::after {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+}
+
+.game-preview-screen::before {
+  top: 13%;
+  right: 11%;
+  width: 11%;
+  aspect-ratio: 1;
+  background: #eef6c1;
+  box-shadow: 0 0 0 1.2rem rgba(238, 246, 193, 0.13);
+}
+
+.game-preview-screen::after {
+  right: -8%;
+  bottom: 25%;
+  width: 48%;
+  height: 26%;
+  border-radius: 55% 0 0 0;
+  background: #3f6a59;
+}
+
+.preview-platform {
+  position: absolute;
+  z-index: 2;
+  bottom: 18%;
+  height: 13%;
+  border-top: 4px solid #d1b16f;
+  background: #263f3b;
+}
+
+.platform-one {
+  left: 0;
+  width: 35%;
+}
+
+.platform-two {
+  right: 0;
+  width: 53%;
+}
+
+.preview-waves {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 21%;
+  opacity: 0.5;
+  background: repeating-radial-gradient(ellipse at 50% 0, transparent 0 9px, #c8e2da 10px 11px, transparent 12px 25px);
+}
+
+.preview-trap {
+  position: absolute;
+  z-index: 3;
+  right: 31%;
+  bottom: 31%;
+  width: 10%;
+  height: 7%;
+  background: repeating-linear-gradient(70deg, transparent 0 9px, #e6eee7 10px 17px, transparent 18px 20px);
+  clip-path: polygon(0 100%, 10% 0, 22% 100%, 37% 0, 52% 100%, 68% 0, 82% 100%, 100% 0, 100% 100%);
+}
+
+.preview-door {
+  position: absolute;
+  z-index: 3;
+  right: 6%;
+  bottom: 31%;
+  width: 7%;
+  height: 22%;
+  border: 5px solid #d6ff5f;
+  border-bottom: 0;
+  background: #203330;
+}
+
+.preview-hero {
+  position: absolute;
+  z-index: 4;
+  bottom: 31%;
+  left: 23%;
+  width: 3.2%;
+  height: 16%;
+  border-radius: 45% 45% 15% 15%;
+  background: linear-gradient(to bottom, #e2cca1 0 28%, #9c3d34 29% 76%, #d5b35e 77% 84%, #e2cca1 85%);
+  box-shadow: -4px -5px 0 -1px #405b57;
+  transform-origin: bottom;
+  transition: transform 180ms ease;
+}
+
+.game-preview:hover .preview-hero {
+  transform: translateY(-8px) rotate(2deg);
+}
+
+.game-route {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  gap: 0.65rem;
+  color: #465753;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.59rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-route i {
+  position: relative;
+  height: 1px;
+  background: #8ca19c;
+}
+
+.game-route i::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+  transform: translateY(-50%);
+}
+
 .section-dark {
   background: var(--dark);
   color: #f1f7f4;
@@ -1007,6 +1277,14 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .game-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .game-preview {
+    min-height: 34rem;
+  }
+
   .teaching-intro {
     max-width: 55ch;
   }
@@ -1096,6 +1374,18 @@ h3 {
     flex-direction: column;
   }
 
+  .game-copy h3 {
+    margin-top: 3rem;
+  }
+
+  .game-preview {
+    min-height: 27rem;
+  }
+
+  .game-preview-screen {
+    margin-block: 2.5rem 1.5rem;
+  }
+
   .course-list,
   .lesson-header,
   .lesson-languages,
@@ -1136,4 +1426,3 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
-
