@@ -909,6 +909,10 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.game-showcase + .game-showcase {
+  margin-top: 1.5rem;
+}
+
 .game-copy {
   display: flex;
   align-items: flex-start;
@@ -988,6 +992,130 @@ h3 {
   background: #e86455;
   color: #090607;
 }
+
+.lovecraft-showcase {
+  border-color: #294844;
+  background: #04090b;
+}
+
+.game-copy h3.lovecraft-title {
+  max-width: none;
+  color: #d6cfb8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.8rem, 6vw, 5.8rem);
+  font-variant: small-caps;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.lovecraft-title span {
+  color: #7fe0c0;
+  text-shadow: 0 0 28px rgba(127, 224, 192, 0.22);
+}
+
+.game-showcase .lovecraft-button {
+  border-color: #7fe0c0;
+  background: #173b38;
+  color: #e8f5ef;
+}
+
+.game-showcase .lovecraft-button:hover {
+  background: #7fe0c0;
+  color: #07100f;
+}
+
+.lovecraft-preview {
+  background: #0a1517;
+  color: #d6cfb8;
+}
+
+.lovecraft-preview::before {
+  background:
+    linear-gradient(rgba(127, 224, 192, 0.035) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem,
+    linear-gradient(90deg, rgba(127, 224, 192, 0.035) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem;
+}
+
+.lovecraft-preview .game-preview-label {
+  color: #8a9b91;
+}
+
+.lovecraft-preview .game-preview-label::after {
+  background: #7fe0c0;
+  color: #07100f;
+}
+
+.lovecraft-screen {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-block: clamp(2rem, 6vw, 5rem) 2rem;
+  border: 1px solid #35544e;
+  background:
+    radial-gradient(circle at 72% 22%, rgba(127, 224, 192, 0.14), transparent 14%),
+    linear-gradient(#071013 0 55%, #132725 55% 100%);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.48);
+  isolation: isolate;
+}
+
+.lc-moon {
+  position: absolute;
+  top: 12%;
+  right: 18%;
+  width: 10%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #a9c8b9;
+  box-shadow: 0 0 0 1.3rem rgba(127, 224, 192, 0.045), 0 0 45px rgba(127, 224, 192, 0.2);
+}
+
+.lc-block {
+  position: absolute;
+  z-index: 3;
+  width: 18%;
+  aspect-ratio: 1;
+  border: 1px solid #41625a;
+  background: #1a3531;
+  box-shadow: inset -12px -12px 0 #102421, inset 8px 8px 0 #25443e;
+}
+
+.block-one { bottom: 4%; left: 3%; }
+.block-two { bottom: 4%; left: 21%; }
+.block-three { bottom: 22%; left: 21%; }
+
+.lc-tentacle {
+  position: absolute;
+  z-index: 2;
+  bottom: -20%;
+  width: 8%;
+  height: 64%;
+  border: 8px solid #274c45;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 80% 0 0;
+  transform-origin: bottom;
+  transition: transform 450ms ease;
+}
+
+.tentacle-one { right: 16%; transform: rotate(12deg); }
+.tentacle-two { right: 3%; height: 46%; transform: rotate(-18deg) scaleX(-1); }
+.lovecraft-preview:hover .tentacle-one { transform: rotate(3deg); }
+.lovecraft-preview:hover .tentacle-two { transform: rotate(-28deg) scaleX(-1); }
+
+.lc-figure {
+  position: absolute;
+  z-index: 5;
+  right: 42%;
+  bottom: 12%;
+  width: 3%;
+  height: 18%;
+  background: #05090a;
+  box-shadow: -5px -7px 0 -1px #05090a;
+}
+
+.lovecraft-preview .game-route { color: #91a69f; }
+.lovecraft-preview .game-route i { background: #35544e; }
+.lovecraft-preview .game-route i::after { background: #7fe0c0; }
 
 .game-preview {
   position: relative;
