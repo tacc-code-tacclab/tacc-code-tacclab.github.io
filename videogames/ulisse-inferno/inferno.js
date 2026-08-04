@@ -155,7 +155,21 @@
     if (!state.running || state.winner >= 0) return;
     state.paused = typeof force === "boolean" ? force : !state.paused;
     ui.pause.hidden = !state.paused;
-    if (!state.paused) { state.last=performance.now(); canvas.focus({preventScroll:true}); }
+    if (!state.paused) resumeGame();
+  }
+
+  function releaseAllControls() {
+    state.keys.forEach(k => { k.left=false; k.right=false; k.jump=false; });
+  }
+
+  function resumeGame() {
+    if (!state.running) return;
+    releaseAllControls();
+    state.paused = false;
+    ui.pause.hidden = true;
+    state.last = performance.now();
+    enableAudio();
+    canvas.focus({preventScroll:true});
   }
 
   function enableAudio() {
@@ -446,6 +460,7 @@
   });
 
   document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>startGame(Number(b.dataset.mode))));
+  const activePointers = new Map();
   document.querySelectorAll(".touch [data-player]").forEach(b=>{
     const player=Number(b.dataset.player),key=b.dataset.key;
     const down=e=>{
@@ -455,20 +470,31 @@
         setKey(player,key==="left"?"right":"left",false);
       }else{
         b.setPointerCapture?.(e.pointerId);
+        activePointers.set(e.pointerId,{player,key});
         setKey(player,key,true);
       }
     };
     const up=e=>{
       e.preventDefault();
       if(e.pointerType!=="mouse"||key==="jump")setKey(player,key,false);
+      activePointers.delete(e.pointerId);
     };
     b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);
+    b.addEventListener("lostpointercapture",e=>{
+      const active=activePointers.get(e.pointerId);
+      if(active){setKey(active.player,active.key,false);activePointers.delete(e.pointerId);}
+    });
   });
   ui.restart.addEventListener("click",()=>retry(false));
-  ui.resume.addEventListener("click",()=>togglePause(false));
+  ui.resume.addEventListener("click",resumeGame);
+  ui.resume.addEventListener("pointerup",e=>{e.preventDefault();resumeGame();});
   ui.again.addEventListener("click",()=>{ui.ending.hidden=true;startGame(state.mode);});
   ui.mute.addEventListener("click",()=>{state.muted=!state.muted;ui.mute.textContent=`SOUND: ${state.muted?"OFF":"ON"}`;ui.mute.setAttribute("aria-pressed",String(state.muted));if(!state.muted){enableAudio();beep(220,.05,260);}});
-  window.addEventListener("blur",()=>{if(state.running&&!state.paused)togglePause(true);});
+  window.addEventListener("blur",releaseAllControls);
+  document.addEventListener("visibilitychange",()=>{
+    releaseAllControls();
+    if(document.visibilityState==="hidden"&&state.running&&!state.paused)togglePause(true);
+  });
 
   state.level=cloneLevel(0);state.players=[makePlayer(0)];draw();requestAnimationFrame(frame);
 })();
