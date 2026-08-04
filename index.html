@@ -19,7 +19,7 @@
     <meta name="twitter:card" content="summary" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="site.css?v=20260804-1" />
+    <link rel="stylesheet" href="site-v2.css" />
     <script>
       (() => {
         const saved = localStorage.getItem("theme");
@@ -217,11 +217,55 @@
           <p class="teaching-intro">My teaching connects molecular biology, genomics and practical computation, with an emphasis on understanding the biological question before choosing the model.</p>
           <div class="course-list">
             <article><span>Course</span><h3>Genomics of Nutrition</h3><p>Genome-scale approaches to nutrition, phenotype and health.</p></article>
-            <article><span>Course</span><h3>Applied Bioinformatics</h3><p>Reproducible analysis of biological sequences and omics data.</p></article>
+            <article class="course-featured">
+              <span>Course</span>
+              <h3>Applied Bioinformatics</h3>
+              <p>Reproducible analysis of biological sequences and omics data.</p>
+              <a class="course-link" href="#perceptron-to-llms">Featured lesson ↓</a>
+            </article>
             <article><span>Course</span><h3>Molecular Biology</h3><p>Molecular mechanisms, regulation and experimental interpretation.</p></article>
             <article><span>Doctoral training</span><h3>Introduction to Python</h3><p>Practical programming foundations for researchers.</p></article>
           </div>
         </div>
+
+        <article class="lesson-feature" id="perceptron-to-llms">
+          <header class="lesson-header">
+            <div>
+              <p class="eyebrow">Applied Bioinformatics · Featured lesson</p>
+              <h3>From the Perceptron to LLMs</h3>
+            </div>
+            <p class="lesson-subtitle">A guided tour through neural networks</p>
+          </header>
+
+          <div class="lesson-languages">
+            <section lang="it" aria-labelledby="lesson-it-title">
+              <p class="language-label">Italiano · 55 pagine</p>
+              <h4 id="lesson-it-title">Dal perceptron a ChatGPT</h4>
+              <p>Un percorso introduttivo e operativo che costruisce una rete neurale passo dopo passo, fino ad arrivare a transformer e LLM. Con esempi, figure e calcoli da rifare a mano.</p>
+              <a class="lesson-download" href="teaching/from-perceptron-to-llms-italian.pdf" target="_blank" rel="noopener">
+                Apri la dispensa italiana <span>PDF ↗</span>
+              </a>
+            </section>
+
+            <section lang="en" aria-labelledby="lesson-en-title">
+              <p class="language-label">English · 61 pages</p>
+              <h4 id="lesson-en-title">From the Perceptron to ChatGPT</h4>
+              <p>An introductory, hands-on journey that builds a neural network step by step and leads to transformers and LLMs. Includes worked examples, figures and calculations to reproduce by hand.</p>
+              <a class="lesson-download" href="teaching/from-perceptron-to-llms-english.pdf" target="_blank" rel="noopener">
+                Open the English handout <span>PDF ↗</span>
+              </a>
+            </section>
+          </div>
+
+          <ul class="lesson-topics" aria-label="Lesson topics">
+            <li>Perceptron</li>
+            <li>Backpropagation</li>
+            <li>Neural networks</li>
+            <li>Attention</li>
+            <li>Transformers</li>
+            <li>LLMs</li>
+          </ul>
+        </article>
       </section>
 
       <section class="section section-dark" id="contact">
