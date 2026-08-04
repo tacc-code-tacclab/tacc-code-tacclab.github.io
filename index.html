@@ -19,10 +19,7 @@
     <meta name="twitter:card" content="summary" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="site.css?v=20260804-1" />
     <script>
       (() => {
         const saved = localStorage.getItem("theme");
@@ -84,10 +81,10 @@
     <main id="main">
       <section class="hero shell" id="top">
         <div class="hero-copy">
-          <p class="eyebrow"><span>Computational biology</span><span>Generative AI</span><span>Genomics</span></p>
+          <p class="eyebrow">Computational biology · Generative AI · Genomics</p>
           <h1>Generating molecules, decoding genomes and modelling cancer evolution <em>with AI.</em></h1>
           <p class="hero-intro">
-            I develop generative and computational methods that move across biological scales—from chemical space to genomes and tumour evolution.
+            I develop generative and computational methods across biological scales—from chemical space to genomes and tumour evolution.
           </p>
 
           <a class="award-badge" href="https://about.fb.com/news/2025/04/llama-impact-grant-recipients/" aria-label="Read Meta's announcement of the 2025 Llama Impact Grant winners">
@@ -110,29 +107,17 @@
           </div>
         </div>
 
-        <aside class="research-map" aria-label="Artificial intelligence connecting molecules, genomes and cancer evolution">
-          <div class="map-header">
-            <span>Cross-scale research</span>
-            <span>AI / Biology</span>
+        <aside class="focus-card" aria-label="Current research focus">
+          <div class="focus-orbit" aria-hidden="true">
+            <span class="orbit orbit-one"></span>
+            <span class="orbit orbit-two"></span>
+            <span class="orbit-dot dot-one"></span>
+            <span class="orbit-dot dot-two"></span>
+            <span class="focus-core">AI<br />×<br />BIO</span>
           </div>
-
-          <div class="map-stage" aria-hidden="true">
-            <svg class="map-lines" viewBox="0 0 520 520" focusable="false">
-              <circle class="map-ring map-ring-outer" cx="260" cy="260" r="205" />
-              <circle class="map-ring map-ring-inner" cx="260" cy="260" r="128" />
-              <path class="map-axis" d="M100 147L260 260L418 177M260 260L129 393" />
-              <path class="map-trajectory" d="M78 309C119 102 353 42 450 194C524 311 393 475 218 448C103 430 42 369 78 309Z" />
-            </svg>
-
-            <div class="map-core"><span>method</span><strong>AI</strong></div>
-            <div class="map-node node-molecules"><span>01</span><strong>Molecules</strong></div>
-            <div class="map-node node-genomes"><span>02</span><strong>Genomes</strong></div>
-            <div class="map-node node-cancer"><span>03</span><strong>Cancer evolution</strong></div>
-          </div>
-
-          <div class="map-footer">
-            <p>One computational language<br />across biological scales.</p>
-            <span>Research / 2026</span>
+          <div class="focus-meta">
+            <p class="label">Current focus</p>
+            <p>Generative models that connect molecular design with biological phenotype.</p>
           </div>
         </aside>
       </section>
@@ -142,7 +127,7 @@
           <p class="section-number">01</p>
           <div>
             <p class="eyebrow">Research</p>
-            <h2>Biology across scales.</h2>
+            <h2>Biology is a design space.</h2>
           </div>
         </div>
 
