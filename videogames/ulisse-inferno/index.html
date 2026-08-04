@@ -4,28 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#730b12" />
-    <meta name="description" content="Ulisse (Nessuno): Inferno Edition is an original red-and-black pixel platformer for one or two local players." />
+    <meta name="description" content="Ulisse (Nessuno): Pixel Edition is an original red-and-black Odyssey platformer for PC, smartphone and two local players." />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Ulisse (Nessuno) — Inferno Edition" />
+    <meta property="og:title" content="Ulisse (Nessuno) — Pixel Edition" />
     <meta property="og:description" content="Fourteen Odyssey trials, instant retries and local two-player mode. Play free in your browser." />
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="inferno.css" />
-    <script src="inferno.js" defer></script>
-    <title>Ulisse (Nessuno) — Inferno Edition</title>
+    <link rel="stylesheet" href="inferno.css?v=20260804-pixel2" />
+    <script src="inferno.js?v=20260804-pixel2" defer></script>
+    <title>Ulisse (Nessuno) — Pixel Edition</title>
   </head>
   <body>
     <header class="topbar">
       <a href="../../#videogames">← WEBSITE</a>
-      <span aria-label="Ulisse Nessuno Inferno">ULISSE <i>/ NESSUNO</i></span>
+      <span aria-label="Ulisse Nessuno Pixel Edition">ULISSE <i>/ NESSUNO</i></span>
       <button id="muteButton" type="button" aria-pressed="false">SOUND: ON</button>
     </header>
 
     <main>
       <section class="intro" aria-labelledby="title">
-        <p>AN ORIGINAL PIXEL TRIAL · 1–2 LOCAL PLAYERS</p>
-        <h1 id="title">ULISSE<br /><span>INFERNO</span></h1>
+        <p>PC + SMARTPHONE · 1–2 LOCAL PLAYERS</p>
+        <h1 id="title">ULISSE<br /><span>PIXEL</span></h1>
         <p>THE ODYSSEY, REDUCED TO ITS MOST DANGEROUS PIXELS.</p>
       </section>
 
@@ -64,28 +64,29 @@
           <span id="scoreStatus">FALLS 00</span>
         </div>
 
-        <div class="touch" aria-label="Touch controls">
+        <div class="touch" aria-label="Large touch controls">
           <div class="touch-set p1">
             <span>P1</span>
             <button type="button" data-player="0" data-key="left" aria-label="Player one left">◀</button>
             <button type="button" data-player="0" data-key="right" aria-label="Player one right">▶</button>
-            <button class="jump" type="button" data-player="0" data-key="jump" aria-label="Player one jump">▲</button>
+            <button class="jump" type="button" data-player="0" data-key="jump" aria-label="Player one jump"><span>JUMP</span>▲</button>
           </div>
           <button class="restart" id="restartButton" type="button">RETRY<br /><kbd>R</kbd></button>
           <div class="touch-set p2" id="touchP2" hidden>
             <span>P2</span>
             <button type="button" data-player="1" data-key="left" aria-label="Player two left">◀</button>
             <button type="button" data-player="1" data-key="right" aria-label="Player two right">▶</button>
-            <button class="jump" type="button" data-player="1" data-key="jump" aria-label="Player two jump">▲</button>
+            <button class="jump" type="button" data-player="1" data-key="jump" aria-label="Player two jump"><span>JUMP</span>▲</button>
           </div>
         </div>
+        <p class="rotate-note" id="rotateNote">On a phone, use landscape mode for the largest controls.</p>
       </section>
 
       <section class="manifesto">
         <p>FROM TROY TO ITHACA</p>
-        <h2>Fourteen rooms.<br />No decorative pixels.</h2>
+        <h2>Fourteen rooms.<br />One living myth.</h2>
         <div>
-          <p>Each single-screen chapter translates an episode of the Odyssey into a compact mechanical trap. The visual system uses integer pixels, three principal colours and no image assets.</p>
+          <p>Each single-screen chapter translates an episode of the Odyssey into a compact mechanical trap, with its own creatures, ships, waves and landmarks. Every element is drawn as integer pixel art.</p>
           <p>Solo mode follows Odysseus. In two-player mode, Odysseus and Athena race locally on one keyboard; the first to the door earns the chapter.</p>
         </div>
       </section>
