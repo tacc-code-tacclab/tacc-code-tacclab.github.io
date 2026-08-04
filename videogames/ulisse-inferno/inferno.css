@@ -201,6 +201,73 @@ kbd { font: inherit; }
   text-transform: uppercase;
 }
 
+.control-manual {
+  width: min(1120px, calc(100% - 32px));
+  padding: clamp(60px, 9vw, 110px) 0 0;
+  margin: auto;
+}
+
+.control-manual > header {
+  display: grid;
+  align-items: end;
+  grid-template-columns: .35fr 1.65fr;
+  gap: 24px;
+  margin-bottom: 34px;
+}
+
+.control-manual > header p,
+.control-number {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.control-manual h2 {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(42px, 7vw, 78px);
+  letter-spacing: -.055em;
+  line-height: .9;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 4px solid var(--ink);
+  border-left: 4px solid var(--ink);
+}
+
+.control-grid article {
+  min-width: 0;
+  padding: clamp(20px, 3vw, 32px);
+  border-right: 4px solid var(--ink);
+  border-bottom: 4px solid var(--ink);
+  background: var(--paper);
+}
+
+.control-grid article:nth-child(2) { background: var(--field); }
+.control-grid article:nth-child(3) { background: #d84a42; }
+.control-number { display: block; color: var(--deep); }
+.control-grid h3 { margin: 34px 0 22px; font-family: Arial, Helvetica, sans-serif; font-size: clamp(22px, 3vw, 34px); letter-spacing: -.04em; }
+.control-grid dl { margin: 0; }
+.control-grid dl div { display: grid; grid-template-columns: 72px 1fr; gap: 12px; padding: 10px 0; border-top: 2px solid color-mix(in srgb, var(--ink), transparent 72%); }
+.control-grid dt { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.control-grid dd { margin: 0; font-size: 11px; font-weight: 800; line-height: 1.45; }
+.control-grid kbd { display: inline-block; min-width: 23px; padding: 2px 5px; border: 2px solid var(--ink); background: var(--white); font-weight: 900; text-align: center; }
+.control-grid article > p { margin: 22px 0 0; font-size: 11px; font-weight: 700; line-height: 1.5; }
+
+.control-warning {
+  padding: 14px 18px;
+  margin: 16px 0 0;
+  border: 4px solid var(--ink);
+  background: var(--deep);
+  color: var(--white);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .manifesto {
   display: grid;
   width: min(1120px, calc(100% - 32px));
@@ -295,6 +362,9 @@ footer {
   body[data-mode="2"] .touch { min-height: 220px; }
   body[data-mode="2"] .touch .restart { top: 84px; }
   .rotate-note { display: block; }
+  .control-manual > header { grid-template-columns: 1fr; }
+  .control-grid { grid-template-columns: 1fr; }
+  .control-grid h3 { margin-top: 20px; }
   .manifesto { grid-template-columns: 1fr; }
   .manifesto div { max-width: 48ch; }
   .editions { align-items: flex-start; flex-direction: column; gap: 12px; }
