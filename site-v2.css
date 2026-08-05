@@ -998,19 +998,40 @@ h3 {
   background: #04090b;
 }
 
+.lovecraft-showcase .game-copy {
+  container-type: inline-size;
+}
+
 .game-copy h3.lovecraft-title {
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   color: #d6cfb8;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.8rem, 6vw, 5.8rem);
+  font-size: clamp(2.3rem, 5vw, 4.3rem);
+  font-size: clamp(2.3rem, 16cqi, 4.3rem);
   font-variant: small-caps;
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.035em;
+  line-height: 0.88;
+  white-space: nowrap;
 }
 
 .lovecraft-title span {
   color: #7fe0c0;
   text-shadow: 0 0 28px rgba(127, 224, 192, 0.22);
+}
+
+.lovecraft-title small {
+  display: block;
+  margin-top: 1.2rem;
+  color: #b99a3c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.16em;
+  font-variant: normal;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .game-showcase .lovecraft-button {
