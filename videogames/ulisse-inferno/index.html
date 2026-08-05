@@ -11,8 +11,8 @@
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="inferno.css?v=20260805-machines1" />
-    <script src="inferno.js?v=20260805-machines1" defer></script>
+    <link rel="stylesheet" href="inferno.css?v=20260805-qa2" />
+    <script src="inferno.js?v=20260805-qa2" defer></script>
     <script src="../game-counter.js?v=20260805-visitors1" defer></script>
     <title>Ulisse (Nessuno) — Pixel Edition</title>
   </head>
@@ -34,6 +34,13 @@
       <section class="machine" id="machine" aria-label="Playable game">
         <div class="screen-wrap">
           <canvas id="game" width="320" height="180" tabindex="0" aria-label="Pixel platform game. Player one uses A, D, W or Space. Player two uses arrow keys."></canvas>
+
+          <div class="status" aria-live="polite">
+            <span id="chapterStatus">01 / 14 · TROY</span>
+            <strong id="chapterTitle">THE WOODEN HORSE</strong>
+            <span id="scoreStatus">FALLS 00</span>
+            <small id="storyStatus">LEAVE THE BURNING CITY.</small>
+          </div>
 
           <div class="overlay" id="menu">
             <p class="tiny">ULISSE (NESSUNO)</p>
@@ -58,12 +65,6 @@
             <p id="endingText">Fourteen trials crossed.</p>
             <button class="single-button" id="againButton" type="button">VOYAGE AGAIN</button>
           </div>
-        </div>
-
-        <div class="status" aria-live="polite">
-          <span id="chapterStatus">01 / 14 · TROY</span>
-          <strong id="chapterTitle">THE WOODEN HORSE</strong>
-          <span id="scoreStatus">FALLS 00</span>
         </div>
 
         <div class="touch" aria-label="Large touch controls">
