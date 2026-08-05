@@ -245,16 +245,22 @@
 
   function startMusic() {
     if (state.musicTimer) return;
-    state.musicTimer = window.setInterval(() => {
-      if (!state.running || state.paused || state.muted || !state.audio) return;
-      const melody = musicFamily();
-      const note = melody[state.musicStep % melody.length];
-      if (note) {
-        beep(note, .105, note, .006, state.musicStep % 4 === 0 ? "triangle" : "square");
-        if (state.musicStep % 4 === 0) beep(note / 2, .15, note / 2, .004, "square");
+    const tick = () => {
+      const progress = state.levelIndex / (LEVELS.length - 1);
+      if (state.running && !state.paused && !state.muted && state.audio) {
+        const melody = musicFamily();
+        const note = melody[state.musicStep % melody.length];
+        if (note) {
+          beep(note, .105, note, .005 + progress * .003, state.musicStep % 4 === 0 ? "triangle" : "square");
+          if (state.musicStep % 4 === 0) beep(note / 2, .15, note / 2, .0035 + progress * .0015, "square");
+          if (progress > .55 && state.musicStep % 2 === 0) beep(note * 2, .045, note * 1.8, .0025 + progress * .0015, "square");
+        }
+        state.musicStep += 1;
       }
-      state.musicStep += 1;
-    }, 155);
+      const tempo = Math.round(190 - progress * 78);
+      state.musicTimer = window.setTimeout(tick, tempo);
+    };
+    state.musicTimer = window.setTimeout(tick, 190);
   }
 
   function beep(freq,duration=.06,end=freq,volume=.027,type="square") {
@@ -504,15 +510,19 @@
 
   function drawPlayer(p) {
     if(!p.alive)return;
-    const x=px(p.x)-1,y=px(p.y)-3,walk=Math.floor(p.step/4)%2;
-    rect(x+3,y+2,5,4,C.ink);                         // head
-    rect(x+2,y+1,7,2,C.ink);                         // helmet
-    rect(x+7,y+3,1,1,C.paper);                       // face
-    rect(x+2,y+6,7,5,C.ink);                         // tunic
-    rect(x,y+7,2,4,C.ink);rect(x+9,y+7,2,4,C.ink);  // arms
-    rect(x+(walk?1:2),y+11,2,3,C.ink);               // legs
-    rect(x+(walk?7:6),y+11,2,3,C.ink);
-    if(p.id===0){rect(x+4,y-1,4,2,C.ink);rect(x+7,y-2,2,1,C.ink);} else {rect(x+1,y,9,1,C.ink);rect(x+5,y-2,1,2,C.ink);}
+    const x=px(p.x),feet=px(p.y+p.h),y=feet-15,walk=Math.floor(p.step/4)%2;
+    const eye=p.facing>0?5:2,shield=p.facing>0?0:6,spear=p.facing>0?7:-1;
+    rect(x+2,y+2,4,4,C.ink);                          // head
+    rect(x+2,y+3,4,2,C.paper);rect(x+eye,y+3,1,1,C.ink);
+    rect(x+1,y+1,6,2,C.ink);                          // Greek helmet
+    rect(x+3,y-1,3,2,C.ink);rect(x+5,y-2,2,1,C.ink); // crest
+    rect(x+2,y+6,4,5,C.ink);                          // upright torso
+    rect(x+1,y+7,1,3,C.ink);rect(x+6,y+7,1,3,C.ink); // arms
+    rect(shield,y+6,2,5,C.ink);rect(shield,y+7,1,3,C.deep);
+    rect(spear,y+4,1,8,C.ink);rect(spear-1,y+4,3,1,C.ink);
+    rect(x+(walk?1:2),y+11,2,4,C.ink);                // two close legs
+    rect(x+(walk?5:4),y+11,2,4,C.ink);
+    if(p.id===1){rect(x+3,y,1,1,C.paper);rect(x+2,y+7,4,1,C.paper);}
   }
 
   function drawHud() {
