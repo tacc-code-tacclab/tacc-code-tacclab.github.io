@@ -25,15 +25,15 @@
     { place: "ISMARUS", title: "BEFORE DAWN", story: "THE CICONES RETURN.", scene: "walls", spawn: [15,27], goal: goal(), platforms: [P(0,FLOOR,70),P(82,138,54),P(151,FLOOR,58),P(222,141,98)], hazards: [enemy(101,127,88,124,21),S(181,12,{hidden:true,trigger:165}),drop(250,25,13,13,226)] },
     { place: "LOTUS SHORE", title: "DO NOT TASTE IT", story: "MEMORY IS THE FIRST TRAP.", scene: "lotus", spawn: [15,27], goal: goal(), platforms: [P(0,FLOOR,101),P(115,FLOOR,94),P(224,FLOOR,96)], hazards: [S(77,10,{hidden:true,trigger:54}),S(161,15),enemy(241,140,233,277,15,{kind:"lotus"})] },
     { place: "CYCLOPS CAVE", title: "MY NAME IS NOBODY", story: "RIDE THE CLUB OR TAKE THE GREAT SPRING.", scene: "cave", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(76,137,43,8),P(135,121,43,8),P(194,137,42,8),P(252,FLOOR,68),P(209,104,22,6,{orbit:true,cx:220,cy:107,rx:25,ry:10,speed:1.7,phase:0})], springs: [spring(158,117,360)], hazards: [saw(222,130,7,{min:194,max:232,speed:24}),drop(143,45,12,12,151),enemy(269,137,262,289,12,{kind:"cyclops",w:10,h:14})] },
-    { place: "AEOLIA", title: "THE OPENED BAG", story: "STEP ON THE WIND-VENT. THEN FIGHT THE GUST.", scene: "wind", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,55),P(70,137,42,8),P(129,119,42,8),P(189,137,42,8),P(249,FLOOR,71)], springs: [spring(94,133,205)], hazards: [S(78,10),S(211,10,{hidden:true,trigger:194})], wind:[58,245] },
+    { place: "AEOLIA", title: "THE OPENED BAG", story: "STEP ON THE WIND-VENT. THEN FIGHT THE GUST.", scene: "wind", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,55),P(70,137,42,8),P(129,119,42,8),P(189,137,42,8),P(249,FLOOR,71)], springs: [spring(94,133,205)], hazards: [S(78,10,{y:131}),S(211,10,{hidden:true,trigger:194,y:131})], wind:[58,245] },
     { place: "TELEPYLOS", title: "HARBOUR OF GIANTS", story: "STONE FALLS FASTER THAN PRIDE.", scene: "walls", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,320)], hazards: [drop(86,21,15,15,56),drop(167,18,17,17,137,{delay:.18}),drop(248,21,15,15,218),S(129,11,{hidden:true,trigger:111}),S(282,11,{hidden:true,trigger:262})] },
-    { place: "AEAEA", title: "CIRCE'S TABLE", story: "THE FEAST REMOVES THE FLOOR.", scene: "palace", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,72),P(84,139,47,41,{vanish:true,trigger:115}),P(145,126,47,54),P(206,139,43,41,{fall:true,trigger:225,delay:.25}),P(263,FLOOR,57)], hazards: [enemy(160,115,151,181,16,{kind:"boar"}),S(180,10)] },
-    { place: "THE UNDERWORLD", title: "SPEAK WITH THE DEAD", story: "SHADOWS WALK IN RHYTHM.", scene: "underworld", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(75,138,41,42),P(130,124,39,56),P(184,138,43,42,{fall:true,trigger:208,delay:.34}),P(243,FLOOR,77)], hazards: [enemy(87,127,80,108,18,{kind:"shade"}),enemy(144,113,136,160,23,{kind:"shade"}),S(205,12,{hidden:true,trigger:190})] },
-    { place: "THE SIRENS", title: "BOUND TO THE MAST", story: "THE SONG REVERSES EVERY STEP.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,92),P(108,FLOOR,102),P(226,FLOOR,94)], hazards: [S(137,12),S(184,12,{hidden:true,trigger:163}),saw(254,143,7,{min:237,max:286,speed:25})], reverse:[102,220] },
+    { place: "AEAEA", title: "CIRCE'S TABLE", story: "THE FEAST REMOVES THE FLOOR.", scene: "palace", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,72),P(84,139,47,41,{vanish:true,trigger:115}),P(145,126,47,54),P(206,139,43,41,{fall:true,trigger:225,delay:.25}),P(263,FLOOR,57)], hazards: [enemy(160,115,151,181,16,{kind:"boar"}),S(180,10,{y:120})] },
+    { place: "THE UNDERWORLD", title: "SPEAK WITH THE DEAD", story: "SHADOWS WALK IN RHYTHM.", scene: "underworld", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(75,138,41,42),P(130,124,39,56),P(184,138,43,42,{fall:true,trigger:208,delay:.34}),P(243,FLOOR,77)], hazards: [enemy(87,127,80,108,18,{kind:"shade"}),enemy(144,113,136,160,23,{kind:"shade"}),S(205,12,{hidden:true,trigger:190,y:132})] },
+    { place: "THE SIRENS", title: "BOUND TO THE MAST", story: "LAND ON THE MIDDLE ISLAND. THEN THE SONG REVERSES YOU.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,92),P(108,FLOOR,102),P(226,FLOOR,94)], hazards: [S(137,12),S(184,12,{hidden:true,trigger:163}),saw(254,143,7,{min:237,max:286,speed:25})], reverseAt:118 },
     { place: "THE STRAIT", title: "SCYLLA AND CHARYBDIS", story: "THE WHIRLPOOL CARRIES A MOVING STONE.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,52),P(67,138,39,8),P(121,122,39,8),P(176,138,39,8),P(231,FLOOR,89),P(139,96,20,6,{orbit:true,cx:149,cy:104,rx:25,ry:13,speed:1.35,phase:1.2})], hazards: [saw(95,129,7,{min:74,max:101,speed:17}),saw(204,129,7,{min:181,max:208,speed:21}),drop(144,34,12,12,125)] },
     { place: "THRINACIA", title: "THE FORBIDDEN HERD", story: "THE SUN SEES EVERYTHING.", scene: "sun", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,320)], hazards: [enemy(77,140,60,105,14,{kind:"cattle",w:11}),S(126,14,{hidden:true,trigger:105}),enemy(190,140,175,218,18,{kind:"cattle",w:11}),S(250,14,{hidden:true,trigger:232}),drop(289,23,6,31,270,{kind:"bolt"})] },
-    { place: "OGYGIA", title: "SEVEN YEARS STILL", story: "IMMORTALITY IS ANOTHER CELL.", scene: "island", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,64),P(78,138,41,42,{vanish:true,trigger:104}),P(134,123,39,57,{fall:true,trigger:151,delay:.3}),P(188,138,41,42,{vanish:true,trigger:214}),P(244,FLOOR,76)], hazards: [S(154,10),enemy(266,140,256,288,19,{kind:"wave"})] },
-    { place: "SCHERIA", title: "THE LAST CROSSING", story: "LET THE DECK CARRY YOU.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,57),P(73,137,42,8,{move:true,min:68,max:100,speed:14}),P(137,120,40,8,{moveY:true,min:113,max:137,speed:12}),P(201,137,42,8,{move:true,min:194,max:226,speed:17}),P(260,FLOOR,60)], hazards: [S(221,10)] },
+    { place: "OGYGIA", title: "SEVEN YEARS STILL", story: "IMMORTALITY IS ANOTHER CELL.", scene: "island", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,64),P(78,138,41,42,{vanish:true,trigger:104}),P(134,123,39,57,{fall:true,trigger:151,delay:.3}),P(188,138,41,42,{vanish:true,trigger:214}),P(244,FLOOR,76)], hazards: [S(154,10,{y:117}),enemy(266,140,256,288,19,{kind:"wave"})] },
+    { place: "SCHERIA", title: "THE LAST CROSSING", story: "LET THE DECK CARRY YOU.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,57),P(73,137,42,8,{move:true,min:68,max:100,speed:14}),P(137,120,40,8,{moveY:true,min:113,max:137,speed:12}),P(201,137,42,8,{move:true,min:194,max:226,speed:17}),P(260,FLOOR,60)], hazards: [S(221,10,{y:131})] },
     { place: "ITHACA", title: "THE BOW OF ODYSSEUS", story: "PRESS THE BOW-SEAL TO OPEN THE LAST GATE.", scene: "ithaca", spawn: [14,26], goal: goal(300,126), platforms: [P(0,FLOOR,80),P(94,138,46,42),P(154,125,46,55),P(214,138,42,42),P(270,FLOOR,50)], switches: [plate(169,123,"bow")], gates: [gate(260,103,6,48,"bow")], hazards: [enemy(105,127,100,128,20,{kind:"suitor"}),enemy(165,114,160,188,23,{kind:"suitor"}),enemy(226,127,220,245,26,{kind:"suitor"}),S(69,10,{hidden:true,trigger:51})], final:true },
   ];
 
@@ -42,14 +42,14 @@
     endingText: document.querySelector("#endingText"), resume: document.querySelector("#resumeButton"), again: document.querySelector("#againButton"),
     restart: document.querySelector("#restartButton"), mute: document.querySelector("#muteButton"), touchP2: document.querySelector("#touchP2"),
     fullscreen: document.querySelector("#fullscreenButton"), machine: document.querySelector("#machine"),
-    chapter: document.querySelector("#chapterStatus"), title: document.querySelector("#chapterTitle"), score: document.querySelector("#scoreStatus"),
+    chapter: document.querySelector("#chapterStatus"), title: document.querySelector("#chapterTitle"), story: document.querySelector("#storyStatus"), score: document.querySelector("#scoreStatus"),
   };
 
   const state = {
     running: false, paused: false, muted: false, mode: 1, levelIndex: 0, level: null, players: [],
     keys: [{left:false,right:false,jump:false},{left:false,right:false,jump:false}],
     falls: 0, score: [0,0], last: performance.now(), token: 0, start: 0, flash: 0, winner: -1, audio: null,
-    intro: 0, musicTimer: 0, musicStep: 0, footstep: [0,0], levelDeaths: Array(14).fill(0),
+    intro: 0, musicTimer: 0, musicStep: 0, footstep: [0,0], levelDeaths: Array(14).fill(0), deathMark: null,
   };
 
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -68,7 +68,7 @@
   }
 
   function makePlayer(id) {
-    return { id, x: state.level.spawn[id] ?? 15, y: FLOOR-11, w:7, h:11, vx:0, vy:0, ground:false, coyote:0, jumpBuffer:0, alive:true, respawn:0, facing:1, step:0 };
+    return { id, x: state.level.spawn[id] ?? 15, y: FLOOR-11, w:7, h:11, vx:0, vy:0, ground:false, coyote:0, jumpBuffer:0, alive:true, respawn:0, facing:1, step:0, reversed:false };
   }
 
   function loadLevel(index) {
@@ -79,11 +79,13 @@
     if (state.mode === 2) state.players.push(makePlayer(1));
     state.winner = -1;
     state.flash = 0;
+    state.deathMark = null;
     state.intro = 1.25;
     state.keys.forEach(k => { k.left=false; k.right=false; k.jump=false; });
     const l = state.level;
     ui.chapter.textContent = `${String(state.levelIndex+1).padStart(2,"0")} / 14 · ${l.place}`;
     ui.title.textContent = l.title;
+    ui.story.textContent = l.story;
     updateScore();
     tone("chapter");
   }
@@ -159,7 +161,8 @@
   function killPlayer(player) {
     if (!player.alive || state.winner >= 0) return;
     player.alive = false;
-    player.respawn = .34;
+    player.respawn = .46;
+    state.deathMark = { x: clamp(player.x + player.w / 2, 5, W - 5), y: clamp(player.y + player.h / 2, 8, H - 7), life: .42 };
     state.flash = .11;
     if (state.mode === 1) {
       state.falls += 1;
@@ -167,7 +170,7 @@
       updateScore();
       tone("death");
       const token = state.token;
-      window.setTimeout(() => { if (state.token === token) loadLevel(state.levelIndex); }, 190);
+      window.setTimeout(() => { if (state.token === token) loadLevel(state.levelIndex); }, 420);
     } else {
       tone("death");
     }
@@ -305,7 +308,8 @@
     }
     const keys=state.keys[player.id];
     let left=keys.left, right=keys.right;
-    if (state.level.reverse && player.x>state.level.reverse[0] && player.x<state.level.reverse[1]) [left,right]=[right,left];
+    if (state.level.reverseAt != null && player.x >= state.level.reverseAt) player.reversed = true;
+    if (player.reversed) [left,right]=[right,left];
     const direction=(right?1:0)-(left?1:0);
     const wind=state.level.wind && player.x>state.level.wind[0] && player.x<state.level.wind[1] ? (Math.sin(performance.now()/420)>0 ? 32 : -25) : 0;
     player.vx += (direction*76-player.vx)*Math.min(1,dt*18);
@@ -378,6 +382,7 @@
     updateHazards(dt);
     state.players.forEach(p=>{if(p.alive&&hit(p,state.level.goal))finish(p);});
     state.flash=Math.max(0,state.flash-dt);
+    if(state.deathMark) state.deathMark.life=Math.max(0,state.deathMark.life-dt);
     state.intro=Math.max(0,state.intro-dt);
   }
 
@@ -499,25 +504,30 @@
 
   function drawPlayer(p) {
     if(!p.alive)return;
-    const x=px(p.x),y=px(p.y),walk=Math.floor(p.step/4)%2;
-    rect(x+1,y,5,4,C.ink);rect(x,y+4,7,5,C.ink);
-    rect(x+(walk?0:1),y+9,2,2,C.ink);rect(x+(walk?5:4),y+9,2,2,C.ink);
-    if(p.id===0){rect(x+1,y-2,5,2,C.ink);rect(x+5,y-3,2,1,C.ink);} else {rect(x,y-2,7,1,C.ink);rect(x+3,y-4,1,2,C.ink);rect(x+4,y+1,1,1,C.field);}
+    const x=px(p.x)-1,y=px(p.y)-3,walk=Math.floor(p.step/4)%2;
+    rect(x+3,y+2,5,4,C.ink);                         // head
+    rect(x+2,y+1,7,2,C.ink);                         // helmet
+    rect(x+7,y+3,1,1,C.paper);                       // face
+    rect(x+2,y+6,7,5,C.ink);                         // tunic
+    rect(x,y+7,2,4,C.ink);rect(x+9,y+7,2,4,C.ink);  // arms
+    rect(x+(walk?1:2),y+11,2,3,C.ink);               // legs
+    rect(x+(walk?7:6),y+11,2,3,C.ink);
+    if(p.id===0){rect(x+4,y-1,4,2,C.ink);rect(x+7,y-2,2,1,C.ink);} else {rect(x+1,y,9,1,C.ink);rect(x+5,y-2,1,2,C.ink);}
   }
 
   function drawHud() {
-    ctx.font="bold 6px monospace";ctx.textBaseline="top";ctx.fillStyle=C.ink;
-    ctx.fillText(`${String(state.levelIndex+1).padStart(2,"0")} ${state.level.place}`,8,8);
-    ctx.textAlign="right";ctx.fillText(state.mode===1?`× ${String(state.falls).padStart(2,"0")}`:`${state.score[0]} : ${state.score[1]}`,312,8);ctx.textAlign="left";
-    const boxes=14;for(let i=0;i<boxes;i++){ctx.strokeStyle=i<=state.levelIndex?C.deep:C.dark;ctx.lineWidth=1;ctx.strokeRect(119+i*6,8,4,4);if(i<state.levelIndex)rect(120+i*6,9,2,2,C.deep);}
-    ctx.fillStyle=C.deep;ctx.fillText(state.level.story,8,20);
-    if(state.level.reverse){ctx.fillText("THE SONG REVERSES YOU",119,30);}
-    if(state.level.assist){ctx.fillStyle=C.paper;ctx.fillText("ATHENA'S SHIELD IS ACTIVE",8,30);}
     if(state.intro>0&&state.winner<0){
       ctx.globalAlpha=clamp(state.intro*1.4,0,1);
       rect(77,72,166,34,C.ink);rect(80,75,160,28,C.paper);
       ctx.fillStyle=C.ink;ctx.textAlign="center";ctx.font="bold 6px monospace";ctx.fillText(state.level.place,160,80);
       ctx.font="bold 9px monospace";ctx.fillText(state.level.title,160,91);ctx.textAlign="left";ctx.globalAlpha=1;
+    }
+    if(state.deathMark?.life>0){
+      const d=state.deathMark, spread=(.42-d.life)*18;
+      ctx.globalAlpha=clamp(d.life*3,0,1);
+      rect(d.x-spread-2,d.y-2,4,4,C.ink);rect(d.x+spread-2,d.y-2,4,4,C.ink);
+      rect(d.x-2,d.y-spread-2,4,4,C.ink);rect(d.x-2,d.y+spread-2,4,4,C.ink);
+      ctx.globalAlpha=1;
     }
     if(state.winner>=0){ctx.fillStyle=C.paper;rect(106,75,108,25,C.ink);ctx.fillStyle=C.paper;ctx.textAlign="center";ctx.font="bold 8px monospace";ctx.fillText(state.mode===1?"PASSAGE OPEN":`P${state.winner+1} TAKES THE ROOM`,160,84);ctx.textAlign="left";}
     if(state.flash>0){ctx.globalAlpha=.6;rect(0,0,W,H,C.paper);ctx.globalAlpha=1;}
