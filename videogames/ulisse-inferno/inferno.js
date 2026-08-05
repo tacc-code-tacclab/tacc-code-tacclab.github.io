@@ -38,6 +38,7 @@
     menu: document.querySelector("#menu"), pause: document.querySelector("#pause"), ending: document.querySelector("#ending"),
     endingText: document.querySelector("#endingText"), resume: document.querySelector("#resumeButton"), again: document.querySelector("#againButton"),
     restart: document.querySelector("#restartButton"), mute: document.querySelector("#muteButton"), touchP2: document.querySelector("#touchP2"),
+    fullscreen: document.querySelector("#fullscreenButton"), machine: document.querySelector("#machine"),
     chapter: document.querySelector("#chapterStatus"), title: document.querySelector("#chapterTitle"), score: document.querySelector("#scoreStatus"),
   };
 
@@ -97,6 +98,42 @@
     startMusic();
     loadLevel(0);
     canvas.focus({preventScroll:true});
+    if (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760) enterGameMode();
+  }
+
+  let nativeFullscreenActive = false;
+
+  function setGameMode(active) {
+    document.body.classList.toggle("game-mode", active);
+    ui.fullscreen?.setAttribute("aria-pressed", String(active));
+    if (ui.fullscreen) ui.fullscreen.textContent = active ? "✕ EXIT" : "⛶ PLAY FULL SCREEN";
+    releaseAllControls();
+    window.setTimeout(() => window.scrollTo(0, 0), 0);
+  }
+
+  function enterGameMode() {
+    setGameMode(true);
+    const request = ui.machine?.requestFullscreen || ui.machine?.webkitRequestFullscreen;
+    if (request && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      try {
+        const result = request.call(ui.machine, { navigationUI: "hide" });
+        if (result?.then) result.then(() => {
+          nativeFullscreenActive = true;
+          screen.orientation?.lock?.("landscape").catch(() => {});
+        }).catch(() => { nativeFullscreenActive = false; });
+        else nativeFullscreenActive = true;
+      } catch (_) { nativeFullscreenActive = false; }
+    }
+  }
+
+  function exitGameMode() {
+    setGameMode(false);
+    screen.orientation?.unlock?.();
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if ((document.fullscreenElement || document.webkitFullscreenElement) && exit) {
+      try { exit.call(document); } catch (_) {}
+    }
+    nativeFullscreenActive = false;
   }
 
   function updateScore() {
@@ -486,6 +523,7 @@
     });
   });
   ui.restart.addEventListener("click",()=>retry(false));
+  ui.fullscreen?.addEventListener("click",()=>document.body.classList.contains("game-mode")?exitGameMode():enterGameMode());
   ui.resume.addEventListener("click",resumeGame);
   ui.resume.addEventListener("pointerup",e=>{e.preventDefault();resumeGame();});
   ui.again.addEventListener("click",()=>{ui.ending.hidden=true;startGame(state.mode);});
@@ -495,6 +533,14 @@
     releaseAllControls();
     if(document.visibilityState==="hidden"&&state.running&&!state.paused)togglePause(true);
   });
+  const syncFullscreen = () => {
+    if (nativeFullscreenActive && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      nativeFullscreenActive = false;
+      setGameMode(false);
+    }
+  };
+  document.addEventListener("fullscreenchange", syncFullscreen);
+  document.addEventListener("webkitfullscreenchange", syncFullscreen);
 
   state.level=cloneLevel(0);state.players=[makePlayer(0)];draw();requestAnimationFrame(frame);
 })();
