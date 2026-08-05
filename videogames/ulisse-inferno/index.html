@@ -11,8 +11,8 @@
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/ulisse-inferno/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="inferno.css?v=20260805-fullscreen1" />
-    <script src="inferno.js?v=20260805-fullscreen1" defer></script>
+    <link rel="stylesheet" href="inferno.css?v=20260805-machines1" />
+    <script src="inferno.js?v=20260805-machines1" defer></script>
     <title>Ulisse (Nessuno) — Pixel Edition</title>
   </head>
   <body>
@@ -31,7 +31,7 @@
 
       <section class="machine" id="machine" aria-label="Playable game">
         <div class="screen-wrap">
-          <canvas id="game" width="320" height="180" tabindex="0" aria-label="Pixel platform game. Player one uses A, D and W. Player two uses arrow keys."></canvas>
+          <canvas id="game" width="320" height="180" tabindex="0" aria-label="Pixel platform game. Player one uses A, D, W or Space. Player two uses arrow keys."></canvas>
 
           <div class="overlay" id="menu">
             <p class="tiny">ULISSE (NESSUNO)</p>
@@ -41,7 +41,7 @@
               <button type="button" data-mode="1"><b>1</b> ONE PLAYER</button>
               <button type="button" data-mode="2"><b>2</b> TWO PLAYERS</button>
             </div>
-            <p class="keyline">KEYBOARD: A D W / ARROWS · MOUSE + PHONE: USE THE LARGE CONTROLS BELOW</p>
+            <p class="keyline">KEYBOARD: A D W / ARROWS / SPACE · MOUSE + PHONE: USE THE LARGE CONTROLS BELOW</p>
           </div>
 
           <div class="overlay compact" id="pause" hidden>
@@ -95,11 +95,11 @@
             <h3>One player</h3>
             <dl>
               <div><dt>Move</dt><dd><kbd>A</kbd> <kbd>D</kbd> or <kbd>←</kbd> <kbd>→</kbd></dd></div>
-              <div><dt>Jump</dt><dd><kbd>W</kbd> or <kbd>↑</kbd></dd></div>
+              <div><dt>Jump</dt><dd><kbd>W</kbd>, <kbd>↑</kbd> or <kbd>SPACE</kbd></dd></div>
               <div><dt>Retry</dt><dd><kbd>R</kbd></dd></div>
               <div><dt>Pause</dt><dd><kbd>Esc</kbd></dd></div>
             </dl>
-            <p>In two-player mode, P1 uses <strong>A D W</strong> and P2 uses the <strong>arrow keys</strong>.</p>
+            <p>In two-player mode, P1 uses <strong>A D W or Space</strong> and P2 uses the <strong>arrow keys</strong>.</p>
           </article>
 
           <article>
@@ -128,6 +128,7 @@
         </div>
 
         <p class="control-warning"><strong>Odyssey rule:</strong> only in the Sirens chapter does the song intentionally reverse left and right.</p>
+        <p class="control-warning"><strong>New mechanisms:</strong> striped springs launch automatically, rotating blocks can carry you, and floor seals open matching gates.</p>
       </section>
 
       <section class="manifesto">
