@@ -16,22 +16,25 @@
   const drop = (x, y, w, h, trigger, extra = {}) => ({ type: "drop", x, y, w, h, trigger, ...extra });
   const enemy = (x, y, min, max, speed, extra = {}) => ({ type: "enemy", x, y, w: 7, h: 11, min, max, speed, ...extra });
   const goal = (x = 303, y = 135) => ({ x, y, w: 10, h: 16 });
+  const spring = (x, y, power = 210) => ({ x, y, w: 12, h: 4, power, cooldown: 0 });
+  const plate = (x, y, id) => ({ x, y, w: 13, h: 2, id, pressed: false });
+  const gate = (x, y, w, h, id) => ({ x, y, w, h, id, open: false });
 
   const LEVELS = [
     { place: "TROY", title: "THE WOODEN HORSE", story: "LEAVE THE BURNING CITY.", scene: "troy", spawn: [17, 29], goal: goal(), platforms: [P(0,FLOOR,91),P(108,FLOOR,80),P(206,FLOOR,114)], hazards: [S(66,12,{hidden:true,trigger:49}),drop(153,31,12,12,126)] },
     { place: "ISMARUS", title: "BEFORE DAWN", story: "THE CICONES RETURN.", scene: "walls", spawn: [15,27], goal: goal(), platforms: [P(0,FLOOR,70),P(82,138,54),P(151,FLOOR,58),P(222,141,98)], hazards: [enemy(101,127,88,124,21),S(181,12,{hidden:true,trigger:165}),drop(250,25,13,13,226)] },
     { place: "LOTUS SHORE", title: "DO NOT TASTE IT", story: "MEMORY IS THE FIRST TRAP.", scene: "lotus", spawn: [15,27], goal: goal(), platforms: [P(0,FLOOR,101),P(115,FLOOR,94),P(224,FLOOR,96)], hazards: [S(77,10,{hidden:true,trigger:54}),S(161,15),enemy(241,140,233,277,15,{kind:"lotus"})] },
-    { place: "CYCLOPS CAVE", title: "MY NAME IS NOBODY", story: "MOVE WHEN THE EYE CLOSES.", scene: "cave", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(76,137,43,8),P(135,121,43,8),P(194,137,42,8),P(252,FLOOR,68)], hazards: [saw(222,130,7,{min:194,max:232,speed:24}),drop(158,45,12,12,139),enemy(269,140,262,289,12,{kind:"cyclops",w:10,h:18,y:133})] },
-    { place: "AEOLIA", title: "THE OPENED BAG", story: "THE WIND CHANGES ITS MIND.", scene: "wind", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,55),P(70,137,42,8),P(129,119,42,8),P(189,137,42,8),P(249,FLOOR,71)], hazards: [S(94,10),S(211,10,{hidden:true,trigger:194})], wind:[58,245] },
+    { place: "CYCLOPS CAVE", title: "MY NAME IS NOBODY", story: "RIDE THE CLUB OR TAKE THE GREAT SPRING.", scene: "cave", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(76,137,43,8),P(135,121,43,8),P(194,137,42,8),P(252,FLOOR,68),P(209,104,22,6,{orbit:true,cx:220,cy:107,rx:25,ry:10,speed:1.7,phase:0})], springs: [spring(158,117,360)], hazards: [saw(222,130,7,{min:194,max:232,speed:24}),drop(143,45,12,12,151),enemy(269,137,262,289,12,{kind:"cyclops",w:10,h:14})] },
+    { place: "AEOLIA", title: "THE OPENED BAG", story: "STEP ON THE WIND-VENT. THEN FIGHT THE GUST.", scene: "wind", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,55),P(70,137,42,8),P(129,119,42,8),P(189,137,42,8),P(249,FLOOR,71)], springs: [spring(94,133,205)], hazards: [S(78,10),S(211,10,{hidden:true,trigger:194})], wind:[58,245] },
     { place: "TELEPYLOS", title: "HARBOUR OF GIANTS", story: "STONE FALLS FASTER THAN PRIDE.", scene: "walls", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,320)], hazards: [drop(86,21,15,15,56),drop(167,18,17,17,137,{delay:.18}),drop(248,21,15,15,218),S(129,11,{hidden:true,trigger:111}),S(282,11,{hidden:true,trigger:262})] },
     { place: "AEAEA", title: "CIRCE'S TABLE", story: "THE FEAST REMOVES THE FLOOR.", scene: "palace", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,72),P(84,139,47,41,{vanish:true,trigger:115}),P(145,126,47,54),P(206,139,43,41,{fall:true,trigger:225,delay:.25}),P(263,FLOOR,57)], hazards: [enemy(160,115,151,181,16,{kind:"boar"}),S(180,10)] },
     { place: "THE UNDERWORLD", title: "SPEAK WITH THE DEAD", story: "SHADOWS WALK IN RHYTHM.", scene: "underworld", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,61),P(75,138,41,42),P(130,124,39,56),P(184,138,43,42,{fall:true,trigger:208,delay:.34}),P(243,FLOOR,77)], hazards: [enemy(87,127,80,108,18,{kind:"shade"}),enemy(144,113,136,160,23,{kind:"shade"}),S(205,12,{hidden:true,trigger:190})] },
     { place: "THE SIRENS", title: "BOUND TO THE MAST", story: "THE SONG REVERSES EVERY STEP.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,92),P(108,FLOOR,102),P(226,FLOOR,94)], hazards: [S(137,12),S(184,12,{hidden:true,trigger:163}),saw(254,143,7,{min:237,max:286,speed:25})], reverse:[102,220] },
-    { place: "THE STRAIT", title: "SCYLLA AND CHARYBDIS", story: "THERE IS NO HARMLESS ROUTE.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,52),P(67,138,39,8),P(121,122,39,8),P(176,138,39,8),P(231,FLOOR,89)], hazards: [saw(95,129,7,{min:74,max:101,speed:17}),saw(204,129,7,{min:181,max:208,speed:21}),drop(144,34,12,12,125)] },
+    { place: "THE STRAIT", title: "SCYLLA AND CHARYBDIS", story: "THE WHIRLPOOL CARRIES A MOVING STONE.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,52),P(67,138,39,8),P(121,122,39,8),P(176,138,39,8),P(231,FLOOR,89),P(139,96,20,6,{orbit:true,cx:149,cy:104,rx:25,ry:13,speed:1.35,phase:1.2})], hazards: [saw(95,129,7,{min:74,max:101,speed:17}),saw(204,129,7,{min:181,max:208,speed:21}),drop(144,34,12,12,125)] },
     { place: "THRINACIA", title: "THE FORBIDDEN HERD", story: "THE SUN SEES EVERYTHING.", scene: "sun", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,320)], hazards: [enemy(77,140,60,105,14,{kind:"cattle",w:11}),S(126,14,{hidden:true,trigger:105}),enemy(190,140,175,218,18,{kind:"cattle",w:11}),S(250,14,{hidden:true,trigger:232}),drop(289,23,6,31,270,{kind:"bolt"})] },
     { place: "OGYGIA", title: "SEVEN YEARS STILL", story: "IMMORTALITY IS ANOTHER CELL.", scene: "island", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,64),P(78,138,41,42,{vanish:true,trigger:104}),P(134,123,39,57,{fall:true,trigger:151,delay:.3}),P(188,138,41,42,{vanish:true,trigger:214}),P(244,FLOOR,76)], hazards: [S(154,10),enemy(266,140,256,288,19,{kind:"wave"})] },
     { place: "SCHERIA", title: "THE LAST CROSSING", story: "LET THE DECK CARRY YOU.", scene: "sea", spawn: [14,26], goal: goal(), platforms: [P(0,FLOOR,57),P(73,137,42,8,{move:true,min:68,max:100,speed:14}),P(137,120,40,8,{moveY:true,min:113,max:137,speed:12}),P(201,137,42,8,{move:true,min:194,max:226,speed:17}),P(260,FLOOR,60)], hazards: [S(221,10)] },
-    { place: "ITHACA", title: "THE BOW OF ODYSSEUS", story: "HOME MUST BE WON ONCE MORE.", scene: "ithaca", spawn: [14,26], goal: goal(300,126), platforms: [P(0,FLOOR,80),P(94,138,46,42),P(154,125,46,55),P(214,138,42,42),P(270,FLOOR,50)], hazards: [enemy(105,127,100,128,20,{kind:"suitor"}),enemy(165,114,160,188,23,{kind:"suitor"}),enemy(226,127,220,245,26,{kind:"suitor"}),S(69,10,{hidden:true,trigger:51})], final:true },
+    { place: "ITHACA", title: "THE BOW OF ODYSSEUS", story: "PRESS THE BOW-SEAL TO OPEN THE LAST GATE.", scene: "ithaca", spawn: [14,26], goal: goal(300,126), platforms: [P(0,FLOOR,80),P(94,138,46,42),P(154,125,46,55),P(214,138,42,42),P(270,FLOOR,50)], switches: [plate(169,123,"bow")], gates: [gate(260,103,6,48,"bow")], hazards: [enemy(105,127,100,128,20,{kind:"suitor"}),enemy(165,114,160,188,23,{kind:"suitor"}),enemy(226,127,220,245,26,{kind:"suitor"}),S(69,10,{hidden:true,trigger:51})], final:true },
   ];
 
   const ui = {
@@ -46,7 +49,7 @@
     running: false, paused: false, muted: false, mode: 1, levelIndex: 0, level: null, players: [],
     keys: [{left:false,right:false,jump:false},{left:false,right:false,jump:false}],
     falls: 0, score: [0,0], last: performance.now(), token: 0, start: 0, flash: 0, winner: -1, audio: null,
-    intro: 0, musicTimer: 0, musicStep: 0, footstep: [0,0],
+    intro: 0, musicTimer: 0, musicStep: 0, footstep: [0,0], levelDeaths: Array(14).fill(0),
   };
 
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -55,8 +58,12 @@
 
   function cloneLevel(index) {
     const level = JSON.parse(JSON.stringify(LEVELS[index]));
-    level.platforms.forEach((p,i) => { p.id=i; p.alive=true; p.timer=0; p.vy=0; p.dir=1; p.baseX=p.x; p.baseY=p.y; });
+    level.platforms.forEach((p,i) => { p.id=i; p.alive=true; p.timer=0; p.vy=0; p.dir=1; p.baseX=p.x; p.baseY=p.y; p.angle=p.phase||0; });
     level.hazards.forEach(h => { h.active=!h.hidden && h.trigger == null; h.timer=0; h.vy=0; h.dir=1; h.baseX=h.x; h.baseY=h.y; });
+    level.springs?.forEach(s => { s.cooldown=0; });
+    level.switches?.forEach(s => { s.pressed=false; });
+    level.gates?.forEach(g => { g.open=false; });
+    level.assist = (state.levelDeaths[index] || 0) >= 6;
     return level;
   }
 
@@ -89,6 +96,7 @@
     state.levelIndex = 0;
     state.falls = 0;
     state.score = [0,0];
+    state.levelDeaths = Array(LEVELS.length).fill(0);
     state.start = performance.now();
     ui.menu.hidden = true;
     ui.pause.hidden = true;
@@ -155,6 +163,7 @@
     state.flash = .11;
     if (state.mode === 1) {
       state.falls += 1;
+      state.levelDeaths[state.levelIndex] += 1;
       updateScore();
       tone("death");
       const token = state.token;
@@ -261,9 +270,15 @@
     if (name==="chapter") { beep(110,.05,110,.018); setTimeout(()=>beep(165,.05,165,.018),55); }
     if (name==="win") { beep(220,.06,260,.024); setTimeout(()=>beep(330,.08,390,.024),65); }
     if (name==="home") [165,220,330,440].forEach((n,i)=>setTimeout(()=>beep(n,.12,n,.025),i*80));
+    if (name==="spring") { beep(90,.07,280,.026,"square"); setTimeout(()=>beep(390,.05,520,.018),55); }
+    if (name==="gate") { beep(74,.09,110,.026,"sawtooth"); setTimeout(()=>beep(148,.12,220,.022),85); }
   }
 
   function activePlatforms() { return state.level.platforms.filter(p=>p.alive); }
+
+  function activeSolids() {
+    return activePlatforms().concat((state.level.gates||[]).filter(g=>!g.open));
+  }
 
   function updatePlatforms(dt) {
     const lead = Math.max(...state.players.filter(p=>p.alive).map(p=>p.x),0);
@@ -274,7 +289,13 @@
       if (p.fall && p.timer > (p.delay||.25)) { p.vy += 120*dt; p.y += p.vy*dt; if(p.y>H) p.alive=false; }
       if (p.move) { p.x += p.speed*p.dir*dt; if(p.x<p.min||p.x>p.max){ p.x=clamp(p.x,p.min,p.max); p.dir*=-1; } }
       if (p.moveY) { p.y += p.speed*p.dir*dt; if(p.y<p.min||p.y>p.max){ p.y=clamp(p.y,p.min,p.max); p.dir*=-1; } }
+      if (p.orbit) {
+        p.angle += p.speed*dt;
+        p.x = p.cx + Math.cos(p.angle)*p.rx - p.w/2;
+        p.y = p.cy + Math.sin(p.angle)*p.ry - p.h/2;
+      }
     });
+    state.level.springs?.forEach(s=>{s.cooldown=Math.max(0,s.cooldown-dt);});
   }
 
   function updatePlayer(player,dt) {
@@ -298,7 +319,7 @@
     player.vy=Math.min(player.vy,230);
 
     player.x += player.vx*dt;
-    for(const p of activePlatforms()) if(hit(player,p)){ if(player.vx>0)player.x=p.x-player.w; else if(player.vx<0)player.x=p.x+p.w; player.vx=0; }
+    for(const p of activeSolids()) if(hit(player,p)){ if(player.vx>0)player.x=p.x-player.w; else if(player.vx<0)player.x=p.x+p.w; player.vx=0; }
     player.x=clamp(player.x,0,W-player.w);
 
     const oldBottom=player.y+player.h;
@@ -306,10 +327,16 @@
     player.ground=false;
     if(player.vy>=0){
       let land=null;
-      for(const p of activePlatforms()) if(player.x+player.w>p.x+1&&player.x<p.x+p.w-1&&oldBottom<=p.y+2&&player.y+player.h>=p.y&&(!land||p.y<land.y))land=p;
-      if(land){ player.y=land.y-player.h; player.vy=0; player.ground=true; if(land.move) player.x+=land.x-land.prevX; if(land.moveY)player.y+=land.y-land.prevY; }
+      for(const p of activeSolids()) if(player.x+player.w>p.x+1&&player.x<p.x+p.w-1&&oldBottom<=p.y+2&&player.y+player.h>=p.y&&(!land||p.y<land.y))land=p;
+      if(land){ player.y=land.y-player.h; player.vy=0; player.ground=true; if(land.move||land.orbit) player.x+=land.x-(land.prevX??land.x); if(land.moveY||land.orbit)player.y+=land.y-(land.prevY??land.y); }
     } else {
-      for(const p of activePlatforms()) if(hit(player,p)){ player.y=p.y+p.h; player.vy=0; break; }
+      for(const p of activeSolids()) if(hit(player,p)){ player.y=p.y+p.h; player.vy=0; break; }
+    }
+    for(const s of state.level.springs||[]){
+      const feet=player.y+player.h;
+      if(s.cooldown<=0&&player.x+player.w>s.x&&player.x<s.x+s.w&&feet>=s.y&&feet<=s.y+s.h+2&&player.vy>=0){
+        player.y=s.y-player.h;player.vy=-s.power;player.ground=false;player.coyote=0;s.cooldown=.42;tone("spring");
+      }
     }
     player.step += Math.abs(player.vx)*dt;
     state.footstep[player.id] -= dt;
@@ -332,7 +359,7 @@
       if(h.type==="drop"&&h.active){h.timer+=dt;if(h.timer>(h.delay||.04)){h.vy+=330*dt;h.y+=h.vy*dt;}}
       if((h.type==="saw"||h.type==="enemy")&&h.min!=null){h.x+=h.speed*h.dir*dt;if(h.x<h.min||h.x>h.max){h.x=clamp(h.x,h.min,h.max);h.dir*=-1;}}
       if(h.type==="spike"&&!h.active)continue;
-      for(const p of state.players)if(p.alive&&hit(p,hazardBox(h)))killPlayer(p);
+      for(const p of state.players)if(p.alive&&hit(p,hazardBox(h))&&!state.level.assist)killPlayer(p);
     }
   }
 
@@ -340,6 +367,14 @@
     if(!state.running||state.paused||state.winner>=0)return;
     updatePlatforms(dt);
     state.players.forEach(p=>updatePlayer(p,dt));
+    for(const s of state.level.switches||[]){
+      if(s.pressed)continue;
+      if(state.players.some(p=>p.alive&&p.x+p.w>s.x&&p.x<s.x+s.w&&Math.abs((p.y+p.h)-(s.y+s.h))<4)){
+        s.pressed=true;
+        (state.level.gates||[]).filter(g=>g.id===s.id).forEach(g=>g.open=true);
+        tone("gate");
+      }
+    }
     updateHazards(dt);
     state.players.forEach(p=>{if(p.alive&&hit(p,state.level.goal))finish(p);});
     state.flash=Math.max(0,state.flash-dt);
@@ -427,7 +462,24 @@
   }
 
   function drawPlatforms() {
-    for(const p of state.level.platforms){if(!p.alive)continue;rect(p.x,p.y,p.w,p.h,C.deep);rect(p.x,p.y,p.w,3,C.dark);if((p.vanish||p.fall)&&p.timer>0)for(let x=p.x+4;x<p.x+p.w;x+=9)rect(x,p.y+5,3,2,C.field);}
+    for(const p of state.level.platforms){if(!p.alive)continue;rect(p.x,p.y,p.w,p.h,p.orbit?C.ink:C.deep);rect(p.x,p.y,p.w,3,p.orbit?C.paper:C.dark);if((p.vanish||p.fall)&&p.timer>0)for(let x=p.x+4;x<p.x+p.w;x+=9)rect(x,p.y+5,3,2,C.field);}
+  }
+
+  function drawMechanisms(){
+    for(const p of state.level.platforms.filter(p=>p.orbit&&p.alive)){
+      ctx.strokeStyle=C.ink;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(p.cx),px(p.cy));ctx.lineTo(px(p.x+p.w/2),px(p.y+p.h/2));ctx.stroke();
+      rect(p.cx-3,p.cy-3,6,6,C.ink);rect(p.cx-1,p.cy-1,2,2,C.paper);
+    }
+    for(const s of state.level.springs||[]){
+      rect(s.x,s.y+2,s.w,2,C.ink);rect(s.x+2,s.y,3,2,C.paper);rect(s.x+7,s.y,3,2,C.paper);
+    }
+    for(const s of state.level.switches||[]){
+      rect(s.x,s.y,s.w,s.h,s.pressed?C.paper:C.ink);rect(s.x+4,s.y-2,5,2,s.pressed?C.deep:C.paper);
+    }
+    for(const g of state.level.gates||[]){
+      if(g.open){rect(g.x,g.y+g.h-4,g.w,4,C.paper);continue;}
+      rect(g.x,g.y,g.w,g.h,C.ink);for(let y=g.y+5;y<g.y+g.h;y+=9)rect(g.x+1,y,g.w-2,3,C.paper);
+    }
   }
 
   function drawGoal() {
@@ -460,6 +512,7 @@
     const boxes=14;for(let i=0;i<boxes;i++){ctx.strokeStyle=i<=state.levelIndex?C.deep:C.dark;ctx.lineWidth=1;ctx.strokeRect(119+i*6,8,4,4);if(i<state.levelIndex)rect(120+i*6,9,2,2,C.deep);}
     ctx.fillStyle=C.deep;ctx.fillText(state.level.story,8,20);
     if(state.level.reverse){ctx.fillText("THE SONG REVERSES YOU",119,30);}
+    if(state.level.assist){ctx.fillStyle=C.paper;ctx.fillText("ATHENA'S SHIELD IS ACTIVE",8,30);}
     if(state.intro>0&&state.winner<0){
       ctx.globalAlpha=clamp(state.intro*1.4,0,1);
       rect(77,72,166,34,C.ink);rect(80,75,160,28,C.paper);
@@ -472,7 +525,7 @@
 
   function draw() {
     if(!state.level)return;
-    drawScene();drawPlatforms();drawGoal();drawHazards();state.players.forEach(drawPlayer);drawHud();
+    drawScene();drawPlatforms();drawMechanisms();drawGoal();drawHazards();state.players.forEach(drawPlayer);drawHud();
   }
 
   function frame(now) {
@@ -488,11 +541,11 @@
   }
 
   document.addEventListener("keydown",e=>{
-    const map={KeyA:[0,"left"],KeyD:[0,"right"],KeyW:[0,"jump"],ArrowLeft:[state.mode===1?0:1,"left"],ArrowRight:[state.mode===1?0:1,"right"],ArrowUp:[state.mode===1?0:1,"jump"]};
+    const map={KeyA:[0,"left"],KeyD:[0,"right"],KeyW:[0,"jump"],Space:[0,"jump"],ArrowLeft:[state.mode===1?0:1,"left"],ArrowRight:[state.mode===1?0:1,"right"],ArrowUp:[state.mode===1?0:1,"jump"]};
     if(map[e.code]){e.preventDefault();setKey(...map[e.code],true);} if(e.code==="KeyR")retry(false); if(e.code==="Escape")togglePause();
   });
   document.addEventListener("keyup",e=>{
-    const map={KeyA:[0,"left"],KeyD:[0,"right"],KeyW:[0,"jump"],ArrowLeft:[state.mode===1?0:1,"left"],ArrowRight:[state.mode===1?0:1,"right"],ArrowUp:[state.mode===1?0:1,"jump"]};
+    const map={KeyA:[0,"left"],KeyD:[0,"right"],KeyW:[0,"jump"],Space:[0,"jump"],ArrowLeft:[state.mode===1?0:1,"left"],ArrowRight:[state.mode===1?0:1,"right"],ArrowUp:[state.mode===1?0:1,"jump"]};
     if(map[e.code]){e.preventDefault();setKey(...map[e.code],false);}
   });
 
