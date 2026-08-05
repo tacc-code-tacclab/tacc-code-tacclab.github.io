@@ -252,6 +252,9 @@ body.game-mode footer { display: none; }
 body.game-mode main { overflow: visible; }
 
 body.game-mode .machine {
+  --stage-width: min(100vw, 177.778dvh);
+  --side-gutter: max(0px, calc((100vw - var(--stage-width)) / 2));
+  --control-size: clamp(68px, calc(var(--side-gutter) - 20px), 104px);
   position: fixed;
   z-index: 100;
   inset: 0;
@@ -269,8 +272,7 @@ body.game-mode .screen-wrap {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(100vw, 177.778vh);
-  width: min(100vw, 177.778dvh);
+  width: var(--stage-width);
   margin: 0;
   transform: translate(-50%, -50%);
   border-width: 0;
@@ -323,63 +325,66 @@ body.game-mode .touch-set.p2[hidden] { display: none; }
 body.game-mode .touch-set.p2 > span { display: none; }
 
 body.game-mode .touch-set.p2 button[data-key="left"] {
-  top: max(54px, calc(env(safe-area-inset-top) + 48px));
-  left: max(14px, env(safe-area-inset-left));
+  top: max(8px, env(safe-area-inset-top));
+  left: max(env(safe-area-inset-left), calc((var(--side-gutter) - var(--control-size)) / 2));
 }
 
 body.game-mode .touch-set.p2 button[data-key="right"] {
-  top: max(54px, calc(env(safe-area-inset-top) + 48px));
-  left: calc(max(14px, env(safe-area-inset-left)) + clamp(80px, 12vw, 114px));
+  top: calc(max(8px, env(safe-area-inset-top)) + clamp(70px, 18dvh, 90px));
+  left: max(env(safe-area-inset-left), calc((var(--side-gutter) - var(--control-size)) / 2));
 }
 
 body.game-mode .touch-set.p2 .jump {
-  top: max(54px, calc(env(safe-area-inset-top) + 48px));
-  right: max(14px, env(safe-area-inset-right));
+  top: max(58px, calc(env(safe-area-inset-top) + 54px));
+  right: max(env(safe-area-inset-right), calc((var(--side-gutter) - var(--control-size)) / 2));
   bottom: auto;
   left: auto;
-  width: clamp(86px, 14vw, 124px);
-  height: clamp(86px, 20dvh, 118px);
+  width: var(--control-size);
+  height: clamp(76px, 19dvh, 100px);
 }
 
 body.game-mode .touch-set.p1 > span { display: none; }
 
 body.game-mode .touch button {
   position: absolute;
-  width: clamp(72px, 11vw, 104px);
-  height: clamp(72px, 17dvh, 104px);
+  width: var(--control-size);
+  height: clamp(62px, 16dvh, 82px);
   min-width: 0;
   pointer-events: auto;
-  opacity: .9;
+  border-width: 3px;
+  box-shadow: 3px 3px 0 rgba(9, 6, 7, .78);
+  opacity: .68;
 }
 
 body.game-mode .touch-set.p1 button[data-key="left"] {
-  bottom: max(14px, env(safe-area-inset-bottom));
-  left: max(14px, env(safe-area-inset-left));
+  bottom: calc(max(8px, env(safe-area-inset-bottom)) + clamp(70px, 18dvh, 90px));
+  left: max(env(safe-area-inset-left), calc((var(--side-gutter) - var(--control-size)) / 2));
 }
 
 body.game-mode .touch-set.p1 button[data-key="right"] {
-  bottom: max(14px, env(safe-area-inset-bottom));
-  left: calc(max(14px, env(safe-area-inset-left)) + clamp(80px, 12vw, 114px));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(env(safe-area-inset-left), calc((var(--side-gutter) - var(--control-size)) / 2));
 }
 
 body.game-mode .touch-set.p1 .jump {
-  right: max(14px, env(safe-area-inset-right));
-  bottom: max(14px, env(safe-area-inset-bottom));
+  right: max(env(safe-area-inset-right), calc((var(--side-gutter) - var(--control-size)) / 2));
+  bottom: max(8px, env(safe-area-inset-bottom));
   left: auto;
-  width: clamp(86px, 14vw, 124px);
-  height: clamp(86px, 20dvh, 118px);
+  width: var(--control-size);
+  height: clamp(76px, 19dvh, 100px);
 }
 
 body.game-mode .touch .restart {
   position: fixed;
   z-index: 108;
-  top: max(44px, calc(env(safe-area-inset-top) + 40px));
-  left: 50%;
+  top: max(58px, calc(env(safe-area-inset-top) + 54px));
+  right: max(env(safe-area-inset-right), calc((var(--side-gutter) - 60px) / 2));
+  left: auto;
   width: 60px;
   height: 44px;
-  transform: translateX(-50%);
+  transform: none;
   pointer-events: auto;
-  opacity: .8;
+  opacity: .62;
 }
 
 body.game-mode[data-mode="2"] .touch .restart { display: none; }
@@ -579,6 +584,12 @@ footer {
 }
 
 @media (pointer: coarse) and (orientation: landscape) {
+  body.game-mode .machine {
+    --control-rail: clamp(76px, 12vw, 112px);
+    --stage-width: min(calc(100vw - (2 * var(--control-rail))), 177.778dvh);
+    --side-gutter: calc((100vw - var(--stage-width)) / 2);
+    --control-size: clamp(64px, calc(var(--side-gutter) - 20px), 96px);
+  }
   .intro { min-height: 72vh; }
   .screen-wrap { width: min(850px, calc(100% - 16px)); }
   .touch { width: min(850px, calc(100% - 24px)); }
