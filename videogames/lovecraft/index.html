@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>LOVECRAFT &mdash; an endless voxel world</title>
+<title>LOVECRAFT II &mdash; the expert chart</title>
 <meta name="description" content="An infinite voxel sandbox in the drowned geography of the Cthulhu cycle. Dig, build, and be counted.">
 <meta name="theme-color" content="#04070A">
 <meta property="og:type" content="website">
-<meta property="og:title" content="LOVECRAFT — an endless voxel world">
-<meta property="og:description" content="Explore, survive, dig and build in an original infinite voxel world inspired by cosmic horror.">
+<meta property="og:title" content="LOVECRAFT II — The Expert Chart">
+<meta property="og:description" content="An expanded infinite voxel world with persistent charts, forbidden books, rites, saltes and the thing beneath the seal.">
 <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/lovecraft/">
 <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/lovecraft/">
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
@@ -169,6 +169,43 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
 #t-jump{right:16px;bottom:22px;width:86px;height:70px}
 #t-craft{right:110px;bottom:142px;width:74px;height:56px}
 
+/* hunted, and the thing you woke */
+#hunt{position:absolute;left:50%;top:14%;transform:translateX(-50%);display:none;font-family:var(--mono);
+  font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#c4643c;text-shadow:0 0 14px #000}
+#bossbar{position:absolute;left:50%;top:8%;transform:translateX(-50%);width:min(420px,80vw);display:none;text-align:center}
+#bossbar .bn{font-family:var(--body);font-variant:small-caps;font-size:19px;letter-spacing:.16em;color:#ffb08a;
+  text-shadow:0 0 16px #000;margin-bottom:4px}
+#bossbar .mbar{height:9px;border-color:#7a3428}
+#bossbar .mbar i{background:linear-gradient(90deg,#5c1a12,#ff5a3c)}
+
+/* the book */
+#book{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:21;
+  background:rgba(3,7,8,.93);padding:14px;overflow-y:auto}
+#book.on{display:flex}
+#booktabs{display:flex;gap:6px;margin:10px 0}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:8px 14px;
+  cursor:pointer;background:#0b1618;border:1px solid #2c4a45;color:var(--bone-dim)}
+.tab.on{background:#1d4340;color:#e8f5ef;border-color:var(--witch)}
+#bookbody{max-height:56vh;overflow-y:auto;padding-right:6px}
+.page{border-left:2px solid #2c4a45;padding:8px 0 8px 14px;margin-bottom:12px;position:relative}
+.page b{display:block;font-family:var(--body);font-variant:small-caps;font-size:17px;letter-spacing:.1em;color:var(--witch);margin-bottom:4px}
+.page p{font-size:14.5px;line-height:1.65;color:#b6b2a1;max-width:70ch}
+.page i{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--bone-dim);margin-top:5px;font-style:normal}
+.page.dimp{color:var(--bone-dim);font-family:var(--mono);font-size:11.5px;line-height:1.7;border-left-color:#1d2f2c}
+.page .ric{position:absolute;right:0;top:8px;width:34px;height:34px;border:1px solid #2c4a45;background-repeat:no-repeat;image-rendering:pixelated}
+
+/* saved charts */
+#saveslist{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.saverow{display:flex;gap:10px;align-items:center;background:#0b1618;border:1px solid #2c4a45;padding:9px 11px;flex-wrap:wrap}
+.saverow .si{flex:1 1 260px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--bone-dim)}
+.saverow .si b{display:block;font-family:var(--body);font-variant:small-caps;font-size:15px;letter-spacing:.08em;color:var(--bone)}
+.saverow .si span{display:block}
+.saverow .si .soon{color:#c4643c}
+.saverow .btn{padding:7px 13px;font-size:14px}
+.savenote{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--bone-dim);
+  background:#0b1618;border:1px dashed #2c4a45;padding:10px 12px}
+.savenote b{color:var(--witch);font-weight:400}
+#saveinfo{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--bone-dim);margin-top:10px}
 #load{position:absolute;inset:0;display:none;place-items:center;z-index:40;background:#03060700;text-align:center}
 #load.on{display:grid;background:#030607}
 #lbar{width:min(430px,80vw);height:9px;border:1px solid #2c4a45;background:#080f10;margin-top:12px}
@@ -205,6 +242,8 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
     </div>
     <div id="held"></div>
     <div id="hotbar"></div>
+    <div id="hunt"></div>
+    <div id="bossbar"><div class="bn"></div><div class="mbar"><i></i></div></div>
     <div id="toast"></div>
     <div id="whisper"></div>
     <div id="dark"></div>
@@ -226,6 +265,16 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
     </div>
   </div>
 
+  <div id="book">
+    <div class="card folio">
+      <div class="eyebrow">A book somebody bound in a hurry</div>
+      <h2>The Necronomicon</h2>
+      <div id="booktabs"></div>
+      <div id="bookbody"></div>
+      <div class="btns"><button class="btn" id="b-closebook">Close [R]</button></div>
+    </div>
+  </div>
+
   <div id="touch">
     <div id="stick"><b></b></div>
     <div class="tb" id="t-mine">DIG</div>
@@ -240,12 +289,22 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
         <canvas id="sigilcv" width="208" height="208"></canvas>
         <div>
           <div class="eyebrow">Miskatonic survey &middot; sheet the ground goes on forever</div>
-          <h1>LOVE<span>CRAFT</span></h1>
-          <div class="eyebrow" style="color:#8A8471">An endless voxel world with something under it</div>
+          <h1>LOVE<span>CRAFT</span> <span style="font-size:.5em;letter-spacing:.2em">II</span></h1>
+          <div class="eyebrow" style="color:#8A8471">The expert chart &mdash; books, rites, saltes, and the thing under the seal</div>
         </div>
       </div>
       <div class="rule"></div>
+      <p class="txt" style="margin-bottom:10px"><span class="dim">Everything you build is kept: the world writes itself down every 45 seconds and waits for you. A chart nobody visits for <b style="color:var(--witch);font-weight:400">15 days</b> is deleted on its own, so nothing of yours is left cluttering the machine. Export any chart to a file and that copy never expires.</span></p>
+      <p class="txt" style="margin-bottom:10px">Five countries that do not look alike: green basalt drowning in black water, a grey tide shore, olive uplands scabbed with blasted heath, a white plateau under black spires, a violet wood lit from the ground. They meet every two or three hundred paces and the book names them as you cross.</p>
+      <p class="txt" style="margin-bottom:10px"><span class="dim">New in this chart: bound <b style="color:var(--witch);font-weight:400">books</b> to find and read, a nine block <b style="color:var(--witch);font-weight:400">circle</b> to lay by hand, <b style="color:var(--witch);font-weight:400">essential saltes</b> that raise something to fight beside you, the <b style="color:var(--witch);font-weight:400">elder sign</b> that turns them aside, and a red <b style="color:var(--witch);font-weight:400">seal</b> in the deep vaults that you should think about twice before breaking.</span></p>
       <p class="txt">There is no edge. Walk in one direction for an hour and the world keeps being made in front of you, coast after coast, plateau after plateau, and none of it was waiting for you. Dig it up, carry it, build with it. The things that live here were building long before, and <em>their angles are wrong on purpose</em>.</p>
+      <div class="rule"></div>
+      <div class="eyebrow">Charts you have already walked</div>
+      <div id="saveslist"></div>
+      <div class="btns" style="margin-top:8px">
+        <button class="btn" id="b-import">Load a chart from a file</button>
+        <input id="fileimp" type="file" accept="application/json,.json" style="display:none">
+      </div>
       <div class="rule"></div>
       <div class="eyebrow">Choose the cycle you will be lost in</div>
       <div class="cycles" id="cycles"></div>
@@ -258,7 +317,8 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
           <li><b>HOLD LMB</b>dig</li><li><b>RMB</b>place</li><li><b>1..9</b>slot</li><li><b>WHEEL</b>cycle</li><li><b>MMB</b>copy block</li>
         </ul></div>
         <div><h3>Mind</h3><ul>
-          <li><b>C</b>working table</li><li><b>F</b>eat</li><li><b>M</b>silence</li><li><b>ESC</b>stop</li>
+          <li><b>C</b>working table</li><li><b>R</b>read the book</li><li><b>G</b>perform the rite</li>
+          <li><b>F</b>eat</li><li><b>M</b>silence</li><li><b>ESC</b>stop</li>
         </ul></div>
       </div>
       <div class="rule"></div>
@@ -288,8 +348,11 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
       <div class="field"><label for="bright2">Light of the world</label><input id="bright2" type="range" min="60" max="220" value="115"><span id="bright-v2">1.15</span></div>
       <div class="field"><label for="sens2">Look speed</label><input id="sens2" type="range" min="20" max="240" value="100"><span id="sens-v2">1.00</span></div>
       <div class="field"><label for="dist2">Sight</label><input id="dist2" type="range" min="4" max="9" value="6"><span id="dist-v2">6</span></div>
+      <div id="saveinfo"></div>
       <div class="btns">
         <button class="btn go" id="b-resume">Go back out</button>
+        <button class="btn" id="b-save">Keep the chart now</button>
+        <button class="btn" id="b-export">Export to file</button>
         <button class="btn" id="b-quit">Leave the chart</button>
       </div>
     </div>
@@ -305,6 +368,7 @@ input[type=text]{font-family:var(--mono);background:#07100f;border:1px solid #2c
       <div id="d-stats" style="font-family:var(--mono);font-size:12.5px;line-height:2;color:#9d9a8b"></div>
       <div class="btns">
         <button class="btn go" id="b-respawn">Wake somewhere else</button>
+        <button class="btn" id="b-export2">Export to file</button>
         <button class="btn" id="b-menu">A different chart</button>
       </div>
     </div>
@@ -565,10 +629,12 @@ addEventListener('keydown', function (e) {
   if (e.repeat) return;
   K[e.code] = true;
   if (e.code === 'Escape') G.togglePause();
+  if (e.code === 'KeyR') { toggleBook(); return; }
   if (e.code === 'KeyM') { AU.on = !AU.on; toast(AU.on ? 'sound on' : 'sound off'); }
   if (G.state !== 'play') return;
   if (e.code === 'KeyC') G.toggleCraft();
   if (e.code === 'KeyF') G.eat();
+  if (e.code === 'KeyG') performRite();
   var n = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'].indexOf(e.code);
   if (n >= 0) G.selectSlot(n);
 });
@@ -598,7 +664,7 @@ addEventListener('wheel', function (e) {
 
 function lockPointer() { if (!touchOn && document.body.requestPointerLock) document.body.requestPointerLock(); }
 document.addEventListener('pointerlockchange', function () {
-  if (G.state === 'play' && document.pointerLockElement !== document.body && !touchOn && !G.craftOpen) G.togglePause();
+  if (G.state === 'play' && document.pointerLockElement !== document.body && !touchOn && !G.craftOpen && !G.bookOpen) G.togglePause();
 });
 
 function bindTouch() {
@@ -679,7 +745,8 @@ var AIR = 0, SOIL = 1, LOAM = 2, BASALT = 3, SAND = 4, BRINE = 5, CYCLOP = 6, GL
   LIVEGLYPH = 8, NIGHTSTONE = 9, BONE = 10, SKULLS = 11, FLESH = 12, TENDRIL = 13, EYE = 14,
   MOONFUNG = 15, TIMBER = 16, PLANK = 17, CORAL = 18, BLACKICE = 19, RIME = 20, PALEWOOD = 21,
   SILVERLEAF = 22, SALT = 23, REEFGOLD = 24, CANDLE = 25, PITCH = 26, STARSTONE = 27,
-  THINGLASS = 28, IDOL = 29;
+  THINGLASS = 28, IDOL = 29, DRYGRASS = 30, HEATH = 31, VERDIGRIS = 32, DREAMMOSS = 33,
+  WETROCK = 34, TOME = 35, SALTES = 36, SEAL = 37, ELDERSIGN = 38;
 
 var BL = [];
 function defB(id, name, t, s, b, hard, opt) {
@@ -720,6 +787,15 @@ defB(PITCH, 'Pitch', 28, 28, 28, 2.00, { snd: 'dig-hard', col: 0x0a0c0c });
 defB(STARSTONE, 'Star-stone', 29, 29, 29, 2.20, { snd: 'dig-hard', light: 13, lcol: 0xa0ffd8, sanity: 4, col: 0x8fe8c4 });
 defB(THINGLASS, 'Thin glass', 30, 30, 30, 0.35, { snd: 'dig-glass', opaque: false, col: 0xbfd0cc });
 defB(IDOL, 'Idol stone', 31, 31, 31, 2.60, { snd: 'dig-hard', sanity: -8, col: 0x3a4a44 });
+defB(DRYGRASS, 'Dry grass', 32, 2, 2, 0.42, { col: 0x8a8a44 });
+defB(HEATH, 'Blasted heath', 33, 33, 33, 0.45, { sanity: -2, col: 0xb0a8b4 });
+defB(VERDIGRIS, 'Verdigris basalt', 34, 34, 34, 1.60, { snd: 'dig-hard', col: 0x2c5a4a });
+defB(DREAMMOSS, 'Dream moss', 35, 35, 35, 0.35, { light: 3, lcol: 0xc0a0ff, col: 0x6a4a8c });
+defB(WETROCK, 'Tide rock', 36, 36, 36, 1.20, { snd: 'dig-hard', col: 0x3f4a48 });
+defB(TOME, 'A bound book', 37, 37, 37, 0.40, { light: 4, lcol: 0xd8c060, sanity: -4, col: 0x5a3a2a });
+defB(SALTES, 'Essential saltes', 38, 38, 38, 0.30, { light: 5, lcol: 0xcfd8ff, sanity: -3, col: 0xc8cfe0 });
+defB(SEAL, 'The seal', 39, 39, 39, 3.60, { snd: 'dig-hard', light: 9, lcol: 0xff5a3c, sanity: -14, col: 0x6a2a24 });
+defB(ELDERSIGN, 'Elder sign', 40, 40, 40, 2.40, { snd: 'dig-hard', light: 12, lcol: 0xa0ffd8, sanity: 8, col: 0x9fe8cc });
 
 /* ------------------------------------------------------- 2a texture atlas */
 var ATLAS = null, ATLAS_URL = '', TSZ = 32, ACOLS = 8;
@@ -944,6 +1020,79 @@ function buildAtlas() {
     }
   });
 
+  tile(32, function (g) {   // dry grass of the uplands, the colour of a bad summer
+    fill(g, '#8a8a44'); grain(g, 170, ['#7a7a3a', '#9a9a52', '#6a6a30']);
+    g.strokeStyle = '#a8a85a'; g.lineWidth = 1.4;
+    for (var i = 0; i < 16; i++) {
+      var bx = Math.random() * 32, by = Math.random() * 32;
+      g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + (Math.random() - .5) * 5, by - 5); g.stroke();
+    }
+  });
+  tile(33, function (g) {   // blasted heath: ground that nothing will grow on again
+    fill(g, '#b0a8b4'); grain(g, 200, ['#9e96a4', '#c2bcc6', '#8e8694'], 3);
+    g.strokeStyle = 'rgba(70,60,75,.5)'; g.lineWidth = 1;
+    for (var i = 0; i < 6; i++) {
+      g.beginPath();
+      g.moveTo(Math.random() * 32, 0); g.lineTo(Math.random() * 32, 32); g.stroke();
+    }
+    g.fillStyle = 'rgba(200,190,210,.5)';
+    for (var d = 0; d < 10; d++) { g.beginPath(); g.arc(Math.random() * 32, Math.random() * 32, 1.6, 0, TAU); g.fill(); }
+  });
+  tile(34, function (g) {   // verdigris basalt of the drowned city
+    fill(g, '#2c5a4a'); grain(g, 140, ['#254e40', '#356857', '#1d4136'], 3);
+    g.strokeStyle = '#1a3a30'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(2, 0); g.lineTo(10, 12); g.lineTo(4, 26); g.stroke();
+    g.beginPath(); g.moveTo(25, 1); g.lineTo(18, 14); g.lineTo(28, 30); g.stroke();
+    g.strokeStyle = 'rgba(150,220,190,.20)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, 20); g.lineTo(32, 16); g.stroke();
+  });
+  tile(35, function (g) {   // dream moss, violet and faintly lit
+    fill(g, '#6a4a8c'); grain(g, 150, ['#5c3f7c', '#7d5aa0', '#4c3268']);
+    g.fillStyle = 'rgba(210,180,255,.55)';
+    for (var i = 0; i < 22; i++) { g.beginPath(); g.arc(Math.random() * 32, Math.random() * 32, 1 + Math.random() * 2, 0, TAU); g.fill(); }
+    g.strokeStyle = 'rgba(230,210,255,.3)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(3, 28); g.lineTo(14, 14); g.lineTo(28, 8); g.stroke();
+  });
+  tile(36, function (g) {   // tide rock, always wet
+    fill(g, '#3f4a48'); grain(g, 150, ['#36403e', '#4a5654', '#2c3634'], 3);
+    g.fillStyle = 'rgba(120,180,170,.16)'; g.fillRect(0, 0, TSZ, 12);
+    g.strokeStyle = 'rgba(160,200,190,.3)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, 13); g.bezierCurveTo(10, 10, 20, 16, 32, 12); g.stroke();
+    g.fillStyle = '#5fd0c0';
+    for (var d = 0; d < 5; d++) g.fillRect(Math.random() * 30, 14 + Math.random() * 16, 2, 2);
+  });
+  tile(37, function (g) {   // a bound book nobody should have kept
+    fill(g, '#2a2018');
+    g.fillStyle = '#5a3a2a'; g.fillRect(3, 2, 26, 28);
+    g.fillStyle = '#432a1e'; g.fillRect(3, 2, 5, 28);
+    g.fillStyle = '#c8bfa0'; g.fillRect(28, 4, 2, 24);
+    g.shadowColor = '#d8c060'; g.shadowBlur = 6;
+    drawSigil(g, TSZ, 0x3f1a99, '#d8c060', 1.8);
+    g.shadowBlur = 0;
+  });
+  tile(38, function (g) {   // essential saltes
+    fill(g, '#3a3f4a');
+    g.fillStyle = '#cfd8ff';
+    for (var i = 0; i < 30; i++) {
+      var px = Math.random() * 32, py = Math.random() * 32, s = 2 + Math.random() * 4;
+      g.beginPath(); g.moveTo(px, py - s); g.lineTo(px + s * .6, py); g.lineTo(px, py + s); g.lineTo(px - s * .6, py); g.fill();
+    }
+    g.fillStyle = 'rgba(200,215,255,.28)'; g.fillRect(0, 0, TSZ, TSZ);
+  });
+  tile(39, function (g) {   // the seal, holding something down
+    fill(g, '#6a2a24'); grain(g, 110, ['#5c231e', '#7c352c']);
+    g.shadowColor = '#ff5a3c'; g.shadowBlur = 8;
+    drawSigil(g, TSZ, 0x77c0de, '#ffb08a', 2.6);
+    g.shadowBlur = 0;
+    g.strokeStyle = '#ff8a5c'; g.lineWidth = 2; g.strokeRect(2, 2, TSZ - 4, TSZ - 4);
+  });
+  tile(40, function (g) {   // the elder sign, the one friendly shape in the world
+    fill(g, '#15352e');
+    g.shadowColor = '#a0ffd8'; g.shadowBlur = 10;
+    drawSigil(g, TSZ, 0x1ee7a1, '#c8ffe8', 2.6);
+    g.shadowBlur = 0;
+  });
+
   ATLAS = new THREE.CanvasTexture(c);
   ATLAS.magFilter = THREE.NearestFilter;
   ATLAS.minFilter = THREE.NearestMipmapLinearFilter;
@@ -961,6 +1110,22 @@ var RDIST = 6, MINSHADE = 0.22;
 var CHM = {};                     // chunk map, keyed "cx,cz"
 var cacheKey = '', cacheChunk = null;
 
+var EDITS = {};                   // "cx,cz" -> { localIndex: blockId }  the only thing worth saving
+function recordEdit(x, y, z, b) {
+  var k = (x >> 4) + ',' + (z >> 4);
+  var m = EDITS[k] || (EDITS[k] = {});
+  m[((y * CS) + (z & 15)) * CS + (x & 15)] = b;
+}
+function applyEdits(c) {
+  var m = EDITS[c.cx + ',' + c.cz];
+  if (!m) return;
+  for (var k in m) c.b[k | 0] = m[k];
+}
+function editCount() {
+  var n = 0;
+  for (var k in EDITS) for (var i in EDITS[k]) n++;
+  return n;
+}
 function newChunk(cx, cz) {
   return { cx: cx, cz: cz, b: new Uint8Array(CSZ), l: new Uint8Array(CSZ), maxY: CH - 1, gen: 0, litOnce: 0, lit: 0, dirty: 1, edited: 0, m: null, t: null };
 }
@@ -1016,36 +1181,36 @@ var CYCLES = [
   {
     key: 'rlyeh', name: "R'lyeh", sub: 'the drowned city, all angles wrong',
     base: 24, amp: 34, freq: 0.0115, ridged: 1, warp: 22, sea: 33,
-    surf: BASALT, sub: BASALT, stone: NIGHTSTONE, sky: 0x0a1518, fog: 0x0b1a1d,
-    trees: 0, coral: 1, structs: ['stair', 'idol', 'ring', 'shaft', 'obelisk'],
+    surf: VERDIGRIS, sub: VERDIGRIS, stone: NIGHTSTONE, sky: 0x06231e, fog: 0x07241f,
+    trees: 0, coral: 1, deco: 0, structs: ['stair', 'idol', 'vault', 'shaft', 'obelisk', 'ring'],
     mobs: ['spawn', 'deepone', 'shoggoth', 'watcher']
   },
   {
     key: 'innsmouth', name: 'Innsmouth', sub: 'a shore that smells of the tide',
     base: 21, amp: 12, freq: 0.0095, ridged: 0, warp: 6, sea: 26,
-    surf: SAND, sub: LOAM, stone: BASALT, sky: 0x2b3330, fog: 0x2a3532,
-    trees: 1, coral: 1, structs: ['wharf', 'cairn', 'ring', 'shaft'],
+    surf: SAND, sub: WETROCK, stone: BASALT, sky: 0x4a5c50, fog: 0x475a4e,
+    trees: 1, coral: 1, deco: 1, structs: ['wharf', 'cairn', 'ring', 'shaft', 'altar'],
     mobs: ['deepone', 'ghoul', 'watcher', 'shoggoth']
   },
   {
-    key: 'dunwich', name: 'Dunwich', sub: 'bald hills and stones set upright',
+    key: 'dunwich', name: 'Dunwich', sub: 'bald hills, standing stones, a heath nothing grows on',
     base: 30, amp: 24, freq: 0.0082, ridged: 0, warp: 10, sea: 19,
-    surf: SOIL, sub: LOAM, stone: BASALT, sky: 0x3a3a2e, fog: 0x33342a,
-    trees: 2, coral: 0, structs: ['ring', 'cairn', 'altar', 'obelisk'],
+    surf: DRYGRASS, sub: LOAM, stone: BASALT, sky: 0x6b6238, fog: 0x5c5530,
+    trees: 2, coral: 0, deco: 2, structs: ['ring', 'cairn', 'altar', 'obelisk', 'buried'],
     mobs: ['ghoul', 'hound', 'watcher', 'nightgaunt']
   },
   {
     key: 'leng', name: 'Leng', sub: 'the cold plateau nobody charts twice',
     base: 36, amp: 24, freq: 0.0090, ridged: 1, warp: 16, sea: 16,
-    surf: RIME, sub: RIME, stone: BASALT, sky: 0x1c2833, fog: 0x22303a,
-    trees: 0, coral: 0, structs: ['buried', 'obelisk', 'shaft', 'idol'],
+    surf: RIME, sub: RIME, stone: BASALT, sky: 0x9aaec2, fog: 0x8fa4b8,
+    trees: 0, coral: 0, deco: 3, structs: ['buried', 'obelisk', 'shaft', 'idol', 'vault'],
     mobs: ['shoggoth', 'nightgaunt', 'hound', 'watcher']
   },
   {
     key: 'dream', name: 'The enchanted wood', sub: 'dreamland, and the things under it',
     base: 27, amp: 15, freq: 0.0105, ridged: 0, warp: 8, sea: 22,
-    surf: SOIL, sub: LOAM, stone: BASALT, sky: 0x2e2a3d, fog: 0x2b2838,
-    trees: 3, coral: 0, structs: ['well', 'ring', 'altar', 'cairn'],
+    surf: DREAMMOSS, sub: LOAM, stone: BASALT, sky: 0x4a2f6b, fog: 0x412a5e,
+    trees: 3, coral: 0, deco: 4, structs: ['well', 'ring', 'altar', 'cairn', 'shaft'],
     mobs: ['zoog', 'nightgaunt', 'watcher', 'ghoul']
   }
 ];
@@ -1053,12 +1218,22 @@ var CYCLE_FIXED = -1;   // -1 means all cycles at once
 
 function cycleAtF(x, z) {
   if (CYCLE_FIXED >= 0) return CYCLE_FIXED;
-  var v = fbm2(x * 0.0013 + 700, z * 0.0013 + 700, 3);
+  var v = fbm2(x * 0.0024 + 700, z * 0.0024 + 700, 3);
   v = clamp((v - 0.22) / 0.56, 0, 0.9999);
   return v * CYCLES.length;
 }
 function cycleAt(x, z) { return Math.min(CYCLES.length - 1, Math.floor(cycleAtF(x, z))); }
 
+function surfBlock(ci, x, z, top, sea) {
+  var n = noise2(x * 0.035 + ci * 13, z * 0.035);
+  switch (ci) {
+    case 0: return top <= sea ? VERDIGRIS : (n > 0.58 ? BASALT : VERDIGRIS);
+    case 1: return top <= sea + 2 ? SAND : (n > 0.55 ? WETROCK : SAND);
+    case 2: return fbm2(x * 0.021 + 300, z * 0.021 + 300, 2) > 0.655 ? HEATH : DRYGRASS;
+    case 3: return n > 0.62 ? BLACKICE : RIME;
+    default: return n > 0.72 ? SOIL : DREAMMOSS;
+  }
+}
 function hOf(ci, x, z) {
   var B = CYCLES[ci];
   var wx = x, wz = z;
@@ -1106,7 +1281,7 @@ function genChunk(c) {
       var top = terrainH(x, z), sea = seaAt(x, z);
       for (var y = 0; y <= top; y++) {
         var blk;
-        if (y === top) blk = (top <= sea) ? (ci === 1 ? SAND : B.sub) : B.surf;
+        if (y === top) blk = surfBlock(ci, x, z, top, sea);
         else if (y > top - 4) blk = B.sub;
         else blk = BASALT;
         if (y < top - 5) {
@@ -1150,6 +1325,29 @@ function genChunk(c) {
         else if (VB.trees === 3) setW(vx, vtop + 1, vz, SILVERLEAF);
         else if (VB.trees === 2 && hv > 0.990) setW(vx, vtop + 1, vz, SKULLS);
       }
+      // regional decoration: what you actually notice from a distance
+      if (hv > 0.9925 && vtop > vsea && vtop < CH - 20) {
+        var dseed = (hv * 100000) | 0;
+        if (VB.deco === 0) {                                  // R'lyeh: megaliths shoving out of the rock
+          var ph = 4 + (dseed % 7);
+          for (var pq = 0; pq < ph; pq++) setW(vx, vtop + 1 + pq, vz, pq === ph - 1 ? GLYPH : VERDIGRIS);
+          if (dseed % 3 === 0) setW(vx + 1, vtop + 1, vz, VERDIGRIS);
+        } else if (VB.deco === 1) {                           // Innsmouth: posts, bones and weed
+          if (dseed % 3 === 0) { for (var pw = 0; pw < 3 + dseed % 3; pw++) setW(vx, vtop + 1 + pw, vz, TIMBER); }
+          else setW(vx, vtop + 1, vz, dseed % 2 ? BONE : CORAL);
+        } else if (VB.deco === 2) {                           // Dunwich: a stone set upright by somebody
+          var sh2 = 3 + (dseed % 4);
+          for (var sq = 0; sq < sh2; sq++) setW(vx, vtop + 1 + sq, vz, CYCLOP);
+          if (dseed % 4 === 0) setW(vx, vtop + 1 + sh2, vz, GLYPH);
+          if (dseed % 5 === 0) setW(vx + 1, vtop + 1, vz, SKULLS);
+        } else if (VB.deco === 3) {                           // Leng: spires of black ice
+          var ih = 4 + (dseed % 9);
+          for (var iq = 0; iq < ih; iq++) setW(vx, vtop + 1 + iq, vz, iq > ih - 3 ? BLACKICE : RIME);
+        } else {                                              // Dreamlands: lit mounds and fungus
+          setW(vx, vtop + 1, vz, dseed % 3 ? MOONFUNG : DREAMMOSS);
+          if (dseed % 4 === 0) setW(vx + 1, vtop + 1, vz, MOONFUNG);
+        }
+      }
       if (VB.coral && vtop < vsea - 1) {
         setW(vx, vtop + 1, vz, CORAL);
         if (hstruct(vx, vz, 10) > 0.6) setW(vx, vtop + 2, vz, CORAL);
@@ -1173,6 +1371,7 @@ function genChunk(c) {
     buildStruct(kind, px, Math.max(base, sea2 - 2), pz, sr, ciS);
   }
   _wc = null;
+  applyEdits(c);                  // whatever the player did here outlives the algorithm
   c.maxY = CH - 1;
   for (var my = CH - 1; my >= 0; my--) {
     var any = 0, off = my * CS * CS;
@@ -1216,6 +1415,7 @@ function buildStruct(kind, x, y, z, sr, ci) {
     case 'obelisk': stObelisk(x, y, z, sr); break;
     case 'altar': stAltar(x, y, z, sr); break;
     case 'well': stWell(x, y, z, sr); break;
+    case 'vault': stVault(x, y, z, sr); break;
   }
 }
 /* a ring of upright stones, none of them the same height, and a slab */
@@ -1233,6 +1433,8 @@ function stRing(x, y, z, sr) {
   fillBoxW(x - 1, y, z - 1, x + 1, y, z + 1, GLYPH);
   setW(x, y + 1, z, IDOL);
   setW(x - 2, y + 1, z - 2, CANDLE); setW(x + 2, y + 1, z + 2, CANDLE);
+  if (sr() < 0.34) setW(x + 1, y + 1, z, TOME);
+  if (sr() < 0.4) setW(x - 1, y + 1, z, SALTES);
   if (sr() < 0.5) setW(x, y + 2, z, EYE);
 }
 /* a staircase built for a body with the wrong number of knees */
@@ -1297,6 +1499,8 @@ function stShaft(x, y, z, sr) {
   setW(x, by - 3, z, IDOL);
   setW(x, by - 2, z, EYE);
   setW(x - 4, by - 3, z - 4, STARSTONE); setW(x + 4, by - 3, z + 4, LIVEGLYPH);
+  setW(x + 2, by - 3, z, TOME);
+  if (sr() < 0.5) setW(x - 2, by - 3, z, SALTES);
   for (var k = 0; k < 12; k++) setW(x + Math.round((sr() - 0.5) * 8), by - 4, z + Math.round((sr() - 0.5) * 8), SKULLS);
 }
 /* wharfs on rotten piles, and the sheds nobody opens */
@@ -1324,6 +1528,8 @@ function stCairn(x, y, z, sr) {
       if (a * a + b * b <= r * r) setW(x + a, yy, z + b, (a + b + r) % 3 === 0 ? SKULLS : BONE);
   }
   setW(x, y + R + 1, z, CANDLE);
+  if (sr() < 0.4) setW(x + R, y, z, SALTES);
+  if (sr() < 0.25) setW(x - R, y, z, TOME);
   for (var i = 0; i < 8; i++) {
     var a2 = i / 8 * TAU;
     setW(x + Math.round(Math.cos(a2) * (R + 2)), y, z + Math.round(Math.sin(a2) * (R + 2)), GLYPH);
@@ -1341,6 +1547,8 @@ function stBuried(x, y, z, sr) {
     // the doorway is never in the middle and never square
     setW(ox - w, oy + 1, oz + 1, AIR); setW(ox - w, oy + 2, oz + 1, AIR); setW(ox - w, oy + 2, oz + 2, AIR);
     if (sr() < 0.6) setW(ox, oy + 1, oz, GLYPH);
+    if (sr() < 0.28) setW(ox + 1, oy + 1, oz - 1, TOME);
+    if (sr() < 0.3) setW(ox - 1, oy + 1, oz + 1, SALTES);
     if (sr() < 0.4) setW(ox + 1, oy + 1, oz + 1, LIVEGLYPH);
     if (sr() < 0.35) setW(ox - 1, oy + 1, oz - 1, SKULLS);
     for (var t = 0; t < 3; t++) if (sr() < 0.5) setW(ox + Math.round((sr() - .5) * w), oy + h, oz + Math.round((sr() - .5) * d), AIR);
@@ -1354,6 +1562,7 @@ function stObelisk(x, y, z, sr) {
     fillBoxW(x - r, y + 1 + i, z - r, x + r, y + 1 + i, z + r, (i % 3 === 1) ? GLYPH : CYCLOP);
   }
   setW(x, y + h + 1, z, LIVEGLYPH);
+  if (sr() < 0.3) setW(x + 2, y + 1, z + 2, TOME);
   for (var k = 0; k < 4; k++) {
     var a = k / 4 * TAU + sr();
     setW(x + Math.round(Math.cos(a) * 4), y + 1, z + Math.round(Math.sin(a) * 4), sr() < 0.5 ? SKULLS : CANDLE);
@@ -1367,6 +1576,8 @@ function stAltar(x, y, z, sr) {
   fillBoxW(x - 1, y, z - 2, x + 1, y + 1, z + 2, CYCLOP);
   setW(x, y + 2, z, FLESH);
   setW(x, y + 2, z - 2, SKULLS);
+  if (sr() < 0.45) setW(x + 1, y + 2, z, TOME);
+  if (sr() < 0.55) setW(x - 1, y + 2, z, SALTES);
   for (var i = 0; i < 6; i++) {
     var a = i / 6 * TAU;
     setW(x + Math.round(Math.cos(a) * 4), y, z + Math.round(Math.sin(a) * 4), i % 2 ? GLYPH : CANDLE);
@@ -1389,6 +1600,28 @@ function stWell(x, y, z, sr) {
   }
   setW(x, y - 13, z, EYE);
   setW(x + 1, y + 2, z + 1, LIVEGLYPH);
+}
+
+/* the vault: a room built to keep one thing in, and a seal on top of it */
+function stVault(x, y, z, sr) {
+  var d = 12 + Math.floor(sr() * 8), by = y - d;
+  for (var i = 0; i < d; i++) {                    // the way down, if you can find it
+    fillBoxW(x, y - i, z, x + 1, y - i, z + 1, AIR);
+    shellBoxW(x - 1, y - i, z - 1, x + 2, y - i, z + 2, i % 3 === 0 ? GLYPH : CYCLOP);
+  }
+  fillBoxW(x - 7, by - 8, z - 7, x + 8, by, z + 8, AIR);
+  shellBoxW(x - 8, by - 9, z - 8, x + 9, by + 1, z + 9, CYCLOP);
+  for (var k = 0; k < 18; k++) {
+    var a = k / 18 * TAU;
+    setW(x + Math.round(Math.cos(a) * 7), by - 8, z + Math.round(Math.sin(a) * 7), GLYPH);
+    if (k % 3 === 0) setW(x + Math.round(Math.cos(a) * 5), by - 7, z + Math.round(Math.sin(a) * 5), LIVEGLYPH);
+  }
+  fillBoxW(x - 2, by - 8, z - 2, x + 3, by - 7, z + 3, IDOL);
+  fillBoxW(x - 1, by - 6, z - 1, x + 2, by - 6, z + 2, SEAL);
+  setW(x, by - 5, z, EYE);
+  for (var q = 0; q < 10; q++) setW(x + Math.round((sr() - .5) * 12), by - 8, z + Math.round((sr() - .5) * 12), SKULLS);
+  setW(x - 6, by - 8, z - 6, TOME);
+  setW(x + 6, by - 8, z + 6, SALTES);
 }
 
 /* ------------------------------------------------------------- 3d lighting */
@@ -1603,11 +1836,12 @@ function unloadFar() {
     if (c.m) { scene.remove(c.m); c.m.geometry.dispose(); c.m = null; }
     if (c.t) { scene.remove(c.t); c.t.geometry.dispose(); c.t = null; }
     c.dirty = 1;
-    if (!c.edited) delete CHM[k];       // untouched ground is remembered by the algorithm, not by us
+    delete CHM[k];        // the ground is remembered by the algorithm, the changes by EDITS
   }
   cacheKey = ''; cacheChunk = null;
 }
 function clearWorld() {
+  cacheKey = ''; cacheChunk = null;
   for (var k in CHM) {
     var c = CHM[k];
     if (c.m) { scene.remove(c.m); c.m.geometry.dispose(); }
@@ -1679,6 +1913,7 @@ function raycast(maxD) {
 
 function editBlock(x, y, z, b) {
   setB(x, y, z, b);
+  recordEdit(x, y, z, b);
   relightAround(x, y, z, 1);
   var cx0 = (x - 1) >> 4, cx1 = (x + 1) >> 4, cz0 = (z - 1) >> 4, cz1 = (z + 1) >> 4;
   for (var cz = cz0 - 1; cz <= cz1 + 1; cz++) for (var cx = cx0 - 1; cx <= cx1 + 1; cx++) {
@@ -1718,6 +1953,9 @@ var RECIPES = [
   { out: [IDOL, 1], inp: [[CYCLOP, 2], [TENDRIL, 1], [EYE, 1]], note: 'it will not thank you' },
   { out: [EYE, 1], inp: [[REEFGOLD, 1], [GLYPH, 1]], note: 'set into the socket, still warm' },
   { out: [NIGHTSTONE, 2], inp: [[PITCH, 2], [BASALT, 1]], note: 'black enough to lose a hand in' },
+  { out: [SALTES, 1], inp: [[SKULLS, 2], [SALT, 1]], note: 'reduce it until only the shape is left' },
+  { out: [ELDERSIGN, 1], inp: [[STARSTONE, 1], [LIVEGLYPH, 2]], note: 'they go around it rather than through' },
+  { out: [CANDLE, 4], inp: [[SALTES, 1], [TIMBER, 1]], note: 'a poor use of good saltes' },
   { tool: 'pick', label: 'Basalt pick', tile: 3, inp: [[BASALT, 3], [TIMBER, 2]], note: 'cuts hard stone three times faster' },
   { tool: 'cleaver', label: 'Reef harpoon', tile: 26, inp: [[REEFGOLD, 2], [TIMBER, 1]], note: 'hurts what swims and what walks' },
   { tool: 'lantern', label: 'Carried lantern', tile: 27, inp: [[THINGLASS, 2], [CANDLE, 1]], note: 'light that goes where you go' },
@@ -1775,7 +2013,20 @@ var MOBDEF = {
   hound: { hp: 54, spd: 6.6, dmg: 8, san: 14, r: 0.5, burn: 0, snd: 'growl', name: 'Angle hound' },
   shoggoth: { hp: 130, spd: 2.7, dmg: 12, san: 17, r: 0.85, burn: 0, snd: 'gurgle', name: 'Shoggoth' },
   watcher: { hp: 48, spd: 8.0, dmg: 9, san: 26, r: 0.35, burn: 0, snd: 'whisper', name: 'The unblinking' },
-  spawn: { hp: 280, spd: 2.3, dmg: 17, san: 26, r: 1.0, burn: 0, snd: 'growl', name: 'Star-spawn' }
+  spawn: { hp: 280, spd: 2.3, dmg: 17, san: 26, r: 1.0, burn: 0, snd: 'growl', name: 'Star-spawn' },
+  revenant: { hp: 120, spd: 4.6, dmg: 15, san: 0, r: 0.45, burn: 0, friend: 1, snd: 'gurgle', name: 'Revenant' },
+  sleeper: { hp: 1400, spd: 2.6, dmg: 26, san: 34, r: 2.2, burn: 0, boss: 1, snd: 'growl', name: 'The Sleeper' }
+};
+var BESTIARY = {
+  deepone: 'Walks out of the water on legs it clearly resents. Comes in numbers along any shore.',
+  zoog: 'Small, quick, too many legs. Alone it is a nuisance. It is never alone.',
+  ghoul: 'Was a person, took the shortcut. Digs faster than you and remembers where you sleep.',
+  nightgaunt: 'No face. None. It hovers, it takes hold, and the silence is the worst part.',
+  hound: 'Arrives out of an angle rather than a direction. Fastest thing in the world.',
+  shoggoth: 'A heap of eyes deciding what shape to be. Slow, and it does not need to be quick.',
+  watcher: 'Stands perfectly still while you look at it. Crosses a field the moment you do not.',
+  spawn: 'A small one of its family, which is not a comfort. Do not fight it in the open.',
+  sleeper: 'It was under the seal because somebody put it there, and they were better at this than you.'
 };
 
 function buildMobs() {
@@ -1871,16 +2122,26 @@ function buildMobs() {
     g.box(.1, 1.6 - i * .14, .8, 1.6 + i * .22, 3.4 + i * .12, -.3, 0x1c2c26);
   }
   MOBS.spawn = g.geo();
+  // revenant: what the saltes remember of somebody, standing up again
+  g = new MB();
+  g.box(.55, 1.1, .34, 0, .85, 0, 0xd8dcea);
+  g.box(.18, 1.0, .18, -.36, .9, 0, 0xc4c9da); g.box(.18, 1.0, .18, .36, .9, 0, 0xc4c9da);
+  g.box(.2, .55, .2, -.14, .28, 0, 0xc4c9da); g.box(.2, .55, .2, .14, .28, 0, 0xc4c9da);
+  g.box(.44, .46, .4, 0, 1.62, 0, 0xe8ecf8);
+  g.box(.1, .11, .04, -.11, 1.66, .21, 0x7fe0c0); g.box(.1, .11, .04, .11, 1.66, .21, 0x7fe0c0);
+  g.box(.62, .1, .44, 0, 1.3, 0, 0xb6bccc);
+  MOBS.revenant = g.geo();
 }
 
 function spawnMob(type, x, y, z) {
   var d = MOBDEF[type];
-  var m = new THREE.Mesh(MOBS[type], MOBMAT);
+  var m = new THREE.Mesh(MOBS[type === 'sleeper' ? 'spawn' : type], MOBMAT);
+  if (type === 'sleeper') m.scale.setScalar(2.4);
   m.position.set(x, y, z);
   scene.add(m);
   var e = {
     type: type, def: d, mesh: m, x: x, y: y, z: z,
-    hp: d.hp * (G.diff === 2 ? 1.25 : 1), cool: rr(0, 1.5), t: rr(0, 9),
+    hp: d.hp * (G.diff === 2 ? 1.25 : 1), hpMax: d.hp * (G.diff === 2 ? 1.25 : 1), cool: rr(0, 1.5), t: rr(0, 9),
     ry: rr(0, TAU), wx: x, wz: z, frozen: 0
   };
   mobs.push(e);
@@ -1913,19 +2174,46 @@ function losFree(m) {
 }
 
 function updateMobs(dt) {
-  var i, m;
+  var i, m, hunters = 0;
+  G.boss = null;
   for (i = mobs.length - 1; i >= 0; i--) {
     m = mobs[i];
-    if (m.hp <= 0) { scene.remove(m.mesh); mobs.splice(i, 1); G.kills++; continue; }
+    if (m.hp <= 0) {
+      scene.remove(m.mesh); mobs.splice(i, 1); G.kills++;
+      if (m.def.boss) {
+        G.bossDown = (G.bossDown || 0) + 1;
+        invAdd(ELDERSIGN, 2); invAdd(STARSTONE, 4);
+        P.san = clamp(P.san + 30, 0, 100);
+        toast('the sleeper is put back down. the sky lets go of you.', 6);
+        AU.say('bell');
+      }
+      continue;
+    }
     m.t += dt; m.cool -= dt;
     var dx = P.x - m.x, dz = P.z - m.z, dy = P.y - m.y;
     var dist = Math.hypot(dx, dz);
+    if (m.def.friend) { updateFriend(m, dt, dx, dz, dist); continue; }
     if (dist > 92) { scene.remove(m.mesh); mobs.splice(i, 1); continue; }
     if (m.def.burn && G.dayFactor > 0.75 && getL(Math.floor(m.x), Math.floor(m.y) + 1, Math.floor(m.z)) > 200) {
       m.hp -= 12 * dt;
       if (Math.random() < 0.06) puff(m.x, m.y + 1, m.z, 0x555555);
     }
-    var hunting = dist < (m.type === 'watcher' ? 46 : 32) && Math.abs(dy) < 14;
+    var hunting = dist < (m.type === 'watcher' ? 46 : (m.def.boss ? 70 : 34)) && Math.abs(dy) < 16;
+    if (hunting) hunters++;
+    if (dist < 34 && inView(m) && !G.seen[m.type]) {
+      G.seen[m.type] = 1;
+      toast('recorded in the book: ' + m.def.name.toLowerCase());
+    }
+    if (m.def.boss) {
+      G.boss = m;
+      m.cool2 = (m.cool2 || 0) - dt;
+      if (m.cool2 <= 0) {                       // it does not come alone
+        m.cool2 = 9;
+        var ap = spawnPlace(10, 22);
+        if (ap && mobs.length < D.mobs + 8) spawnMob(rnd() < 0.5 ? 'deepone' : 'nightgaunt', ap.x + 0.5, ap.y, ap.z + 0.5);
+      }
+      if (dist < 40) G.shake = Math.max(G.shake, 0.35);
+    }
     var spd = m.def.spd * (G.dayFactor > 0.6 ? 0.88 : 1) * (G.tools.ward ? 0.82 : 1);
 
     if (m.type === 'watcher') {
@@ -1960,31 +2248,86 @@ function updateMobs(dt) {
     m.mesh.rotation.y = m.ry;
     if (!m.frozen) m.mesh.position.y += Math.abs(Math.sin(m.t * (hunting ? 7 : 3))) * (m.def.fly ? 0.22 : 0.09);
   }
+  G.hunters = hunters;
+}
+
+/* what you raised out of the saltes takes your side, for a while */
+function updateFriend(m, dt, dx, dz, dist) {
+  m.life -= dt;
+  if (m.life <= 0 || dist > 70) {
+    puff(m.x, m.y + 1, m.z, 0xcfd8ff, 10);
+    var k = mobs.indexOf(m); if (k >= 0) mobs.splice(k, 1);
+    scene.remove(m.mesh);
+    return;
+  }
+  var best = null, bd = 34;
+  for (var i = 0; i < mobs.length; i++) {
+    var o = mobs[i];
+    if (o === m || o.def.friend) continue;
+    var d = Math.hypot(o.x - m.x, o.z - m.z);
+    if (d < bd) { bd = d; best = o; }
+  }
+  if (best) {
+    var tx = best.x - m.x, tz = best.z - m.z, tl = bd || 1;
+    mobStep(m, tx / tl * m.def.spd * dt, tz / tl * m.def.spd * dt, dt);
+    m.ry = Math.atan2(tx, tz);
+    if (bd < 2.0 && m.cool <= 0) {
+      m.cool = 0.8;
+      best.hp -= m.def.dmg;
+      AU.say('hit');
+      puff(best.x, best.y + 1, best.z, 0x8fd8c0, 4);
+    }
+  } else if (dist > 4) {
+    mobStep(m, dx / (dist || 1) * m.def.spd * 0.8 * dt, dz / (dist || 1) * m.def.spd * 0.8 * dt, dt);
+    m.ry = Math.atan2(dx, dz);
+  }
+  m.mesh.position.set(m.x, m.y + Math.abs(Math.sin(m.t * 6)) * 0.09, m.z);
+  m.mesh.rotation.y = m.ry;
 }
 
 var spawnT = 0;
-function trySpawn(dt) {
-  spawnT -= dt;
-  if (spawnT > 0) return;
-  spawnT = 2.4 / D.spawnRate;
-  if (mobs.length >= D.mobs) return;
-  var night = G.dayFactor < 0.35;
-  for (var t = 0; t < 12; t++) {
-    var a = rr(0, TAU), r = rr(22, 46);
+var DAY_SAFE = { deepone: 1, shoggoth: 1, watcher: 1, nightgaunt: 1, hound: 1, zoog: 1 };
+function spawnPlace(minR, maxR) {
+  for (var t = 0; t < 16; t++) {
+    var a = rr(0, TAU), r = rr(minR, maxR);
     var x = Math.floor(P.x + Math.cos(a) * r), z = Math.floor(P.z + Math.sin(a) * r);
     var c = getChunk(x >> 4, z >> 4);
     if (!c || !c.gen) continue;
     var y = surfaceY(x, z);
-    if (y >= CH - 2) continue;
-    var dark = getL(x, y, z) < 120 || night;
-    if (!dark) continue;
-    var ci = cycleAt(x, z), pool = CYCLES[ci].mobs;
-    var type = pool[Math.floor(rnd() * pool.length)];
-    if (type === 'spawn' && (mobs.length < 10 || !night || rnd() < 0.72)) type = 'deepone';
-    if (P.san < 34 && rnd() < 0.42) type = 'watcher';
-    spawnMob(type, x + 0.5, y, z + 0.5);
-    return;
+    if (y >= CH - 2 || y < 2) continue;
+    return { x: x, y: y, z: z };
   }
+  return null;
+}
+function pickType(x, z, night) {
+  var ci = cycleAt(x, z), pool = CYCLES[ci].mobs;
+  var type = pool[Math.floor(rnd() * pool.length)];
+  if (!night && !DAY_SAFE[type]) type = 'deepone';
+  if (type === 'spawn' && (mobs.length < 10 || !night || rnd() < 0.7)) type = 'deepone';
+  if (P.san < 34 && rnd() < 0.42) type = 'watcher';
+  return type;
+}
+/* the world is not empty while you are getting your bearings */
+function seedMobs() {
+  var n = 3 + Math.round(D.mobs * 0.12);
+  for (var i = 0; i < n; i++) {
+    var p = spawnPlace(26, 48);
+    if (p) spawnMob(pickType(p.x, p.z, G.dayFactor < 0.35), p.x + 0.5, p.y, p.z + 0.5);
+  }
+}
+function trySpawn(dt) {
+  spawnT -= dt;
+  if (spawnT > 0) return;
+  var night = G.dayFactor < 0.35;
+  spawnT = (night ? 1.9 : 4.4) / D.spawnRate;
+  if (G.wardT > 0) return;
+  var cap = night ? D.mobs : Math.round(D.mobs * 0.55);
+  if (mobs.length >= cap) return;
+  var p = spawnPlace(24, 48);
+  if (!p) return;
+  var lit = getL(p.x, p.y, p.z) > 150;
+  if (!night && lit && rnd() < 0.45) return;          // bright noon thins them, it does not clear them
+  spawnMob(pickType(p.x, p.z, night), p.x + 0.5, p.y, p.z + 0.5);
 }
 
 /* ------------------------------------------------------------ 5b particles */
@@ -2075,6 +2418,361 @@ function updateLights() {
     } else L.intensity = 0;
   }
 }
+/* ===================================================== 5d KEEPING A CHART */
+/* What is worth saving is only what you changed: the ground itself is a
+   function of the seed and can always be recomputed. So a save is the seed,
+   your body, your satchel, and the list of blocks you moved.
+   Browser storage is wrapped in try/catch everywhere, because some frames
+   forbid it; when it is missing the game still runs and you can export a
+   file instead.                                                            */
+var SAVE_PREFIX = 'lovecraft.chart.';
+var EXPIRY_DAYS = 15;
+var STORE_OK = (function () {
+  try {
+    localStorage.setItem(SAVE_PREFIX + 'probe', '1');
+    localStorage.removeItem(SAVE_PREFIX + 'probe');
+    return true;
+  } catch (e) { return false; }
+})();
+var autoT = 0, lastSaveNote = 0;
+
+function serializeWorld() {
+  var e = {}, n = 0;
+  for (var k in EDITS) {
+    var m = EDITS[k], a = [];
+    for (var i in m) { a.push(i | 0, m[i]); n++; }
+    if (a.length) e[k] = a;
+  }
+  return {
+    v: 1, seed: SEED, cycle: G.cycle, diff: G.diff, clock: G.clock, kills: G.kills,
+    p: [P.x, P.y, P.z, P.yaw, P.pitch, P.hp, P.san],
+    sp: [P.spawn.x, P.spawn.y, P.spawn.z],
+    inv: G.inv, bar: G.bar, tools: G.tools,
+    book: G.book, seen: G.seen, bossDown: G.bossDown || 0,
+    edits: e, blocks: n, t: Date.now()
+  };
+}
+function applySaved(o) {
+  EDITS = {};
+  for (var k in o.edits) {
+    var a = o.edits[k], m = EDITS[k] = {};
+    for (var i = 0; i < a.length; i += 2) m[a[i]] = a[i + 1];
+  }
+  G.cycle = (o.cycle === undefined) ? -1 : o.cycle;
+  G.diff = o.diff || 1;
+  G.clock = o.clock || 0;
+  G.kills = o.kills || 0;
+  G.inv = o.inv || {};
+  G.bar = o.bar || [];
+  G.tools = o.tools || {};
+  G.book = o.book || {};
+  G.seen = o.seen || {};
+  G.bossDown = o.bossDown || 0;
+  G.resume = { p: o.p, sp: o.sp };
+}
+
+function saveNow(quiet) {
+  if (G.state !== 'play' && G.state !== 'pause') return false;
+  var data = serializeWorld();
+  G.lastSave = data.t;
+  if (!STORE_OK) { if (!quiet) toast('this page cannot keep saves \u2014 use export to file'); return false; }
+  try {
+    var str = JSON.stringify(data);
+    if (str.length > 4200000) {
+      toast('this chart is too large for the browser \u2014 export it to a file');
+      return false;
+    }
+    localStorage.setItem(SAVE_PREFIX + data.seed, str);
+    if (!quiet) toast('chart kept \u2014 ' + data.blocks + ' blocks, erased in ' + EXPIRY_DAYS + ' days if untouched');
+    return true;
+  } catch (err) {
+    toast('the browser refused the save \u2014 export to a file instead');
+    return false;
+  }
+}
+function listSaves() {
+  var out = [];
+  if (!STORE_OK) return out;
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf(SAVE_PREFIX) !== 0) continue;
+      var o = JSON.parse(localStorage.getItem(k));
+      if (o && o.seed !== undefined) out.push(o);
+    }
+  } catch (e) { }
+  out.sort(function (a, b) { return b.t - a.t; });
+  return out;
+}
+function purgeOldSaves() {
+  if (!STORE_OK) return 0;
+  var cut = Date.now() - EXPIRY_DAYS * 86400000, gone = 0;
+  try {
+    var doomed = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf(SAVE_PREFIX) !== 0) continue;
+      var o = JSON.parse(localStorage.getItem(k) || '{}');
+      if (!o.t || o.t < cut) doomed.push(k);
+    }
+    for (var j = 0; j < doomed.length; j++) { localStorage.removeItem(doomed[j]); gone++; }
+  } catch (e) { }
+  return gone;
+}
+function deleteSave(seed) {
+  try { localStorage.removeItem(SAVE_PREFIX + seed); } catch (e) { }
+  buildSavesList();
+}
+function daysLeft(t) { return Math.max(0, Math.ceil((t + EXPIRY_DAYS * 86400000 - Date.now()) / 86400000)); }
+
+function exportSave() {
+  var data = (G.state === 'play' || G.state === 'pause') ? serializeWorld() : null;
+  if (!data) { toast('nothing to export yet'); return; }
+  try {
+    var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'lovecraft-chart-' + data.seed + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    toast('chart written to a file \u2014 that copy never expires');
+  } catch (e) { toast('this page will not let a file be written'); }
+}
+function importSaveFile(file) {
+  var fr = new FileReader();
+  fr.onload = function () {
+    try {
+      var o = JSON.parse(fr.result);
+      if (!o || o.seed === undefined) throw 0;
+      AU.init(); AU.resume();
+      applySaved(o);
+      G.start(o.seed, true);
+    } catch (e) { toast('that file is not a chart'); }
+  };
+  fr.readAsText(file);
+}
+
+function buildSavesList() {
+  var wrap = $('saveslist');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!STORE_OK) {
+    wrap.innerHTML = '<div class="savenote">This page is not allowed to keep saves in the browser, which usually means it is running inside a preview frame. Open the file directly, or on your own site, and saving turns itself on. <b>Export to file</b> works either way.</div>';
+    return;
+  }
+  var saves = listSaves();
+  if (!saves.length) {
+    wrap.innerHTML = '<div class="savenote">No charts kept yet. The game writes one by itself every 45 seconds once you are walking. Anything untouched for ' + EXPIRY_DAYS + ' days is deleted so nothing of yours is left lying about.</div>';
+    return;
+  }
+  for (var i = 0; i < saves.length; i++) (function (o) {
+    var row = document.createElement('div');
+    row.className = 'saverow';
+    var cyc = (o.cycle === undefined || o.cycle < 0) ? 'all cycles' : CYCLES[o.cycle].name;
+    var pages = o.book ? Object.keys(o.book).length : 0;
+    var d = new Date(o.t);
+    var dl = daysLeft(o.t);
+    row.innerHTML = '<div class="si"><b>Chart No. ' + o.seed + '</b>' +
+      '<span>' + cyc + ' &middot; ' + (o.blocks || 0) + ' blocks moved &middot; ' + pages + ' pages read &middot; ' +
+      d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0, 5) + '</span>' +
+      '<span class="' + (dl <= 3 ? 'soon' : '') + '">erased in ' + dl + ' day' + (dl === 1 ? '' : 's') + ' unless you go back</span></div>';
+    var go = document.createElement('button');
+    go.className = 'btn'; go.textContent = 'Continue';
+    go.addEventListener('click', function () {
+      AU.init(); AU.resume();
+      applySaved(o);
+      G.start(o.seed, true);
+    });
+    var del = document.createElement('button');
+    del.className = 'btn'; del.textContent = 'Burn it';
+    del.addEventListener('click', function () { deleteSave(o.seed); });
+    row.appendChild(go); row.appendChild(del);
+    wrap.appendChild(row);
+  })(saves[i]);
+}
+/* ============================================= 5e THE BOOK AND THE RITES */
+/* All text below is written for this game. The rites are patterns you have
+   to actually build on the ground, which is the point: an expert player is
+   somebody who has learned to lay nine blocks in the right places.        */
+
+var LORE = [
+  { t: 'On the reading of this book',
+    b: 'It is not a book of answers, it is a book of procedures, and every procedure has been performed. Reading costs you something you will not notice going. Keep a light on the page. Do not read it twice in the same night, and never read it aloud where the walls meet at an angle you did not build.' },
+  { t: 'On the seals',
+    b: 'Where the old builders finished a vault they laid a seal of red stone over the floor and went away quickly. The seal is not a lock. It is a lid. Under it is something that was awake when they put it there and has had a very long time to consider the arrangement. Break the seal and it stands up in the world with you.' },
+  { t: 'On the essential saltes',
+    b: 'Reduce a body far enough and what is left is a fine pale salt that remembers the shape it came from. Set the saltes in the circle, stand in the middle, speak nothing, and what walked before will walk again for a while and take your side out of habit. Be certain of your own mind first. A clouded reader raises a clouded thing, and it will not know you.' },
+  { t: 'On the drowned city',
+    b: 'Green basalt, laid by hands with too many joints, at angles that measure wrong twice and correctly on the third attempt. The stairs there go up further than the hill they stand on. The city is not ruined. It is closed, the way a house is closed in winter.' },
+  { t: 'On the cold plateau',
+    b: 'White ground, black spires, and a city already buried when the ice arrived to bury it again. The doors are never centred and never square, which tells you the shape of what used to walk through them.' },
+  { t: 'On the wood of dream',
+    b: 'Violet ground, pale trunks, light coming from the moss rather than the sky. It is the gentlest country in this world and the one you should leave first. Nothing there is hostile. Everything there is interested.' },
+  { t: 'On the elder sign',
+    b: 'Cut the sign into star-stone and set it where you sleep. They will not come straight at it. They will go around, and wait, and be patient, and this is the whole of the protection that exists. It is enough for one night at a time.' },
+  { t: 'On what is owed',
+    b: 'You are digging a hole in a place that belongs to something with a long memory and no interest in your reasons. Every block you take is noted. Nothing will come of it for a long time, and then something will come of it all at once.' }
+];
+
+var RITES = [
+  {
+    id: 'raise', hold: 'Essential saltes', item: -1, tile: 38,
+    name: 'The raising from the saltes',
+    text: 'Hold essential saltes in the circle. What was a body takes a shape again and fights beside you for a few minutes. If your reason is under forty it comes back wrong and it comes back at you.'
+  },
+  {
+    id: 'ward', hold: 'Elder sign', item: -1, tile: 40,
+    name: 'The turning aside',
+    text: 'Hold an elder sign in the circle. Everything hunting within twenty-six blocks is thrown off, your reason is restored, and for ninety seconds nothing new arrives.'
+  },
+  {
+    id: 'call', hold: 'Idol stone', item: -1, tile: 31,
+    name: 'The calling of the sleeper',
+    text: 'Hold idol stone in the circle after dark. It will hear you. Do not do this until you can win the fight, because it does not go back down by itself.'
+  }
+];
+
+/* the circle: nine blocks, laid by hand, at the level of your feet */
+function riteCircle() {
+  var fy = Math.floor(P.y) - 1, cx = Math.floor(P.x), cz = Math.floor(P.z);
+  if (getB(cx, fy, cz) !== IDOL) return 'the middle of the circle must be idol stone, and you must stand on it';
+  var corners = [[-2, -2], [2, -2], [-2, 2], [2, 2]];
+  for (var i = 0; i < 4; i++) {
+    if (getB(cx + corners[i][0], fy, cz + corners[i][1]) !== LIVEGLYPH) return 'the four corners must be living glyph';
+  }
+  var edges = [[-2, 0], [2, 0], [0, -2], [0, 2]];
+  for (var j = 0; j < 4; j++) {
+    if (getB(cx + edges[j][0], fy, cz + edges[j][1]) !== CANDLE) return 'the four sides must be tallow candles';
+  }
+  return null;
+}
+
+function performRite() {
+  if (G.state !== 'play') return;
+  var bad = riteCircle();
+  if (bad) { toast(bad); return; }
+  var held = G.bar[G.slot];
+  if (held === SALTES && invCount(SALTES) > 0) return riteRaise();
+  if (held === ELDERSIGN && invCount(ELDERSIGN) > 0) return riteWard();
+  if (held === IDOL && invCount(IDOL) > 0) return riteCall();
+  toast('the circle is right, your hand is empty of anything it wants');
+}
+
+function riteRaise() {
+  invTake(SALTES, 1);
+  AU.say('sigil');
+  G.shake = Math.max(G.shake, 0.4);
+  var a = rr(0, TAU), x = P.x + Math.cos(a) * 3, z = P.z + Math.sin(a) * 3;
+  var y = surfaceY(Math.floor(x), Math.floor(z));
+  if (P.san < 40) {
+    var wrong = spawnMob('ghoul', x, y, z);
+    wrong.hp = wrong.hpMax = 90;
+    P.san = clamp(P.san - 14, 0, 100);
+    toast('it came back wrong. it does not know you.', 5);
+    whisper();
+  } else {
+    var r = spawnMob('revenant', x, y, z);
+    r.life = 190;
+    P.san = clamp(P.san - 6, 0, 100);
+    toast('something stands up out of the saltes and turns to face what you were facing', 5);
+  }
+  paintBar();
+}
+function riteWard() {
+  invTake(ELDERSIGN, 1);
+  AU.say('sigil'); AU.say('bell');
+  var thrown = 0;
+  for (var i = mobs.length - 1; i >= 0; i--) {
+    var m = mobs[i];
+    if (m.def.friend || m.def.boss) continue;
+    if (Math.hypot(m.x - P.x, m.z - P.z) < 26) {
+      puff(m.x, m.y + 1, m.z, 0xa0ffd8, 8);
+      scene.remove(m.mesh); mobs.splice(i, 1); thrown++;
+    }
+  }
+  P.san = clamp(P.san + 34, 0, 100);
+  G.wardT = 90;
+  toast('the sign turns ' + thrown + ' of them aside. ninety seconds of nothing arriving.', 5);
+  paintBar();
+}
+function riteCall() {
+  if (G.dayFactor > 0.35) { toast('not in daylight. it will not answer in daylight.'); return; }
+  invTake(IDOL, 1);
+  wakeSleeper('you called it, and it heard you');
+  paintBar();
+}
+
+function wakeSleeper(msg) {
+  if (G.bossActive) return;
+  G.bossActive = 1;
+  AU.say('nightfall'); AU.say('growl');
+  G.shake = 1.2;
+  P.san = clamp(P.san - 22, 0, 100);
+  var a = rr(0, TAU), x = Math.floor(P.x + Math.cos(a) * 14), z = Math.floor(P.z + Math.sin(a) * 14);
+  var y = surfaceY(x, z);
+  spawnMob('sleeper', x + 0.5, y, z + 0.5);
+  toast(msg || 'the seal is broken and the floor of the world moves', 7);
+  whisper();
+}
+
+/* --------------------------------------------------------- the book, read */
+var bookTab = 'lore';
+function unlockPage() {
+  var locked = [];
+  for (var i = 0; i < LORE.length; i++) if (!G.book[i]) locked.push(i);
+  if (!locked.length) return -1;
+  var pick2 = locked[Math.floor(rnd() * locked.length)];
+  G.book[pick2] = 1;
+  return pick2;
+}
+function toggleBook() {
+  if (G.state !== 'play' && !G.bookOpen) return;
+  G.bookOpen = !G.bookOpen;
+  $('book').classList.toggle('on', G.bookOpen);
+  if (G.bookOpen) { paintBook(); if (document.exitPointerLock) document.exitPointerLock(); }
+  else lockPointer();
+}
+function paintBook() {
+  var tabs = $('booktabs'), body = $('bookbody');
+  var names = { lore: 'Pages', best: 'What walks', rites: 'Rites' };
+  tabs.innerHTML = '';
+  ['lore', 'best', 'rites'].forEach(function (k) {
+    var b = document.createElement('button');
+    b.className = 'tab' + (bookTab === k ? ' on' : '');
+    b.textContent = names[k];
+    b.addEventListener('click', function () { bookTab = k; paintBook(); });
+    tabs.appendChild(b);
+  });
+  var h = '';
+  if (bookTab === 'lore') {
+    var got = 0;
+    for (var i = 0; i < LORE.length; i++) {
+      if (G.book[i]) {
+        got++;
+        h += '<div class="page"><b>' + LORE[i].t + '</b><p>' + LORE[i].b + '</p></div>';
+      }
+    }
+    if (!got) h = '<div class="page dimp">You are carrying a book you have not opened properly. Find bound books in vaults, buried rooms and under altars: each one you break loose gives up a page.</div>';
+    h += '<div class="page dimp">' + got + ' of ' + LORE.length + ' pages. Reading costs a little reason each time this is open.</div>';
+  } else if (bookTab === 'best') {
+    var any = 0;
+    for (var k in BESTIARY) {
+      if (!G.seen[k]) continue;
+      any++;
+      h += '<div class="page"><b>' + MOBDEF[k].name + '</b><p>' + BESTIARY[k] + '</p>' +
+        '<i>strength ' + MOBDEF[k].hp + ' &middot; speed ' + MOBDEF[k].spd + ' &middot; takes ' + MOBDEF[k].san + ' reason a blow</i></div>';
+    }
+    if (!any) h = '<div class="page dimp">Nothing recorded yet. Look at a thing long enough to see it and the book writes it down by itself.</div>';
+  } else {
+    h += '<div class="page"><b>The circle</b><p>Lay it on the ground at your feet: idol stone in the middle and stand on it, living glyph at the four corners two blocks out, tallow candles at the four sides two blocks out. Nine blocks. Then hold the right thing and press <b>G</b>.</p></div>';
+    for (var r = 0; r < RITES.length; r++) {
+      h += '<div class="page"><div class="ric" style="' + tileStyle(RITES[r].tile, 34) + '"></div>' +
+        '<b>' + RITES[r].name + '</b><p>' + RITES[r].text + '</p></div>';
+    }
+  }
+  body.innerHTML = h;
+}
 /* ---------------------------------------------------------------- 6 GAME */
 var hlBox = null, fpsT = 0, fpsN = 0, hudT = 0, emitT = 0;
 
@@ -2082,20 +2780,35 @@ var G = {
   state: 'menu', diff: 1, inv: {}, bar: [], slot: 0, tools: {}, kills: 0,
   clock: 0, day: 1, dayFactor: 1, wasNight: 0, craftOpen: false,
   mineT: 0, mineKey: '', swing: 0, lantern: null, fps: 0, bright: 1.15, cycle: -1,
+  resume: null, lastSave: 0, book: {}, seen: {}, shake: 0, hunters: 0,
+  boss: null, bossActive: 0, bossDown: 0, wardT: 0, bookOpen: false, region: -2,
 
-  start: function (seed) {
+  start: function (seed, fromSave) {
     setSeed(seed); NS = SEED | 0;
     D = DIFF[this.diff];
     CYCLE_FIXED = this.cycle;
-    this.inv = {}; this.tools = {}; this.kills = 0;
-    this.bar = [BASALT, SOIL, CYCLOP, GLYPH, BONE, CANDLE, PLANK, SKULLS, TIMBER];
-    this.slot = 0; this.clock = DAYLEN * 0.20; this.wasNight = 0;
-    invAdd(CANDLE, 8); invAdd(PLANK, 16); invAdd(BASALT, 12);
+    if (!fromSave) {
+      EDITS = {};
+      this.inv = {}; this.tools = {}; this.kills = 0; this.resume = null;
+      this.bar = [BASALT, DRYGRASS, CYCLOP, GLYPH, BONE, CANDLE, PLANK, SKULLS, TIMBER];
+      this.clock = DAYLEN * 0.20;
+      this.book = {}; this.seen = {};
+      invAdd(CANDLE, 8); invAdd(PLANK, 16); invAdd(BASALT, 12);
+    }
+    while (this.bar.length < 9) this.bar.push(0);
+    this.slot = 0; this.wasNight = 0; this.region = -2;
+    this.bossActive = 0; this.boss = null; this.wardT = 0; this.shake = 0;
     P.hp = 20; P.san = 100; P.air = 100; P.alive = true; P.vx = P.vy = P.vz = 0;
     P.yaw = rr(0, TAU); P.pitch = 0;
+    if (fromSave && this.resume && this.resume.p) {
+      var q = this.resume.p;
+      P.yaw = q[3]; P.pitch = q[4];
+      P.hp = q[5]; P.san = q[6];
+    }
+    if (this.tools.lantern && this.lantern) this.lantern.visible = true;
     for (var i = mobs.length - 1; i >= 0; i--) scene.remove(mobs[i].mesh);
     mobs.length = 0;
-    loadWorld();
+    loadWorld(fromSave);
   },
 
   selectSlot: function (i) {
@@ -2160,9 +2873,11 @@ var G = {
   },
 
   togglePause: function () {
+    if (this.bookOpen) { toggleBook(); return; }
     if (this.craftOpen) { this.toggleCraft(); return; }
     if (this.state === 'play') {
       this.state = 'pause'; showScreen('s-pause');
+      saveNow(true); paintSaveInfo();
       if (document.exitPointerLock) document.exitPointerLock();
     } else if (this.state === 'pause') {
       this.state = 'play'; showScreen(null); lockPointer();
@@ -2183,6 +2898,7 @@ var G = {
       '<div>reason at the end &mdash; ' + Math.round(P.san) + '%</div>' +
       '<div>chart no. ' + SEED + ' &middot; ' + DIFF[this.diff].name + '</div>';
     $('hud').classList.remove('on');
+    saveNow(true);
     showScreen('s-dead');
   },
 
@@ -2259,6 +2975,13 @@ function updateDig(dt) {
     var b = target.b;
     editBlock(target.x, target.y, target.z, AIR);
     invAdd(b, 1);
+    if (b === TOME) {
+      var pg = unlockPage();
+      toast(pg >= 0 ? ('a page comes loose: "' + LORE[pg].t + '" \u2014 press R to read') : 'you have read all of it already', 5);
+      AU.say('sigil');
+      P.san = clamp(P.san - 5, 0, 100);
+    }
+    if (b === SEAL) wakeSleeper();
     if (BL[b].sanity) P.san = clamp(P.san + BL[b].sanity * 0.5, 0, 100);
     if (b === LIVEGLYPH || b === IDOL || b === EYE) { AU.say('sigil'); whisper(); }
     AU.say('break');
@@ -2347,7 +3070,12 @@ function updatePlayer(dt) {
   camera.rotation.order = 'YXZ';
   camera.rotation.y = P.yaw;
   camera.rotation.x = P.pitch;
-  camera.rotation.z = Math.sin(P.bob) * 0.008 + (P.san < 35 ? Math.sin(performance.now() * 0.0011) * (0.35 - P.san / 100) * 0.16 : 0);
+  G.shake = Math.max(0, G.shake - dt * 0.6);
+  if (G.shake > 0) {
+    camera.position.x += (Math.random() - 0.5) * G.shake * 0.34;
+    camera.position.y += (Math.random() - 0.5) * G.shake * 0.34;
+  }
+  camera.rotation.z = Math.sin(P.bob) * 0.008 + (P.san < 35 ? Math.sin(performance.now() * 0.0011) * (0.35 - P.san / 100) * 0.16 : 0) + (Math.random() - 0.5) * G.shake * 0.02;
   camera.fov = 76 + (P.san < 40 ? Math.sin(performance.now() * 0.0007) * 4 : 0) + (moved > 5.5 ? 4 : 0);
   camera.updateProjectionMatrix();
 
@@ -2430,13 +3158,25 @@ function paintHud() {
   $('blood').style.opacity = String(clamp(Math.max(P.hurtT, (20 - P.hp) / 46), 0, 0.85));
   $('sane').style.opacity = String(clamp((45 - P.san) / 55, 0, 0.75));
   $('fps').textContent = G.fps + ' fps';
+  var hz = $('hunt');
+  if (G.hunters > 0) {
+    hz.style.display = 'block';
+    hz.textContent = G.hunters === 1 ? 'something is hunting you' : G.hunters + ' of them are hunting you';
+    hz.style.opacity = String(0.55 + 0.45 * Math.abs(Math.sin(performance.now() * 0.004)));
+  } else hz.style.display = 'none';
+  var bb = $('bossbar');
+  if (G.boss) {
+    bb.style.display = 'block';
+    bb.firstElementChild.textContent = G.boss.def.name;
+    bb.lastElementChild.firstElementChild.style.width = Math.max(0, G.boss.hp / G.boss.hpMax * 100) + '%';
+  } else bb.style.display = 'none';
 }
 function showScreen(id) {
   ['s-menu', 's-pause', 's-dead'].forEach(function (s) { $(s).classList.toggle('on', s === id); });
 }
 
 /* ------------------------------------------------------------- 6d loading */
-function loadWorld() {
+function loadWorld(fromSave) {
   G.state = 'loading';
   $('load').classList.add('on');
   $('hud').classList.remove('on');
@@ -2444,6 +3184,9 @@ function loadWorld() {
   clearWorld();
   // a shore to start from: dry land, not too high, near the origin of the chart
   var sx = 0, sz = 0, found = false;
+  if (fromSave && G.resume && G.resume.p) {
+    sx = Math.floor(G.resume.p[0]); sz = Math.floor(G.resume.p[2]); found = true;
+  }
   for (var r = 0; r < 90 && !found; r++) {
     for (var t = 0; t < 14; t++) {
       var cx2 = Math.round((rnd() - 0.5) * r * 8), cz2 = Math.round((rnd() - 0.5) * r * 8);
@@ -2453,6 +3196,9 @@ function loadWorld() {
   }
   P.x = sx + 0.5; P.z = sz + 0.5; P.y = CH - 6;
   P.spawn = { x: P.x, y: P.y, z: P.z };
+  if (fromSave && G.resume && G.resume.sp) {
+    P.spawn = { x: G.resume.sp[0], y: G.resume.sp[1], z: G.resume.sp[2] };
+  }
   var total = (2 * RDIST + 1) * (2 * RDIST + 1), first = true;
   function step() {
     var left = streamChunks(performance.now() + 26);
@@ -2460,19 +3206,25 @@ function loadWorld() {
     $('lbar').firstElementChild.style.width = Math.round(f * 100) + '%';
     $('lmsg').textContent = left > 0 ? ('remembering ' + (total - left) + ' of ' + total + ' fields') : 'the ground is ready';
     if (first && left < total * 0.55) {
-      P.y = surfaceY(sx, sz) + 0.4;              // drop in as soon as the ground under us exists
+      P.y = (fromSave && G.resume) ? G.resume.p[1] : surfaceY(sx, sz) + 0.4;
       first = false;
     }
     if (left > 0) { setTimeout(step, 0); return; }
-    P.y = surfaceY(sx, sz) + 0.4;
+    P.y = (fromSave && G.resume && G.resume.p) ? G.resume.p[1] : surfaceY(sx, sz) + 0.4;
+    if (!overlaps()) { /* the ground under a saved position is where we left it */ }
+    else P.y = surfaceY(sx, sz) + 0.4;
+    G.resume = null;
+    autoT = 45;
     collectEmittersNear();
     $('load').classList.remove('on');
     $('hud').classList.add('on');
     G.state = 'play';
     G.selectSlot(0); paintBar();
+    seedMobs();
+    G.region = cycleAt(Math.floor(P.x), Math.floor(P.z));
     AU.say('bell');
     $('seedout').textContent = 'CHART No. ' + SEED;
-    toast('chart no. ' + SEED + ' \u2014 there is no edge to this');
+    toast(fromSave ? ('chart no. ' + SEED + ' \u2014 it was where you left it') : ('chart no. ' + SEED + ' \u2014 there is no edge to this'));
     lockPointer();
   }
   setTimeout(step, 30);
@@ -2495,6 +3247,18 @@ function frame() {
       streamChunks(performance.now() + 7);
       emitT -= dt;
       if (emitT <= 0) { emitT = 0.6; collectEmittersNear(); unloadFar(); }
+      autoT -= dt;
+      if (autoT <= 0) { autoT = 45; saveNow(true); }
+      if (G.wardT > 0) G.wardT -= dt;
+      var rg = cycleAt(Math.floor(P.x), Math.floor(P.z));
+      if (rg !== G.region) {
+        if (G.region !== -2) {
+          toast('you cross into ' + CYCLES[rg].name.toLowerCase() + ' \u2014 ' + CYCLES[rg].sub, 5);
+          AU.say('sigil');
+        }
+        G.region = rg;
+      }
+      if (G.bookOpen) P.san = clamp(P.san - dt * 1.1, 0, 100);
     }
     hudT -= dt;
     if (hudT <= 0) { hudT = 0.12; paintHud(); }
@@ -2582,11 +3346,27 @@ function bindUI() {
   });
   $('b-touch').addEventListener('click', function () { setTouch(!touchOn); });
   $('b-resume').addEventListener('click', function () { G.togglePause(); });
-  $('b-quit').addEventListener('click', function () { G.state = 'menu'; $('hud').classList.remove('on'); showScreen('s-menu'); });
+  $('b-quit').addEventListener('click', function () {
+    saveNow(true); G.state = 'menu'; $('hud').classList.remove('on'); buildSavesList(); showScreen('s-menu');
+  });
   $('b-respawn').addEventListener('click', function () { G.respawn(); });
-  $('b-menu').addEventListener('click', function () { G.state = 'menu'; $('hud').classList.remove('on'); showScreen('s-menu'); });
+  $('b-menu').addEventListener('click', function () { G.state = 'menu'; $('hud').classList.remove('on'); buildSavesList(); showScreen('s-menu'); });
   $('b-closecraft').addEventListener('click', function () { G.toggleCraft(); });
+  $('b-closebook').addEventListener('click', toggleBook);
+  $('b-save').addEventListener('click', function () { saveNow(false); paintSaveInfo(); });
+  $('b-export').addEventListener('click', exportSave);
+  $('b-export2').addEventListener('click', exportSave);
+  $('b-import').addEventListener('click', function () { $('fileimp').click(); });
+  $('fileimp').addEventListener('change', function () { if (this.files && this.files[0]) importSaveFile(this.files[0]); });
   $('gl').addEventListener('click', function () { if (G.state === 'play' && !G.craftOpen) { AU.resume(); lockPointer(); } });
+}
+function paintSaveInfo() {
+  var el = $('saveinfo');
+  if (!el) return;
+  if (!STORE_OK) { el.innerHTML = 'Saving in the browser is blocked here. Use <b>export to file</b>.'; return; }
+  var n = editCount();
+  el.innerHTML = n + ' blocks of yours are recorded on chart no. ' + SEED +
+    '. Kept automatically every 45 seconds, and erased after ' + EXPIRY_DAYS + ' days without a visit.';
 }
 function setTouch(on) {
   touchOn = on;
@@ -2603,6 +3383,9 @@ function boot() {
   buildBarDom();
   buildCycleCards();
   bindUI();
+  var gone = purgeOldSaves();
+  buildSavesList();
+  if (gone) setTimeout(function () { toast(gone + ' chart' + (gone > 1 ? 's' : '') + ' expired and were erased'); }, 600);
   bindTouch();
   drawSigil($('sigilcv').getContext('2d'), 208, 0x7c0d51, '#7FE0C0', 4);
   drawSigil($('loadsig').getContext('2d'), 180, 0x4d2b91, '#7FE0C0', 3.4);
