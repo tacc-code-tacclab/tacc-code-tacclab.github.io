@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#071612">
+    <meta name="color-scheme" content="dark">
+    <meta
+      name="description"
+      content="FOREPATH is an anonymous browser-based research pilot about anticipation, choice and future outcomes."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="FOREPATH — Feeling the Path Before It Exists">
+    <meta
+      property="og:description"
+      content="Choose a path before its outcome is assigned. A transparent browser experiment in anomalous anticipation."
+    >
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/forepath/">
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/forepath/">
+    <link rel="stylesheet" href="forepath.css?v=20260806-1">
+    <script src="../game-counter.js?v=20260805-visitors1" defer></script>
+    <title>FOREPATH — Feeling the Path Before It Exists</title>
+  </head>
+  <body>
+    <div class="app-shell" id="app">
+      <header class="topbar">
+        <a class="home-link" href="../../#videogames" aria-label="Return to the videogames section">
+          <span aria-hidden="true">←</span> TACC LAB
+        </a>
+        <div class="pilot-center">
+          <span class="pilot-badge">RESEARCH PILOT · LOCAL DATA</span>
+          <span class="game-visitor-counter" data-game-visitors="forepath-pilot" data-counter-label="FOREPATH">FOREPATH · … VISITORS</span>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn sound on">
+            <span aria-hidden="true">◌</span><span class="button-label">Sound off</span>
+          </button>
+          <button class="icon-button" id="fullscreen-toggle" type="button" aria-label="Enter fullscreen">
+            <span aria-hidden="true">⛶</span><span class="button-label">Fullscreen</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="screen intro-screen active" id="intro-screen" aria-labelledby="intro-title">
+          <div class="intro-grid">
+            <div class="intro-copy">
+              <p class="overline">AN EXPERIMENT IN ANTICIPATION</p>
+              <h1 id="intro-title">FORE<span>PATH</span></h1>
+              <p class="title-line">Feeling the path before it exists.</p>
+              <p class="lede">
+                Walk through a forest, sense what may be ahead, and choose a direction. Only after your choice will a public randomness beacon assign the future outcome.
+              </p>
+              <div class="intro-actions">
+                <button class="primary-button" id="open-questionnaire" type="button">Enter the study <span>→</span></button>
+                <a class="text-link" href="#study-notes">How the pilot works</a>
+              </div>
+              <ul class="trust-row">
+                <li>18+ only</li>
+                <li>Anonymous</li>
+                <li>Stop anytime</li>
+                <li>~7 minutes</li>
+              </ul>
+            </div>
+
+            <div class="path-mark" aria-hidden="true">
+              <div class="path-orbit orbit-a"></div>
+              <div class="path-orbit orbit-b"></div>
+              <div class="path-line path-left"></div>
+              <div class="path-line path-right"></div>
+              <div class="path-node node-start"></div>
+              <div class="path-node node-left"></div>
+              <div class="path-node node-right"></div>
+              <span>?</span>
+            </div>
+          </div>
+
+          <div class="study-notes" id="study-notes">
+            <article>
+              <span class="note-number">01</span>
+              <h2>Choose first</h2>
+              <p>Your ratings and route choice are timestamped before the outcome is generated.</p>
+            </article>
+            <article>
+              <span class="note-number">02</span>
+              <h2>Assign later</h2>
+              <p>A future round of the independent drand beacon assigns the safe side and feedback condition.</p>
+            </article>
+            <article>
+              <span class="note-number">03</span>
+              <h2>Keep your record</h2>
+              <p>One anonymous JSON result file is created for each participant and stored on their own device.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen form-screen" id="questionnaire-screen" aria-labelledby="questionnaire-title" hidden>
+          <div class="panel form-panel">
+            <div class="panel-heading">
+              <p class="step-label">STEP 1 OF 2 · CONSENT &amp; BASELINE</p>
+              <h2 id="questionnaire-title">Before the path begins</h2>
+              <p>These brief questions help interpret group-level results. Do not enter your name, email, address or exact location.</p>
+            </div>
+
+            <form id="participant-form" novalidate>
+              <div class="form-grid">
+                <label>
+                  <span>Age range <b aria-hidden="true">*</b></span>
+                  <select name="age_band" required>
+                    <option value="">Select…</option>
+                    <option value="18-24">18–24</option>
+                    <option value="25-34">25–34</option>
+                    <option value="35-44">35–44</option>
+                    <option value="45-54">45–54</option>
+                    <option value="55-64">55–64</option>
+                    <option value="65+">65+</option>
+                    <option value="prefer-not">Prefer not to say</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>How often do you play videogames? <b aria-hidden="true">*</b></span>
+                  <select name="gaming_frequency" required>
+                    <option value="">Select…</option>
+                    <option value="never">Never or almost never</option>
+                    <option value="monthly">A few times a month</option>
+                    <option value="weekly">A few times a week</option>
+                    <option value="daily">Daily</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Current alertness <b aria-hidden="true">*</b></span>
+                  <select name="alertness" required>
+                    <option value="">Select…</option>
+                    <option value="1">1 · Very tired</option>
+                    <option value="2">2 · Tired</option>
+                    <option value="3">3 · Neutral</option>
+                    <option value="4">4 · Alert</option>
+                    <option value="5">5 · Very alert</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Discomfort around snakes <b aria-hidden="true">*</b></span>
+                  <select name="snake_discomfort" required>
+                    <option value="">Select…</option>
+                    <option value="1">1 · None</option>
+                    <option value="2">2 · Low</option>
+                    <option value="3">3 · Moderate</option>
+                    <option value="4">4 · High</option>
+                    <option value="5">5 · Very high</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>I usually trust my intuition <b aria-hidden="true">*</b></span>
+                  <select name="intuition_expectation" required>
+                    <option value="">Select…</option>
+                    <option value="1">1 · Strongly disagree</option>
+                    <option value="2">2 · Disagree</option>
+                    <option value="3">3 · Neither</option>
+                    <option value="4">4 · Agree</option>
+                    <option value="5">5 · Strongly agree</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Have you completed FOREPATH before? <b aria-hidden="true">*</b></span>
+                  <select name="prior_participation" required>
+                    <option value="">Select…</option>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                    <option value="unsure">Not sure</option>
+                  </select>
+                </label>
+              </div>
+
+              <fieldset class="consent-box">
+                <legend>Consent</legend>
+                <label class="check-row">
+                  <input name="adult_confirmed" type="checkbox" required>
+                  <span>I confirm that I am at least 18 years old.</span>
+                </label>
+                <label class="check-row">
+                  <input name="consent_confirmed" type="checkbox" required>
+                  <span>I understand this is a research pilot, that it may show a mild snake animation, and that I can stop at any time without giving a reason.</span>
+                </label>
+                <label class="check-row">
+                  <input name="local_data_confirmed" type="checkbox" required>
+                  <span>I understand that this static website does not transmit my answers. My anonymous record stays in this browser until I download or delete it.</span>
+                </label>
+              </fieldset>
+
+              <p class="form-error" id="form-error" role="alert" hidden>Please complete every required field and all consent items.</p>
+
+              <div class="form-actions">
+                <button class="secondary-button" id="back-to-intro" type="button">← Back</button>
+                <button class="primary-button" type="submit">Continue <span>→</span></button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="screen instructions-screen" id="instructions-screen" aria-labelledby="instructions-title" hidden>
+          <div class="panel instructions-panel">
+            <p class="step-label">STEP 2 OF 2 · INSTRUCTIONS</p>
+            <h2 id="instructions-title">Do not calculate. Notice.</h2>
+            <div class="instruction-grid">
+              <article>
+                <span class="instruction-icon" aria-hidden="true">◎</span>
+                <h3>Sense the path</h3>
+                <p>At each fork, rate how much danger you feel before knowing what lies ahead.</p>
+              </article>
+              <article>
+                <span class="instruction-icon" aria-hidden="true">↙ ↘</span>
+                <h3>Choose left or right</h3>
+                <p>Choose on intuition. There is no visual clue: the future is assigned only after your click.</p>
+              </article>
+              <article>
+                <span class="instruction-icon" aria-hidden="true">◐</span>
+                <h3>Some outcomes are masked</h3>
+                <p>On some trials you will see only fog. This is intentional and provides a control condition.</p>
+              </article>
+            </div>
+            <div class="safety-note">
+              <strong>Comfort first.</strong>
+              <span>The threat scene is mild, contains no gore or jump scare, and sound is optional. Press <kbd>Esc</kbd> or “Stop” whenever you wish.</span>
+            </div>
+            <p class="participant-line">Your anonymous participant ID: <strong id="participant-id-preview">—</strong></p>
+            <button class="primary-button wide" id="start-practice" type="button">Begin two practice paths <span>→</span></button>
+          </div>
+        </section>
+
+        <section class="screen game-screen" id="game-screen" aria-labelledby="trial-label" hidden>
+          <div class="game-status">
+            <div>
+              <span id="trial-kind">PRACTICE</span>
+              <strong id="trial-label">Path 1 of 2</strong>
+            </div>
+            <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+            <button class="stop-button" id="stop-study" type="button">Stop</button>
+          </div>
+
+          <div class="stage-wrap" id="stage-wrap">
+            <canvas id="forest-canvas" width="960" height="540" role="img" aria-label="A stylised three-dimensional forest path approaching a fork">A stylised forest path approaching a fork.</canvas>
+            <div class="stage-message" id="stage-message" aria-live="polite">
+              <span class="stage-overline">APPROACH</span>
+              <strong>Let the path come to you.</strong>
+            </div>
+            <div class="beacon-state" id="beacon-state" hidden>
+              <span class="beacon-pulse" aria-hidden="true"></span>
+              <span>Future outcome being assigned…</span>
+            </div>
+          </div>
+
+          <section class="response-card" id="response-card" aria-label="Trial response" aria-hidden="true">
+            <div class="rating-block">
+              <div class="rating-copy">
+                <label for="danger-rating">How much danger do you feel ahead?</label>
+                <output id="danger-output" for="danger-rating">50</output>
+              </div>
+              <input id="danger-rating" type="range" min="0" max="100" value="50" step="1">
+              <div class="range-labels"><span>Calm</span><span>Danger</span></div>
+            </div>
+
+            <div class="rating-block">
+              <div class="rating-copy">
+                <label for="confidence-rating">How confident are you in your direction?</label>
+                <output id="confidence-output" for="confidence-rating">50</output>
+              </div>
+              <input id="confidence-rating" type="range" min="0" max="100" value="50" step="1">
+              <div class="range-labels"><span>Guessing</span><span>Certain</span></div>
+            </div>
+
+            <div class="choice-block">
+              <p>Choose before the future is assigned</p>
+              <div class="choice-buttons">
+                <button class="choice-button left-choice" data-choice="left" type="button"><span>↙</span> LEFT</button>
+                <button class="choice-button right-choice" data-choice="right" type="button">RIGHT <span>↘</span></button>
+              </div>
+              <small>Keyboard: <kbd>←</kbd> / <kbd>A</kbd> and <kbd>→</kbd> / <kbd>D</kbd></small>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen results-screen" id="results-screen" aria-labelledby="results-title" hidden>
+          <div class="panel results-panel">
+            <p class="step-label">SESSION COMPLETE</p>
+            <h2 id="results-title">The path is recorded.</h2>
+            <p class="results-lede">
+              Your result is a record of this session—not evidence for or against an individual ability. Scientific interpretation requires preregistered group-level analysis across many independent participants.
+            </p>
+
+            <div class="result-grid">
+              <article><span>Participant</span><strong id="result-participant">—</strong></article>
+              <article><span>Paths completed</span><strong id="result-trials">—</strong></article>
+              <article><span>Matched outcomes</span><strong id="result-hits">—</strong></article>
+              <article><span>External beacon trials</span><strong id="result-beacons">—</strong></article>
+            </div>
+
+            <div class="export-box">
+              <div>
+                <h3>Save your anonymous research file</h3>
+                <p>Downloading creates one JSON file for this participant. The file contains questionnaire answers, timestamps, trial choices, ratings, randomisation records and technical quality flags.</p>
+              </div>
+              <button class="primary-button" id="download-results" type="button">Download result JSON <span>↓</span></button>
+              <p class="download-state" id="download-state" role="status">A local recovery copy is already stored in this browser.</p>
+            </div>
+
+            <details class="debrief">
+              <summary>Read the full debrief</summary>
+              <div>
+                <p>This pilot examines whether choices or pre-outcome ratings differ from chance when the outcome is assigned after the response. Some feedback was deliberately hidden to create a control condition.</p>
+                <p>The design cannot diagnose telepathy or prove a paranormal ability in one person. Expectation, response habits, technical timing and multiple testing can all create misleading patterns, so confirmatory conclusions require ethics approval, preregistration, a fixed analysis plan and independent replication.</p>
+              </div>
+            </details>
+
+            <div class="results-actions">
+              <a class="secondary-button link-button" href="../../#videogames">Return to Videogames</a>
+              <button class="danger-button" id="delete-local-data" type="button">Delete local copy</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen stopped-screen" id="stopped-screen" aria-labelledby="stopped-title" hidden>
+          <div class="panel compact-panel">
+            <p class="step-label">SESSION STOPPED</p>
+            <h2 id="stopped-title">You are in control.</h2>
+            <p>The experiment has stopped. You can download the partial anonymous record, delete it, or return to the study. No research answers have been transmitted.</p>
+            <div class="stacked-actions">
+              <button class="primary-button" id="download-partial" type="button">Download partial JSON <span>↓</span></button>
+              <button class="secondary-button" id="resume-study" type="button">Resume session</button>
+              <button class="danger-button" id="delete-partial" type="button">Delete session and leave</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="research-footer">
+        <span>FOREPATH v1.0 · Pilot build 2026.08.06</span>
+        <span>Responses stay local · traffic counter is separate · randomness: <a href="https://drand.love/" rel="noreferrer">drand ↗</a></span>
+      </footer>
+    </div>
+
+    <noscript>This experiment requires JavaScript to record choices and generate a participant result file.</noscript>
+    <script src="forepath.js?v=20260806-1" defer></script>
+  </body>
+</html>
