@@ -1138,6 +1138,189 @@ h3 {
 .lovecraft-preview .game-route i { background: #35544e; }
 .lovecraft-preview .game-route i::after { background: #7fe0c0; }
 
+.forepath-showcase {
+  border-color: #315b4a;
+  background: #071612;
+}
+
+.forepath-showcase .game-copy {
+  container-type: inline-size;
+}
+
+.game-copy h3.forepath-title {
+  width: 100%;
+  max-width: 100%;
+  color: #f0f6ef;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.3rem, 5vw, 4.4rem);
+  font-size: clamp(2.3rem, 16cqi, 4.4rem);
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 0.88;
+  white-space: nowrap;
+}
+
+.forepath-title span {
+  color: #91e8b2;
+}
+
+.forepath-title small {
+  display: block;
+  max-width: 29ch;
+  margin-top: 1.2rem;
+  color: #f1c978;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.14em;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.game-showcase .forepath-button {
+  border-color: #91e8b2;
+  background: #91e8b2;
+  color: #07130f;
+}
+
+.game-showcase .forepath-button:hover {
+  background: #c2f5d2;
+}
+
+.forepath-preview {
+  background: #0a211a;
+  color: #eaf4ec;
+}
+
+.forepath-preview::before {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(145, 232, 178, 0.1), transparent 36%),
+    linear-gradient(rgba(145, 232, 178, 0.035) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem,
+    linear-gradient(90deg, rgba(145, 232, 178, 0.035) 1px, transparent 1px) 0 0 / 3.6rem 3.6rem;
+}
+
+.forepath-preview .game-preview-label {
+  color: #9bb6a5;
+}
+
+.forepath-preview .game-preview-label::after {
+  background: #91e8b2;
+  color: #07130f;
+}
+
+.forepath-screen {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-block: clamp(2rem, 6vw, 5rem) 2rem;
+  border: 1px solid #315b4a;
+  background:
+    radial-gradient(circle at 50% 39%, rgba(241, 201, 120, 0.24), transparent 20%),
+    linear-gradient(#0b241d 0 48%, #193326 48% 100%);
+  box-shadow: 0 24px 65px rgba(0, 0, 0, 0.42);
+}
+
+.fp-horizon {
+  position: absolute;
+  top: 46%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: rgba(241, 201, 120, 0.34);
+  box-shadow: 0 0 32px 8px rgba(241, 201, 120, 0.08);
+}
+
+.fp-path {
+  position: absolute;
+  top: 46%;
+  bottom: -16%;
+  width: 29%;
+  background: linear-gradient(#6f7858, #aaa071);
+  clip-path: polygon(48% 0, 58% 0, 100% 100%, 0 100%);
+  transform-origin: top center;
+}
+
+.fp-path-left { left: 20%; transform: rotate(17deg); }
+.fp-path-right { right: 20%; transform: rotate(-17deg); }
+
+.fp-tree {
+  position: absolute;
+  bottom: 21%;
+  width: 3.2%;
+  height: 38%;
+  background: #07120e;
+}
+
+.fp-tree::before,
+.fp-tree::after {
+  position: absolute;
+  left: 50%;
+  width: 760%;
+  height: 74%;
+  background: #0a1a13;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.fp-tree::before { top: -39%; }
+.fp-tree::after { top: -12%; width: 980%; }
+.fp-tree-one { left: 11%; transform: scale(1.1); }
+.fp-tree-two { right: 11%; transform: scale(1.35); }
+.fp-tree-three { right: 31%; bottom: 37%; transform: scale(0.58); }
+
+.fp-beacon {
+  position: absolute;
+  top: 12%;
+  right: 11%;
+  display: grid;
+  width: 12%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(145, 232, 178, 0.44);
+  border-radius: 50%;
+}
+
+.fp-beacon::before,
+.fp-beacon::after {
+  position: absolute;
+  border: 1px solid rgba(145, 232, 178, 0.18);
+  border-radius: 50%;
+  content: "";
+}
+
+.fp-beacon::before { inset: 18%; }
+.fp-beacon::after { inset: -18%; }
+.fp-beacon i { width: 7px; aspect-ratio: 1; border-radius: 50%; background: #91e8b2; box-shadow: 0 0 22px #91e8b2; }
+
+.fp-question {
+  position: absolute;
+  top: 39%;
+  left: 50%;
+  display: grid;
+  width: 12%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid #91e8b2;
+  border-radius: 50%;
+  background: #071612;
+  color: #91e8b2;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1rem, 3vw, 2.3rem);
+  transform: translate(-50%, -50%);
+  transition: transform 350ms ease, box-shadow 350ms ease;
+}
+
+.forepath-preview:hover .fp-question {
+  box-shadow: 0 0 0 14px rgba(145, 232, 178, 0.07);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.forepath-preview .game-route { color: #9bb6a5; }
+.forepath-preview .game-route i { background: #315b4a; }
+.forepath-preview .game-route i::after { background: #91e8b2; }
+
 .game-preview {
   position: relative;
   display: flex;
