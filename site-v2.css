@@ -1769,3 +1769,149 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* MIND JACKPOT */
+.jackpot-showcase {
+  border-color: #6f3ee8;
+  background: #09041c;
+}
+
+.jackpot-showcase .game-copy {
+  background:
+    radial-gradient(circle at 5% 90%, rgba(73, 231, 255, 0.09), transparent 35%),
+    #09041c;
+}
+
+.game-copy h3.jackpot-title {
+  width: 100%;
+  max-width: 100%;
+  color: #fff;
+  font-size: clamp(2.7rem, 5.3vw, 5.1rem);
+  font-style: italic;
+  font-weight: 950;
+  letter-spacing: -0.07em;
+  line-height: 0.77;
+}
+
+.jackpot-title span {
+  display: block;
+  color: #ffd347;
+  font-size: 0.78em;
+  text-shadow: 0 0 30px rgba(255, 211, 71, 0.28);
+}
+
+.jackpot-title small {
+  display: block;
+  margin-top: 1.2rem;
+  color: #49e7ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.14em;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: 0.17em;
+  line-height: 1.2;
+}
+
+.game-showcase .jackpot-button {
+  border-color: #ffd347;
+  background: linear-gradient(135deg, #ffd347, #ff8a33);
+  color: #180623;
+}
+
+.game-showcase .jackpot-button:hover {
+  background: #49e7ff;
+  color: #10051e;
+}
+
+.jackpot-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 15%, #54219a, transparent 42%),
+    radial-gradient(circle at 15% 80%, rgba(73, 231, 255, 0.17), transparent 32%),
+    #13062c;
+  color: #fff;
+}
+
+.jackpot-preview::before {
+  background:
+    radial-gradient(circle, rgba(255, 211, 71, 0.5) 0 2px, transparent 3px) 0 0 / 2.3rem 2.3rem;
+  opacity: 0.25;
+}
+
+.jackpot-preview .game-preview-label {
+  color: #c5b7df;
+}
+
+.jackpot-home-machine {
+  position: relative;
+  z-index: 2;
+  width: min(76%, 33rem);
+  padding: clamp(1.2rem, 4vw, 2.2rem);
+  border: 2px solid #a474ff;
+  border-radius: 2rem 2rem 1.1rem 1.1rem;
+  background: linear-gradient(150deg, #461785, #1b083c);
+  box-shadow: 0 0 0 0.45rem #21094a, 0 2rem 5rem rgba(0, 0, 0, 0.55);
+  transform: rotate(1.5deg);
+}
+
+.jackpot-home-title {
+  display: block;
+  margin-bottom: 1.1rem;
+  color: #ffd347;
+  font-size: clamp(0.65rem, 1.4vw, 0.9rem);
+  font-weight: 950;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.jackpot-home-reels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(0.35rem, 1.2vw, 0.75rem);
+  padding: 0.7rem;
+  border-radius: 0.9rem;
+  background: #05020d;
+}
+
+.jackpot-home-reels i {
+  display: grid;
+  aspect-ratio: 0.9;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: linear-gradient(#fff, #ddd4ef);
+  box-shadow: inset 0 -0.55rem #c8bddc;
+  color: #482080;
+  font-family: Georgia, serif;
+  font-size: clamp(2.3rem, 7vw, 5.5rem);
+  font-style: normal;
+}
+
+.jackpot-home-win {
+  display: block;
+  margin-top: 1rem;
+  color: #ffd347;
+  font-size: clamp(1.25rem, 3vw, 2.4rem);
+  font-weight: 950;
+  text-align: center;
+  text-shadow: 0 0 1.4rem rgba(255, 211, 71, 0.52);
+}
+
+.jackpot-preview:hover .jackpot-home-machine {
+  transform: rotate(0) scale(1.025);
+  transition: transform 180ms ease;
+}
+
+.jackpot-preview .game-route {
+  color: #b6a6d1;
+}
+
+.jackpot-preview .game-route i {
+  background: #59318d;
+}
+
+.jackpot-preview .game-route i::after {
+  background: #ffd347;
+}
