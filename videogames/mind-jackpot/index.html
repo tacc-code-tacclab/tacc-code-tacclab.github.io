@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#09041c">
+  <meta name="description" content="MIND JACKPOT is an anonymous premonition arcade research pilot with a cryptographically sealed sequence.">
+  <meta property="og:title" content="MIND JACKPOT — Premonition Arcade">
+  <meta property="og:description" content="Predict three symbols. Spin the sealed reels. Win fictional millions while contributing to a transparent forced-choice pilot.">
+  <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/mind-jackpot/">
+  <link rel="stylesheet" href="jackpot.css?v=20260808-1">
+  <script src="../game-counter.js?v=20260805-visitors1" defer></script>
+  <title>MIND JACKPOT — Premonition Arcade</title>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <a class="back" href="../../#videogames">← TACC LAB</a>
+      <div class="research-pill">RESEARCH ARCADE · 18+</div>
+      <div class="top-actions">
+        <span class="game-visitor-counter" data-game-visitors="mind-jackpot" data-counter-label="MIND JACKPOT">… PLAYERS</span>
+        <button id="sound-button" type="button" aria-pressed="true">♪ ON</button>
+        <button id="fullscreen-button" type="button">⛶</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen active" id="intro-screen">
+        <div class="hero">
+          <div class="hero-copy">
+            <div class="live-tag"><i></i> PREMONITION ARCADE</div>
+            <h1>MIND<br><span>JACKPOT</span></h1>
+            <p class="tagline">Pick three symbols. The future is already sealed.</p>
+            <p class="lede">Predict the next three-reel outcome, launch the machine and build a fortune in fictional Mind Coins—all while contributing to a transparent forced-choice research pilot.</p>
+            <div class="hero-actions"><button class="cta" id="enter-button" type="button">PLAY THE STUDY <b>→</b></button><button class="link-button" id="how-button" type="button">How it works</button></div>
+            <div class="safety-strip"><span>NO PURCHASE</span><span>NO WAGERING</span><span>NO REAL-MONEY VALUE</span><span>18+ PILOT</span></div>
+          </div>
+          <div class="machine-preview" aria-hidden="true">
+            <div class="preview-lights"></div><div class="preview-title">SEALED FUTURE</div>
+            <div class="preview-reels"><span>✦</span><span>◆</span><span>☾</span></div>
+            <div class="preview-win">$100,000,000</div>
+          </div>
+        </div>
+        <div class="resume-banner" id="resume-banner" hidden><div><strong>Unfinished local session found</strong><span id="resume-copy">Your sealed sequence and completed rounds are still on this device.</span></div><button id="resume-local" type="button">RESUME →</button><button id="discard-local" type="button">Delete</button></div>
+        <div class="science-cards" id="how-it-works">
+          <article><span>01</span><h2>Predict</h2><p>Choose one symbol for each of the three reel positions.</p></article>
+          <article><span>02</span><h2>Spin</h2><p>The third choice launches a fast reveal of the precommitted outcome.</p></article>
+          <article><span>03</span><h2>Measure</h2><p>Each exact reel match is compared with the fixed 1-in-6 chance rate.</p></article>
+        </div>
+        <div class="local-lab"><div><strong>LOCAL RESEARCH ARCHIVE</strong><span id="archive-count">Checking this device…</span></div><button id="export-archive" type="button" disabled>Export completed sessions</button></div>
+      </section>
+
+      <section class="screen" id="consent-screen" hidden>
+        <div class="panel">
+          <p class="step">RESEARCH INFORMATION · CONSENT</p><h2>Play first. Interpret carefully.</h2>
+          <p class="intro-text">This game studies whether symbol predictions differ from chance. It does not diagnose an ability and offers no real money. The arcade presentation is designed to study engagement as well as prediction.</p>
+          <div class="protocol-summary"><article><b>60</b><span>fixed rounds</span></article><article><b>180</b><span>reel predictions</span></article><article><b>1/6</b><span>chance per reel</span></article><article><b>~5 min</b><span>playing time</span></article></div>
+          <form id="consent-form" novalidate>
+            <div class="form-grid">
+              <label><span>Age range *</span><select name="age_band" required><option value="">Select…</option><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55–64</option><option>65+</option><option>Prefer not to say</option></select></label>
+              <label><span>Gender</span><select name="gender"><option value="">Prefer not to say</option><option>Woman</option><option>Man</option><option>Non-binary / another identity</option></select></label>
+              <label><span>Current alertness *</span><select name="alertness" required><option value="">Select…</option><option value="1">1 · Very tired</option><option value="2">2</option><option value="3">3 · Neutral</option><option value="4">4</option><option value="5">5 · Very alert</option></select></label>
+              <label><span>Sleep quality last night *</span><select name="sleep_quality" required><option value="">Select…</option><option value="1">1 · Very poor</option><option value="2">2</option><option value="3">3 · Average</option><option value="4">4</option><option value="5">5 · Very good</option></select></label>
+              <label><span>Belief in anticipating future events *</span><select name="prior_belief" required><option value="">Select…</option><option value="1">1 · Not at all</option><option value="2">2</option><option value="3">3</option><option value="4">4 · Unsure</option><option value="5">5</option><option value="6">6</option><option value="7">7 · Strongly</option></select></label>
+              <label><span>How often do you play videogames? *</span><select name="gaming" required><option value="">Select…</option><option>Never</option><option>Monthly or less</option><option>Weekly</option><option>Most days</option><option>Daily</option></select></label>
+              <label><span>How often do you gamble with real money? *</span><select name="gambling" required><option value="">Select…</option><option>Never</option><option>Less than monthly</option><option>Monthly</option><option>Weekly or more</option><option>Prefer not to say</option></select></label>
+              <label><span>Completed this game before? *</span><select name="prior_participation" required><option value="">Select…</option><option>No</option><option>Yes</option><option>Not sure</option></select></label>
+            </div>
+            <fieldset>
+              <label><input name="adult" type="checkbox" required><span>I confirm that I am at least 18 years old.</span></label>
+              <label><input name="understood" type="checkbox" required><span>I understand that all winnings are fictional, have no monetary value, and that no purchase or wager is possible.</span></label>
+              <label><input name="consent" type="checkbox" required><span>I consent to this anonymous pilot and understand that I can stop at any time.</span></label>
+              <label><input name="storage" type="checkbox" required><span>I understand that research data stay on this device unless I download and share them.</span></label>
+            </fieldset>
+            <p class="error" id="form-error" hidden>Please complete every required field and consent item.</p>
+            <div class="form-actions"><button class="secondary" id="consent-back" type="button">← BACK</button><button class="cta" type="submit">SEAL MY FUTURE <b>→</b></button></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="screen" id="ready-screen" hidden>
+        <div class="panel ready-panel">
+          <p class="step">SEQUENCE COMMITTED</p><h2>Your 60 outcomes are sealed.</h2><p class="intro-text">The fingerprint below was created before round 1. The final research file reveals the hidden sequence and salt needed to verify it.</p>
+          <div class="hash-box"><span>SHA-256 COMMITMENT</span><code id="hash-value">Generating…</code><button id="copy-hash" type="button">COPY</button></div>
+          <div class="rules"><article><b>1 MATCH</b><strong>$10K</strong></article><article><b>2 MATCHES</b><strong>$1M</strong></article><article class="jackpot-rule"><b>3 MATCHES</b><strong>$100M</strong></article></div>
+          <p class="fiction-note">All amounts are fictional Mind Coins. They cannot be purchased, withdrawn, transferred or exchanged.</p>
+          <button class="cta wide" id="start-button" type="button" disabled>START ROUND 1 <b>→</b></button>
+        </div>
+      </section>
+
+      <section class="game-screen" id="game-screen" hidden>
+        <div class="hud"><div><span>ROUND</span><strong id="round-number">01 / 60</strong></div><div class="hud-balance"><span>FICTIONAL BALANCE</span><strong id="balance-value">$0</strong></div><button id="pause-button" type="button">Ⅱ</button></div>
+        <div class="progress"><i id="progress-fill"></i></div>
+        <div class="game-layout">
+          <div class="slot-machine" id="slot-machine">
+            <div class="machine-sign"><i></i><span>MIND JACKPOT</span><i></i></div>
+            <div class="reels" id="reels"><div class="reel"><div class="reel-symbol" id="reel-0">?</div></div><div class="reel"><div class="reel-symbol" id="reel-1">?</div></div><div class="reel"><div class="reel-symbol" id="reel-2">?</div></div></div>
+            <div class="machine-message" id="machine-message">PREDICT THE SEALED OUTCOME</div>
+            <div class="win-amount" id="win-amount">$0</div>
+          </div>
+          <div class="control-panel">
+            <div class="prediction-head"><div><span>YOUR PREDICTION</span><strong>Choose symbol <b id="position-number">1</b> of 3</strong></div><div class="confidence-control" role="group" aria-label="Prediction confidence"><button data-confidence="25" type="button">GUESS</button><button class="active" data-confidence="50" type="button">HUNCH</button><button data-confidence="75" type="button">STRONG</button></div></div>
+            <div class="prediction-slots"><span id="pick-0">?</span><span id="pick-1">?</span><span id="pick-2">?</span></div>
+            <div class="symbol-grid" id="symbol-grid" aria-label="Choose a symbol"></div>
+            <p class="tap-note">Your third choice launches the reels automatically.</p>
+          </div>
+        </div>
+        <div class="coin-layer" id="coin-layer" aria-hidden="true"></div>
+      </section>
+
+      <section class="screen" id="break-screen" hidden><div class="panel compact"><p class="step">QUICK RESET</p><h2>Forty predictions recorded.</h2><p id="break-text">Take one breath. Your sealed sequence is waiting.</p><button class="cta wide" id="continue-button" type="button">KEEP PLAYING <b>→</b></button></div></section>
+      <section class="screen" id="pause-screen" hidden><div class="panel compact"><p class="step">SESSION PAUSED</p><h2>Your future is still sealed.</h2><p>The session is stored on this device. Resume now, download a blinded partial record, or return later.</p><div class="button-stack"><button class="cta" id="resume-button" type="button">RESUME</button><button class="secondary" id="partial-button" type="button">DOWNLOAD PARTIAL JSON</button><button class="danger" id="quit-button" type="button">END AND KEEP LOCALLY</button></div></div></section>
+
+      <section class="screen" id="results-screen" hidden>
+        <div class="panel results-panel"><p class="step">SESSION COMPLETE · DEBRIEF</p><h2 id="result-heading">Future revealed.</h2>
+          <div class="final-balance"><span>FICTIONAL MIND COINS</span><strong id="final-balance">$0</strong></div>
+          <div class="stats"><article><span>Reel matches</span><strong id="match-result">—</strong><small>Chance expectation: 30 / 180</small></article><article><span>Exact jackpots</span><strong id="jackpot-result">—</strong><small>Chance per round: 1 / 216</small></article><article><span>Mean confidence</span><strong id="confidence-result">—</strong><small>Descriptive only</small></article><article><span>Deck verified</span><strong id="verified-result">—</strong><small>SHA-256 integrity</small></article></div>
+          <div class="download-card"><div><h3>Download your anonymous research file?</h3><p>It contains questionnaire responses, predictions, targets, timing, rewards and integrity data. A completed copy is also archived locally in this browser.</p></div><button class="cta" id="download-button" type="button">DOWNLOAD JSON ↓</button><button class="secondary" id="not-now-button" type="button">NOT NOW</button></div>
+          <details><summary>Scientific debrief</summary><div><p>The prespecified primary descriptive score is the total number of position-specific matches among 180 predictions. Under independent random targets, each prediction has probability 1/6. Exact three-symbol jackpots and confidence calibration are secondary outcomes.</p><p>Immediate feedback and arcade rewards may affect later choices and engagement; these sequential effects are recorded and should be analysed separately. This pilot is not evidence of individual precognition and is not a substitute for ethics approval, preregistration or independent replication.</p></div></details>
+          <div class="result-actions"><button class="cta" id="new-session-button" type="button">NEW PARTICIPANT</button><a class="secondary anchor-button" href="../../#videogames">BACK TO VIDEOGAMES</a></div>
+        </div>
+      </section>
+    </main>
+    <footer><span>MIND JACKPOT · PILOT 1.0</span><span>NO REAL MONEY · NO BETTING · LOCAL RESEARCH DATA</span></footer>
+  </div>
+  <noscript>This research arcade requires JavaScript.</noscript>
+  <script src="jackpot.js?v=20260808-1" defer></script>
+</body>
+</html>
