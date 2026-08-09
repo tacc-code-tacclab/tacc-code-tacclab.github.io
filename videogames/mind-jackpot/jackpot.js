@@ -1,6 +1,6 @@
 (function(){
   "use strict";
-  var VERSION="mind-jackpot-1.0.0",ROUNDS=60,SYMBOL_COUNT=6,CURRENT_KEY="mind_jackpot_current_v1",DB_NAME="mind-jackpot-research",DB_STORE="sessions";
+  var VERSION="mind-jackpot-1.0.1",ROUNDS=60,SYMBOL_COUNT=6,CURRENT_KEY="mind_jackpot_current_v1",DB_NAME="mind-jackpot-research",DB_STORE="sessions";
   var symbols=[
     {id:"star",name:"Nova",svg:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="m50 7 11 30 32 1-25 19 9 31-27-18-27 18 9-31L7 38l32-1Z" fill="#ffd347" stroke="#fff2a2" stroke-width="3"/></svg>'},
     {id:"gem",name:"Gem",svg:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M18 30 35 11h30l17 19-32 58Z" fill="#54e8ff" stroke="#d9fbff" stroke-width="3"/><path d="m18 30 32 13 32-13M35 11l15 32 15-32M50 43v45" fill="none" stroke="#246ea7" stroke-width="3"/></svg>'},
@@ -37,13 +37,33 @@
   function tone(freq,duration,type,volume,delay){if(!audioOn)return;try{initAudio();var t=audioContext.currentTime+(delay||0),o=audioContext.createOscillator(),g=audioContext.createGain();o.type=type||"square";o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(volume||.06,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(audioContext.destination);o.start(t);o.stop(t+duration+.02);}catch(e){}}
   function clickSound(){tone(420,.07,"square",.035);tone(620,.06,"square",.025,.035);}
   function stopSound(index){tone(500+index*110,.1,"square",.065);tone(250+index*55,.12,"triangle",.035,.025);}
-  function winSound(matches){if(matches===0){tone(150,.16,"sawtooth",.035);return;}var notes=matches===3?[523,659,784,1047]:matches===2?[440,554,659]:[392,523];notes.forEach(function(n,i){tone(n,.18,"square",.055,i*.08);});}
+  function winSound(matches){
+    if(matches===0){tone(150,.16,"sawtooth",.035);tone(110,.2,"triangle",.02,.05);return;}
+    var notes=matches===3?[392,523,659,784,1047,1319]:matches===2?[330,440,554,659,880]:[392,523,659];
+    notes.forEach(function(n,i){tone(n,.2,"square",.065,i*.075);tone(n/2,.24,"triangle",.035,i*.075);});
+    if(matches>=2){[0,.12,.24,.36].forEach(function(delay,i){tone(i%2?1568:2093,.055,"sine",.035,delay);});}
+    if(matches===3){tone(131,.7,"sawtooth",.04,0);tone(523,.7,"triangle",.05,.42);tone(659,.7,"triangle",.05,.42);tone(784,.7,"triangle",.05,.42);}
+  }
+  function announceWin(matches,reward){
+    if(!audioOn||matches===0||!("speechSynthesis" in window))return;
+    try{
+      window.speechSynthesis.cancel();
+      var message=matches===3?"Jackpot! Incredible! You won one hundred million Mind Coins!":matches===2?"Amazing! You won one million Mind Coins!":"Great! You matched a symbol and won ten thousand Mind Coins!";
+      var utterance=new SpeechSynthesisUtterance(message);utterance.lang="en-US";utterance.rate=matches===3?1.03:1.08;utterance.pitch=matches===3?1.22:1.12;utterance.volume=.95;window.speechSynthesis.speak(utterance);
+    }catch(e){}
+  }
 
   function symbolButton(s,i){return '<button class="symbol-button" type="button" data-symbol="'+s.id+'" aria-label="Choose '+s.name+' for reel '+(picks.length+1)+'"><span>'+s.svg+'</span><span>'+(i+1)+' · '+s.name+'</span></button>';}
   function renderSymbols(){$("symbol-grid").innerHTML=symbols.map(symbolButton).join("");Array.prototype.forEach.call($("symbol-grid").querySelectorAll("button"),function(b){b.addEventListener("click",function(){choose(b.dataset.symbol);});});}
   function setReel(index,id){$("reel-"+index).innerHTML=id==="?"?"?":symbol(id).svg;}
   function setPick(index,id){$("pick-"+index).innerHTML=id?symbol(id).svg:"?";}
-  function lockControls(value){Array.prototype.forEach.call($("symbol-grid").querySelectorAll("button"),function(b){b.disabled=value;});Array.prototype.forEach.call(document.querySelectorAll(".confidence-control button"),function(b){b.disabled=value;});}
+  function updatePickControls(){
+    var full=picks.length===3,next=Math.min(3,picks.length+1);
+    Array.prototype.forEach.call($("symbol-grid").querySelectorAll("button"),function(b){b.disabled=locked||full;var s=symbol(b.dataset.symbol);b.setAttribute("aria-label","Choose "+s.name+" for reel "+next);});
+    $("undo-pick").disabled=locked||picks.length===0;$("clear-picks").disabled=locked||picks.length===0;$("spin-button").disabled=locked||!full;
+    $("position-number").textContent=full?"✓":String(picks.length+1);
+  }
+  function lockControls(value){Array.prototype.forEach.call($("symbol-grid").querySelectorAll("button"),function(b){b.disabled=value;});Array.prototype.forEach.call(document.querySelectorAll(".confidence-control button"),function(b){b.disabled=value;});locked=value;updatePickControls();}
 
   function formData(form){var o={};new FormData(form).forEach(function(v,k){o[k]=v;});["adult","understood","consent","storage"].forEach(function(k){o[k]=form.elements[k].checked;});return o;}
   function createSession(participant){
@@ -57,9 +77,12 @@
     cancelTimers();locked=false;picks=[];confidence=50;roundIndex=session.rounds.length;
     if(roundIndex>=ROUNDS){finish();return;}
     $("round-number").textContent=String(roundIndex+1).padStart(2,"0")+" / "+ROUNDS;$("balance-value").textContent=formatCoins(session.balance);$("progress-fill").style.width=(roundIndex/ROUNDS*100)+"%";$("position-number").textContent="1";$("machine-message").textContent="PREDICT THE SEALED OUTCOME";$("win-amount").textContent="$0";
-    for(var i=0;i<3;i++){setReel(i,"?");setPick(i,null);}document.querySelectorAll(".confidence-control button").forEach(function(b){b.classList.toggle("active",b.dataset.confidence==="50");});lockControls(false);$("slot-machine").classList.remove("big-win");show("game-screen");roundStarted=performance.now();
+    for(var i=0;i<3;i++){setReel(i,"?");setPick(i,null);}document.querySelectorAll(".confidence-control button").forEach(function(b){b.classList.toggle("active",b.dataset.confidence==="50");});lockControls(false);updatePickControls();$("slot-machine").classList.remove("big-win");show("game-screen");roundStarted=performance.now();
   }
-  function choose(id){if(locked||picks.length>=3)return;initAudio();clickSound();picks.push(id);setPick(picks.length-1,id);$("position-number").textContent=String(Math.min(3,picks.length+1));if(picks.length===3){locked=true;lockControls(true);spin();}}
+  function choose(id){if(locked||picks.length>=3)return;initAudio();clickSound();picks.push(id);setPick(picks.length-1,id);updatePickControls();if(picks.length===3){$("machine-message").textContent="PREDICTION READY — PRESS SPIN";}}
+  function undoPick(){if(locked||!picks.length)return;clickSound();picks.pop();for(var i=0;i<3;i++)setPick(i,picks[i]||null);$("machine-message").textContent="PREDICT THE SEALED OUTCOME";updatePickControls();}
+  function clearPicks(){if(locked||!picks.length)return;clickSound();picks=[];for(var i=0;i<3;i++)setPick(i,null);$("machine-message").textContent="PREDICT THE SEALED OUTCOME";updatePickControls();}
+  function confirmSpin(){if(locked||picks.length!==3)return;initAudio();tone(784,.08,"square",.05);lockControls(true);spin();}
   function spin(){
     var target=session.target_deck[roundIndex],spinStart=performance.now(),choiceLockedAt=now();$("machine-message").textContent="READING THE SEALED FUTURE…";$("reels").classList.add("spinning");
     var cycles=[];for(var r=0;r<3;r++){(function(index){cycles[index]=setInterval(function(){setReel(index,symbols[randomInt(SYMBOL_COUNT)].id);tone(95+index*18,.025,"square",.012);},70);intervals.push(cycles[index]);later(function(){clearInterval(cycles[index]);setReel(index,target[index]);stopSound(index);},430+index*260);})(r);}
@@ -70,7 +93,7 @@
     var matches=picks.map(function(x,i){return x===target[i];}),count=matches.filter(Boolean).length,reward=rewardFor(count);
     var record={round_index:roundIndex+1,prediction:picks.slice(),target:target.slice(),position_matches:matches,match_count:count,confidence:confidence,response_ms:responseMs,prediction_locked_at:choiceLockedAt,revealed_at:now(),reward:reward,balance_after:session.balance+reward};
     session.balance+=reward;session.rounds.push(record);persistCurrent();$("balance-value").textContent=formatCoins(session.balance);$("win-amount").textContent=reward?"+ "+formatCoins(reward):"NO MATCH";
-    $("machine-message").textContent=count===3?"IMPOSSIBLE? EXACT JACKPOT!":count===2?"TWO REELS — MILLION HIT!":count===1?"ONE REEL MATCHED":"THE FUTURE SLIPPED AWAY";winSound(count);if(count>0)coins(count===3?80:count===2?35:12);if(count>=2)$("slot-machine").classList.add("big-win");
+    $("machine-message").textContent=count===3?"IMPOSSIBLE? EXACT JACKPOT!":count===2?"TWO REELS — MILLION HIT!":count===1?"ONE REEL MATCHED":"THE FUTURE SLIPPED AWAY";winSound(count);announceWin(count,reward);if(count>0)coins(count===3?80:count===2?35:12);if(count>=2)$("slot-machine").classList.add("big-win");
     later(nextRound,count===3?2600:count===2?1900:1400);
   }
   function coins(n){var layer=$("coin-layer");layer.innerHTML="";for(var i=0;i<n;i++){var c=document.createElement("i");c.className="coin";c.textContent="$";c.style.setProperty("--left",Math.random()*100+"vw");c.style.setProperty("--delay",Math.random()*.55+"s");c.style.setProperty("--duration",(1.2+Math.random()*1.1)+"s");layer.appendChild(c);}later(function(){layer.innerHTML="";},3000);}
@@ -92,12 +115,12 @@
     renderSymbols();updateArchiveCount();showResume();
     $("enter-button").addEventListener("click",function(){show("consent-screen");});$("how-button").addEventListener("click",function(){$("how-it-works").scrollIntoView({behavior:"smooth"});});$("consent-back").addEventListener("click",function(){show("intro-screen");});
     $("consent-form").addEventListener("submit",function(e){e.preventDefault();var f=e.currentTarget;if(!f.checkValidity()){$("form-error").hidden=false;f.reportValidity();return;}$("form-error").hidden=true;initAudio();if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();show("ready-screen");createSession(formData(f)).then(prepareReady).catch(function(){alert("Secure browser randomness is unavailable. Please open the HTTPS version in a current browser.");show("consent-screen");});});
-    $("copy-hash").addEventListener("click",function(){if(navigator.clipboard)navigator.clipboard.writeText(session.deck_commitment);this.textContent="COPIED";});$("start-button").addEventListener("click",beginGame);$("continue-button").addEventListener("click",startRound);$("pause-button").addEventListener("click",pause);$("resume-button").addEventListener("click",resume);$("partial-button").addEventListener("click",function(){exportSession(true);});$("quit-button").addEventListener("click",leaveForLater);
+    $("copy-hash").addEventListener("click",function(){if(navigator.clipboard)navigator.clipboard.writeText(session.deck_commitment);this.textContent="COPIED";});$("start-button").addEventListener("click",beginGame);$("continue-button").addEventListener("click",startRound);$("pause-button").addEventListener("click",pause);$("resume-button").addEventListener("click",resume);$("partial-button").addEventListener("click",function(){exportSession(true);});$("quit-button").addEventListener("click",leaveForLater);$("undo-pick").addEventListener("click",undoPick);$("clear-picks").addEventListener("click",clearPicks);$("spin-button").addEventListener("click",confirmSpin);
     $("resume-local").addEventListener("click",resumeSaved);$("discard-local").addEventListener("click",function(){if(confirm("Delete the unfinished local session?")){clearCurrent();showResume();}});$("download-button").addEventListener("click",function(){exportSession(false);});$("not-now-button").addEventListener("click",function(){session.events.push({type:"download_declined",at:now()});persistCurrent();});$("new-session-button").addEventListener("click",newParticipant);
     $("export-archive").addEventListener("click",function(){getArchive().then(function(rows){exportJSON({schema:"mind-jackpot-local-archive-1.0",exported_at:now(),session_count:rows.length,sessions:rows},"MIND_JACKPOT_local_archive.json");});});
     document.querySelectorAll(".confidence-control button").forEach(function(b){b.addEventListener("click",function(){if(locked)return;confidence=Number(b.dataset.confidence);document.querySelectorAll(".confidence-control button").forEach(function(x){x.classList.toggle("active",x===b);});clickSound();});});
     $("sound-button").addEventListener("click",function(){audioOn=!audioOn;this.textContent=audioOn?"♪ ON":"♪ OFF";this.setAttribute("aria-pressed",String(audioOn));if(audioOn)initAudio();});$("fullscreen-button").addEventListener("click",function(){if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}else document.exitFullscreen&&document.exitFullscreen();});
-    document.addEventListener("keydown",function(e){if($("game-screen").hidden||locked)return;var n=Number(e.key);if(n>=1&&n<=6){e.preventDefault();choose(symbols[n-1].id);}if(e.key==="Escape")pause();});window.addEventListener("pagehide",persistCurrent);
+    document.addEventListener("keydown",function(e){if($("game-screen").hidden||locked)return;var n=Number(e.key);if(n>=1&&n<=6){e.preventDefault();choose(symbols[n-1].id);}if((e.key==="Enter"||e.key===" ")&&picks.length===3){e.preventDefault();confirmSpin();}if(e.key==="Backspace"&&picks.length){e.preventDefault();undoPick();}if(e.key==="Escape")pause();});window.addEventListener("pagehide",persistCurrent);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
