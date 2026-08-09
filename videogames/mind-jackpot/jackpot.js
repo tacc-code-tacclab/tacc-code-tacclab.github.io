@@ -1,6 +1,6 @@
 (function(){
   "use strict";
-  var VERSION="mind-jackpot-1.0.1",ROUNDS=60,SYMBOL_COUNT=6,CURRENT_KEY="mind_jackpot_current_v1",DB_NAME="mind-jackpot-research",DB_STORE="sessions";
+  var VERSION="mind-jackpot-1.0.2",ROUNDS=60,SYMBOL_COUNT=6,CURRENT_KEY="mind_jackpot_current_v1",DB_NAME="mind-jackpot-research",DB_STORE="sessions";
   var symbols=[
     {id:"star",name:"Nova",svg:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="m50 7 11 30 32 1-25 19 9 31-27-18-27 18 9-31L7 38l32-1Z" fill="#ffd347" stroke="#fff2a2" stroke-width="3"/></svg>'},
     {id:"gem",name:"Gem",svg:'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M18 30 35 11h30l17 19-32 58Z" fill="#54e8ff" stroke="#d9fbff" stroke-width="3"/><path d="m18 30 32 13 32-13M35 11l15 32 15-32M50 43v45" fill="none" stroke="#246ea7" stroke-width="3"/></svg>'},
@@ -31,7 +31,7 @@
   function openDB(){return new Promise(function(resolve,reject){var req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=function(){if(!req.result.objectStoreNames.contains(DB_STORE))req.result.createObjectStore(DB_STORE,{keyPath:"participant_id"});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){reject(req.error);};});}
   function archiveSession(s){return openDB().then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction(DB_STORE,"readwrite");tx.objectStore(DB_STORE).put(JSON.parse(JSON.stringify(s)));tx.oncomplete=function(){db.close();resolve();};tx.onerror=function(){reject(tx.error);};});});}
   function getArchive(){return openDB().then(function(db){return new Promise(function(resolve,reject){var req=db.transaction(DB_STORE,"readonly").objectStore(DB_STORE).getAll();req.onsuccess=function(){db.close();resolve(req.result||[]);};req.onerror=function(){reject(req.error);};});});}
-  function updateArchiveCount(){getArchive().then(function(rows){$("archive-count").textContent=rows.length+" completed anonymous session"+(rows.length===1?"":"s")+" stored in this browser";$("export-archive").disabled=!rows.length;}).catch(function(){$("archive-count").textContent="Local archive unavailable in this browser";});}
+  function updateArchiveCount(){getArchive().then(function(rows){$("archive-count").textContent=rows.length+" completed pseudonymous session"+(rows.length===1?"":"s")+" stored in this browser";$("export-archive").disabled=!rows.length;}).catch(function(){$("archive-count").textContent="Local archive unavailable in this browser";});}
 
   function initAudio(){if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==="suspended")audioContext.resume();}
   function tone(freq,duration,type,volume,delay){if(!audioOn)return;try{initAudio();var t=audioContext.currentTime+(delay||0),o=audioContext.createOscillator(),g=audioContext.createGain();o.type=type||"square";o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(volume||.06,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(audioContext.destination);o.start(t);o.stop(t+duration+.02);}catch(e){}}
@@ -43,6 +43,15 @@
     notes.forEach(function(n,i){tone(n,.2,"square",.065,i*.075);tone(n/2,.24,"triangle",.035,i*.075);});
     if(matches>=2){[0,.12,.24,.36].forEach(function(delay,i){tone(i%2?1568:2093,.055,"sine",.035,delay);});}
     if(matches===3){tone(131,.7,"sawtooth",.04,0);tone(523,.7,"triangle",.05,.42);tone(659,.7,"triangle",.05,.42);tone(784,.7,"triangle",.05,.42);}
+  }
+  function moneySound(matches){
+    if(!audioOn||matches===0)return;
+    var count=matches===3?24:matches===2?10:3,spacing=matches===3?.07:matches===2?.065:.085;
+    for(var i=0;i<count;i++){
+      var delay=i*spacing,freq=(i%3===0?1760:i%3===1?2217:2637)+(i%5)*19;
+      tone(freq,matches===3?.085:.055,"sine",matches===1?.022:.038,delay);
+      if(matches===3&&i%4===0)tone(freq/2,.11,"triangle",.025,delay+.018);
+    }
   }
   function announceWin(matches,reward){
     if(!audioOn||matches===0||!("speechSynthesis" in window))return;
@@ -67,8 +76,12 @@
 
   function formData(form){var o={};new FormData(form).forEach(function(v,k){o[k]=v;});["adult","understood","consent","storage"].forEach(function(k){o[k]=form.elements[k].checked;});return o;}
   function createSession(participant){
-    session={schema:"mind-jackpot-session-1.0",protocol:{version:VERSION,total_rounds:ROUNDS,reels_per_round:3,symbols_per_reel:SYMBOL_COUNT,chance_per_reel:1/6,exact_jackpot_probability:1/216,primary_outcome:"total position-specific symbol matches over 180 predictions",stopping_rule:"60 completed rounds",target_generation:"180 independent uniform cryptographic draws before round 1",feedback:"immediate",rewards:{zero:0,one:10000,two:1000000,three:100000000},reward_unit:"fictional Mind Coins; no monetary value"},participant_id:randomId(),created_at:now(),completed_at:null,status:"preparing",participant:participant,deck_salt:bytesHex(crypto.getRandomValues(new Uint8Array(16))),target_deck:makeDeck(),deck_commitment:null,commitment_created_at:null,rounds:[],balance:0,events:[{type:"session_created",at:now()}],client:{language:navigator.language||null,screen_bucket:screen.width<600?"small":screen.width<1000?"medium":"large",touch:navigator.maxTouchPoints>0},integrity:{commitment_verified:null,complete:false}};
-    return sha256(payload(session)).then(function(hash){session.deck_commitment=hash;session.commitment_created_at=now();session.status="committed";persistCurrent();return session;});
+    var nickname=String(participant.research_nickname||"").trim(),normalized=nickname.toLowerCase();participant.research_nickname=nickname;
+    return sha256("mind-jackpot-longitudinal-v1|"+normalized).then(function(nicknameHash){
+      participant.nickname_hash_sha256=nicknameHash;
+      session={schema:"mind-jackpot-session-1.1",protocol:{version:VERSION,total_rounds:ROUNDS,reels_per_round:3,symbols_per_reel:SYMBOL_COUNT,chance_per_reel:1/6,exact_jackpot_probability:1/216,primary_outcome:"total position-specific symbol matches over 180 predictions",stopping_rule:"60 completed rounds",target_generation:"180 independent uniform cryptographic draws before round 1",feedback:"immediate",rewards:{zero:0,one:10000,two:1000000,three:100000000},reward_unit:"fictional Mind Coins; no monetary value",longitudinal_plan:"Link repeated sessions by pseudonymous nickname hash; identify high performers in discovery data and test them in independent future sessions."},participant_id:randomId(),longitudinal_id:"MJ-L-"+nicknameHash.slice(0,20).toUpperCase(),created_at:now(),completed_at:null,status:"preparing",participant:participant,deck_salt:bytesHex(crypto.getRandomValues(new Uint8Array(16))),target_deck:makeDeck(),deck_commitment:null,commitment_created_at:null,rounds:[],balance:0,events:[{type:"session_created",at:now()}],client:{language:navigator.language||null,screen_bucket:screen.width<600?"small":screen.width<1000?"medium":"large",touch:navigator.maxTouchPoints>0},integrity:{commitment_verified:null,complete:false}};
+      return sha256(payload(session));
+    }).then(function(hash){session.deck_commitment=hash;session.commitment_created_at=now();session.status="committed";persistCurrent();return session;});
   }
 
   function prepareReady(){$("hash-value").textContent=session.deck_commitment;$("start-button").disabled=false;show("ready-screen");}
@@ -93,21 +106,21 @@
     var matches=picks.map(function(x,i){return x===target[i];}),count=matches.filter(Boolean).length,reward=rewardFor(count);
     var record={round_index:roundIndex+1,prediction:picks.slice(),target:target.slice(),position_matches:matches,match_count:count,confidence:confidence,response_ms:responseMs,prediction_locked_at:choiceLockedAt,revealed_at:now(),reward:reward,balance_after:session.balance+reward};
     session.balance+=reward;session.rounds.push(record);persistCurrent();$("balance-value").textContent=formatCoins(session.balance);$("win-amount").textContent=reward?"+ "+formatCoins(reward):"NO MATCH";
-    $("machine-message").textContent=count===3?"IMPOSSIBLE? EXACT JACKPOT!":count===2?"TWO REELS — MILLION HIT!":count===1?"ONE REEL MATCHED":"THE FUTURE SLIPPED AWAY";winSound(count);announceWin(count,reward);if(count>0)coins(count===3?80:count===2?35:12);if(count>=2)$("slot-machine").classList.add("big-win");
+    $("machine-message").textContent=count===3?"IMPOSSIBLE? EXACT JACKPOT!":count===2?"TWO REELS — MILLION HIT!":count===1?"ONE REEL MATCHED":"THE FUTURE SLIPPED AWAY";winSound(count);moneySound(count);announceWin(count,reward);if(count>0)coins(count===3?80:count===2?35:12);if(count>=2)$("slot-machine").classList.add("big-win");
     later(nextRound,count===3?2600:count===2?1900:1400);
   }
   function coins(n){var layer=$("coin-layer");layer.innerHTML="";for(var i=0;i<n;i++){var c=document.createElement("i");c.className="coin";c.textContent="$";c.style.setProperty("--left",Math.random()*100+"vw");c.style.setProperty("--delay",Math.random()*.55+"s");c.style.setProperty("--duration",(1.2+Math.random()*1.1)+"s");layer.appendChild(c);}later(function(){layer.innerHTML="";},3000);}
   function nextRound(){roundIndex=session.rounds.length;if(roundIndex>=ROUNDS){finish();return;}if(roundIndex===20||roundIndex===40){session.events.push({type:"break",after_round:roundIndex,at:now()});persistCurrent();$("break-text").textContent=roundIndex+" of "+ROUNDS+" rounds complete. Take one breath; your sealed sequence is waiting.";show("break-screen");return;}startRound();}
   function verify(){return sha256(payload(session)).then(function(h){return h===session.deck_commitment;});}
   function finish(){cancelTimers();session.status="complete";session.completed_at=now();session.integrity.complete=session.rounds.length===ROUNDS;verify().then(function(ok){session.integrity.commitment_verified=ok;session.events.push({type:"session_completed",at:now()});persistCurrent();return archiveSession(session).catch(function(){session.events.push({type:"archive_failed",at:now()});persistCurrent();});}).then(showResults);}
-  function showResults(){var matches=session.rounds.reduce(function(a,r){return a+r.match_count;},0),jackpots=session.rounds.filter(function(r){return r.match_count===3;}).length,mean=session.rounds.length?session.rounds.reduce(function(a,r){return a+r.confidence;},0)/session.rounds.length:0;$("final-balance").textContent=formatCoins(session.balance);$("match-result").textContent=matches+" / "+(session.rounds.length*3);$("jackpot-result").textContent=String(jackpots);$("confidence-result").textContent=Math.round(mean)+" / 100";$("verified-result").textContent=session.integrity.commitment_verified?"YES":"FAILED";show("results-screen");updateArchiveCount();}
+  function showResults(){var matches=session.rounds.reduce(function(a,r){return a+r.match_count;},0),jackpots=session.rounds.filter(function(r){return r.match_count===3;}).length,mean=session.rounds.length?session.rounds.reduce(function(a,r){return a+r.confidence;},0)/session.rounds.length:0,nickname=session.participant&&session.participant.research_nickname;$("result-heading").textContent=nickname?"Future revealed, "+nickname+".":"Future revealed.";$("final-balance").textContent=formatCoins(session.balance);$("match-result").textContent=matches+" / "+(session.rounds.length*3);$("jackpot-result").textContent=String(jackpots);$("confidence-result").textContent=Math.round(mean)+" / 100";$("verified-result").textContent=session.integrity.commitment_verified?"YES":"FAILED";show("results-screen");updateArchiveCount();}
 
   function exportJSON(data,name){var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}
   function exportSession(partial){var out=JSON.parse(JSON.stringify(session));out.exported_at=now();out.export_type=partial?"partial_blinded":"complete_unblinded";if(partial&&out.status!=="complete"){out.target_deck=out.target_deck.slice(0,out.rounds.length);out.deck_salt=null;out.note="Future outcomes and commitment salt are withheld to preserve blinding.";}exportJSON(out,"MIND_JACKPOT_"+out.participant_id+(partial?"_partial":"_complete")+".json");session.events.push({type:partial?"partial_download":"complete_download",at:now()});persistCurrent();}
   function pause(){if(!session||session.status!=="in_progress")return;cancelTimers();session.status="paused";session.events.push({type:"paused",at:now(),after_round:session.rounds.length});persistCurrent();show("pause-screen");}
   function resume(){session.status="in_progress";session.events.push({type:"resumed",at:now()});persistCurrent();roundIndex=session.rounds.length;startRound();}
   function leaveForLater(){session.status="paused";persistCurrent();show("intro-screen");showResume();}
-  function showResume(){var saved=loadCurrent();if(saved&&["committed","in_progress","paused"].indexOf(saved.status)>=0){$("resume-banner").hidden=false;$("resume-copy").textContent=saved.rounds.length+" of "+ROUNDS+" rounds completed · "+saved.participant_id;}else $("resume-banner").hidden=true;}
+  function showResume(){var saved=loadCurrent();if(saved&&["committed","in_progress","paused"].indexOf(saved.status)>=0){$("resume-banner").hidden=false;var nickname=saved.participant&&saved.participant.research_nickname;$("resume-copy").textContent=(nickname?nickname+" · ":"")+saved.rounds.length+" of "+ROUNDS+" rounds completed · "+saved.participant_id;}else $("resume-banner").hidden=true;}
   function resumeSaved(){var saved=loadCurrent();if(!saved)return;session=saved;if(session.status==="committed"){prepareReady();return;}resume();}
   function newParticipant(){clearCurrent();location.reload();}
 
