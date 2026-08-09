@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#09041c">
-  <meta name="description" content="MIND JACKPOT is an anonymous premonition arcade research pilot with a cryptographically sealed sequence.">
+  <meta name="description" content="MIND JACKPOT is a pseudonymous premonition arcade research pilot with a cryptographically sealed sequence.">
   <meta property="og:title" content="MIND JACKPOT — Premonition Arcade">
   <meta property="og:description" content="Predict three symbols. Spin the sealed reels. Win fictional millions while contributing to a transparent forced-choice pilot.">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/mind-jackpot/">
-  <link rel="stylesheet" href="jackpot.css?v=20260809-mobile2">
+  <link rel="stylesheet" href="jackpot.css?v=20260809-nickname1">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
   <title>MIND JACKPOT — Premonition Arcade</title>
 </head>
@@ -53,10 +53,11 @@
       <section class="screen" id="consent-screen" hidden>
         <div class="panel">
           <p class="step">RESEARCH INFORMATION · CONSENT</p><h2>Play first. Interpret carefully.</h2>
-          <p class="intro-text">This game studies whether symbol predictions differ from chance. It does not diagnose an ability and offers no real money. The arcade presentation is designed to study engagement as well as prediction.</p>
+          <p class="intro-text">This game studies whether symbol predictions differ from chance. It does not diagnose an ability and offers no real money. A research nickname links repeated sessions without requesting your real name.</p>
           <div class="protocol-summary"><article><b>60</b><span>fixed rounds</span></article><article><b>180</b><span>reel predictions</span></article><article><b>1/6</b><span>chance per reel</span></article><article><b>~5 min</b><span>playing time</span></article></div>
           <form id="consent-form" novalidate>
             <div class="form-grid">
+              <label class="nickname-field"><span>Research nickname *</span><input name="research_nickname" type="text" minlength="4" maxlength="20" pattern="[A-Za-z0-9_-]{4,20}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Example: Luna47" required><small>Use the same distinctive nickname next time. Do not enter your real name, email or social username.</small></label>
               <label><span>Age range *</span><select name="age_band" required><option value="">Select…</option><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55–64</option><option>65+</option><option>Prefer not to say</option></select></label>
               <label><span>Gender</span><select name="gender"><option value="">Prefer not to say</option><option>Woman</option><option>Man</option><option>Non-binary / another identity</option></select></label>
               <label><span>Current alertness *</span><select name="alertness" required><option value="">Select…</option><option value="1">1 · Very tired</option><option value="2">2</option><option value="3">3 · Neutral</option><option value="4">4</option><option value="5">5 · Very alert</option></select></label>
@@ -69,7 +70,7 @@
             <fieldset>
               <label><input name="adult" type="checkbox" required><span>I confirm that I am at least 18 years old.</span></label>
               <label><input name="understood" type="checkbox" required><span>I understand that all winnings are fictional, have no monetary value, and that no purchase or wager is possible.</span></label>
-              <label><input name="consent" type="checkbox" required><span>I consent to this anonymous pilot and understand that I can stop at any time.</span></label>
+              <label><input name="consent" type="checkbox" required><span>I consent to this pseudonymous pilot and understand that my research nickname links repeated sessions. I can stop at any time.</span></label>
               <label><input name="storage" type="checkbox" required><span>I understand that research data stay on this device unless I download and share them.</span></label>
             </fieldset>
             <p class="error" id="form-error" hidden>Please complete every required field and consent item.</p>
@@ -124,7 +125,7 @@
         <div class="panel results-panel"><p class="step">SESSION COMPLETE · DEBRIEF</p><h2 id="result-heading">Future revealed.</h2>
           <div class="final-balance"><span>FICTIONAL MIND COINS</span><strong id="final-balance">$0</strong></div>
           <div class="stats"><article><span>Reel matches</span><strong id="match-result">—</strong><small>Chance expectation: 30 / 180</small></article><article><span>Exact jackpots</span><strong id="jackpot-result">—</strong><small>Chance per round: 1 / 216</small></article><article><span>Mean confidence</span><strong id="confidence-result">—</strong><small>Descriptive only</small></article><article><span>Deck verified</span><strong id="verified-result">—</strong><small>SHA-256 integrity</small></article></div>
-          <div class="download-card"><div><h3>Download your anonymous research file?</h3><p>It contains questionnaire responses, predictions, targets, timing, rewards and integrity data. A completed copy is also archived locally in this browser.</p></div><button class="cta" id="download-button" type="button">DOWNLOAD JSON ↓</button><button class="secondary" id="not-now-button" type="button">NOT NOW</button></div>
+          <div class="download-card"><div><h3>Download your pseudonymous research file?</h3><p>It contains the research nickname and its stable hash, questionnaire responses, predictions, targets, timing, rewards and integrity data. A completed copy is also archived locally in this browser.</p></div><button class="cta" id="download-button" type="button">DOWNLOAD JSON ↓</button><button class="secondary" id="not-now-button" type="button">NOT NOW</button></div>
           <details><summary>Scientific debrief</summary><div><p>The prespecified primary descriptive score is the total number of position-specific matches among 180 predictions. Under independent random targets, each prediction has probability 1/6. Exact three-symbol jackpots and confidence calibration are secondary outcomes.</p><p>Immediate feedback and arcade rewards may affect later choices and engagement; these sequential effects are recorded and should be analysed separately. This pilot is not evidence of individual precognition and is not a substitute for ethics approval, preregistration or independent replication.</p></div></details>
           <div class="result-actions"><button class="cta" id="new-session-button" type="button">NEW PARTICIPANT</button><a class="secondary anchor-button" href="../../#videogames">BACK TO VIDEOGAMES</a></div>
         </div>
@@ -133,6 +134,6 @@
     <footer><span>MIND JACKPOT · PILOT 1.0</span><span>NO REAL MONEY · NO BETTING · LOCAL RESEARCH DATA</span></footer>
   </div>
   <noscript>This research arcade requires JavaScript.</noscript>
-  <script src="jackpot.js?v=20260809-mobile2" defer></script>
+  <script src="jackpot.js?v=20260809-nickname1" defer></script>
 </body>
 </html>
