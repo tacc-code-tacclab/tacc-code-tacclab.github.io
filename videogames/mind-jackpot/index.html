@@ -8,7 +8,7 @@
   <meta property="og:title" content="MIND JACKPOT — Premonition Arcade">
   <meta property="og:description" content="Predict three symbols. Spin the sealed reels. Win fictional millions while contributing to a transparent forced-choice pilot.">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/mind-jackpot/">
-  <link rel="stylesheet" href="jackpot.css?v=20260808-1">
+  <link rel="stylesheet" href="jackpot.css?v=20260809-mobile2">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
   <title>MIND JACKPOT — Premonition Arcade</title>
 </head>
@@ -100,9 +100,18 @@
           </div>
           <div class="control-panel">
             <div class="prediction-head"><div><span>YOUR PREDICTION</span><strong>Choose symbol <b id="position-number">1</b> of 3</strong></div><div class="confidence-control" role="group" aria-label="Prediction confidence"><button data-confidence="25" type="button">GUESS</button><button class="active" data-confidence="50" type="button">HUNCH</button><button data-confidence="75" type="button">STRONG</button></div></div>
-            <div class="prediction-slots"><span id="pick-0">?</span><span id="pick-1">?</span><span id="pick-2">?</span></div>
+            <div class="prediction-slots" aria-label="Your three selected symbols">
+              <span class="pick-slot"><i id="pick-0">?</i><small>REEL 1</small></span>
+              <span class="pick-slot"><i id="pick-1">?</i><small>REEL 2</small></span>
+              <span class="pick-slot"><i id="pick-2">?</i><small>REEL 3</small></span>
+            </div>
             <div class="symbol-grid" id="symbol-grid" aria-label="Choose a symbol"></div>
-            <p class="tap-note">Your third choice launches the reels automatically.</p>
+            <div class="prediction-actions">
+              <button class="edit-picks" id="undo-pick" type="button" disabled>↶ UNDO</button>
+              <button class="edit-picks" id="clear-picks" type="button" disabled>× CLEAR</button>
+              <button class="spin-prediction" id="spin-button" type="button" disabled>SPIN MY PREDICTION <b>→</b></button>
+            </div>
+            <p class="tap-note">Repeated symbols are allowed. Review your three choices, then press Spin.</p>
           </div>
         </div>
         <div class="coin-layer" id="coin-layer" aria-hidden="true"></div>
@@ -124,6 +133,6 @@
     <footer><span>MIND JACKPOT · PILOT 1.0</span><span>NO REAL MONEY · NO BETTING · LOCAL RESEARCH DATA</span></footer>
   </div>
   <noscript>This research arcade requires JavaScript.</noscript>
-  <script src="jackpot.js?v=20260808-1" defer></script>
+  <script src="jackpot.js?v=20260809-mobile2" defer></script>
 </body>
 </html>
