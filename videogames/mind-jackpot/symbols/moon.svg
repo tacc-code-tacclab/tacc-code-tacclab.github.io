@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">Moon</title>
+  <path d="M72 75A38 38 0 1 1 64 17a30 30 0 0 0 8 58Z" fill="#be8dff" stroke="#eee0ff" stroke-width="3"/>
+  <circle cx="29" cy="36" r="4" fill="#8052ba"/>
+  <circle cx="40" cy="68" r="6" fill="#8052ba"/>
+</svg>
