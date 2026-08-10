@@ -8,7 +8,7 @@
   <meta property="og:title" content="MIND JACKPOT — Premonition Arcade">
   <meta property="og:description" content="Predict three symbols. Spin the sealed reels. Win fictional millions while contributing to a transparent forced-choice pilot.">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/mind-jackpot/">
-  <link rel="stylesheet" href="jackpot.css?v=20260809-nickname1">
+  <link rel="stylesheet" href="jackpot.css?v=20260810-cloudsync1">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
   <title>MIND JACKPOT — Premonition Arcade</title>
 </head>
@@ -47,7 +47,7 @@
           <article><span>02</span><h2>Spin</h2><p>The third choice launches a fast reveal of the precommitted outcome.</p></article>
           <article><span>03</span><h2>Measure</h2><p>Each exact reel match is compared with the fixed 1-in-6 chance rate.</p></article>
         </div>
-        <div class="local-lab"><div><strong>LOCAL RESEARCH ARCHIVE</strong><span id="archive-count">Checking this device…</span></div><button id="export-archive" type="button" disabled>Export completed sessions</button></div>
+        <div class="local-lab"><div><strong>SECURE RESEARCH ARCHIVE</strong><span id="archive-count">Checking this device…</span><span class="sync-status" data-sync-status>New sessions are saved automatically to the EU research database.</span></div><button id="export-archive" type="button" disabled>Export optional local copy</button></div>
       </section>
 
       <section class="screen" id="consent-screen" hidden>
@@ -71,7 +71,7 @@
               <label><input name="adult" type="checkbox" required><span>I confirm that I am at least 18 years old.</span></label>
               <label><input name="understood" type="checkbox" required><span>I understand that all winnings are fictional, have no monetary value, and that no purchase or wager is possible.</span></label>
               <label><input name="consent" type="checkbox" required><span>I consent to this pseudonymous pilot and understand that my research nickname links repeated sessions. I can stop at any time.</span></label>
-              <label><input name="storage" type="checkbox" required><span>I understand that research data stay on this device unless I download and share them.</span></label>
+              <label><input name="storage" type="checkbox" required><span>I understand that my pseudonymous research data will be sent automatically to the study database hosted by Supabase in the EU, while a recovery copy remains on this device.</span></label>
             </fieldset>
             <p class="error" id="form-error" hidden>Please complete every required field and consent item.</p>
             <div class="form-actions"><button class="secondary" id="consent-back" type="button">← BACK</button><button class="cta" type="submit">SEAL MY FUTURE <b>→</b></button></div>
@@ -90,7 +90,7 @@
       </section>
 
       <section class="game-screen" id="game-screen" hidden>
-        <div class="hud"><div><span>ROUND</span><strong id="round-number">01 / 60</strong></div><div class="hud-balance"><span>FICTIONAL BALANCE</span><strong id="balance-value">$0</strong></div><button id="pause-button" type="button">Ⅱ</button></div>
+        <div class="hud"><div><span>ROUND</span><strong id="round-number">01 / 60</strong></div><div class="hud-balance"><span>FICTIONAL BALANCE</span><strong id="balance-value">$0</strong></div><div class="hud-sync sync-status" data-sync-status>Secure sync ready</div><button id="pause-button" type="button">Ⅱ</button></div>
         <div class="progress"><i id="progress-fill"></i></div>
         <div class="game-layout">
           <div class="slot-machine" id="slot-machine">
@@ -119,21 +119,21 @@
       </section>
 
       <section class="screen" id="break-screen" hidden><div class="panel compact"><p class="step">QUICK RESET</p><h2>Forty predictions recorded.</h2><p id="break-text">Take one breath. Your sealed sequence is waiting.</p><button class="cta wide" id="continue-button" type="button">KEEP PLAYING <b>→</b></button></div></section>
-      <section class="screen" id="pause-screen" hidden><div class="panel compact"><p class="step">SESSION PAUSED</p><h2>Your future is still sealed.</h2><p>The session is stored on this device. Resume now, download a blinded partial record, or return later.</p><div class="button-stack"><button class="cta" id="resume-button" type="button">RESUME</button><button class="secondary" id="partial-button" type="button">DOWNLOAD PARTIAL JSON</button><button class="danger" id="quit-button" type="button">END AND KEEP LOCALLY</button></div></div></section>
+      <section class="screen" id="pause-screen" hidden><div class="panel compact"><p class="step">SESSION PAUSED</p><h2>Your future is still sealed.</h2><p>Your progress is kept locally and synchronized automatically when the connection is available. Resume now, download an optional blinded record, or return later.</p><div class="button-stack"><button class="cta" id="resume-button" type="button">RESUME</button><button class="secondary" id="partial-button" type="button">DOWNLOAD PARTIAL JSON</button><button class="danger" id="quit-button" type="button">SAVE AND LEAVE</button></div></div></section>
 
       <section class="screen" id="results-screen" hidden>
         <div class="panel results-panel"><p class="step">SESSION COMPLETE · DEBRIEF</p><h2 id="result-heading">Future revealed.</h2>
           <div class="final-balance"><span>FICTIONAL MIND COINS</span><strong id="final-balance">$0</strong></div>
           <div class="stats"><article><span>Reel matches</span><strong id="match-result">—</strong><small>Chance expectation: 30 / 180</small></article><article><span>Exact jackpots</span><strong id="jackpot-result">—</strong><small>Chance per round: 1 / 216</small></article><article><span>Mean confidence</span><strong id="confidence-result">—</strong><small>Descriptive only</small></article><article><span>Deck verified</span><strong id="verified-result">—</strong><small>SHA-256 integrity</small></article></div>
-          <div class="download-card"><div><h3>Download your pseudonymous research file?</h3><p>It contains the research nickname and its stable hash, questionnaire responses, predictions, targets, timing, rewards and integrity data. A completed copy is also archived locally in this browser.</p></div><button class="cta" id="download-button" type="button">DOWNLOAD JSON ↓</button><button class="secondary" id="not-now-button" type="button">NOT NOW</button></div>
+          <div class="download-card"><div><h3>Optional personal copy</h3><p>Your results are submitted automatically. If you wish, you can also download a pseudonymous JSON copy containing questionnaire responses, predictions, targets, timing, rewards and integrity data.</p><span class="sync-status result-sync" data-sync-status>Confirming secure save…</span></div><button class="cta" id="download-button" type="button">DOWNLOAD JSON ↓</button><button class="secondary" id="not-now-button" type="button">NO DOWNLOAD</button></div>
           <details><summary>Scientific debrief</summary><div><p>The prespecified primary descriptive score is the total number of position-specific matches among 180 predictions. Under independent random targets, each prediction has probability 1/6. Exact three-symbol jackpots and confidence calibration are secondary outcomes.</p><p>Immediate feedback and arcade rewards may affect later choices and engagement; these sequential effects are recorded and should be analysed separately. This pilot is not evidence of individual precognition and is not a substitute for ethics approval, preregistration or independent replication.</p></div></details>
           <div class="result-actions"><button class="cta" id="new-session-button" type="button">NEW PARTICIPANT</button><a class="secondary anchor-button" href="../../#videogames">BACK TO VIDEOGAMES</a></div>
         </div>
       </section>
     </main>
-    <footer><span>MIND JACKPOT · PILOT 1.0</span><span>NO REAL MONEY · NO BETTING · LOCAL RESEARCH DATA</span></footer>
+    <footer><span>MIND JACKPOT · PILOT 1.1</span><span>NO REAL MONEY · NO BETTING · PSEUDONYMOUS RESEARCH DATA</span></footer>
   </div>
   <noscript>This research arcade requires JavaScript.</noscript>
-  <script src="jackpot.js?v=20260809-nickname1" defer></script>
+  <script src="jackpot.js?v=20260810-cloudsync1" defer></script>
 </body>
 </html>
