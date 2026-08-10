@@ -68,6 +68,9 @@
               <label><span>Recreational or psychoactive substances in the last 12 hours *</span><select name="psychoactive_12h" required><option value="">Select…</option><option>No</option><option>Yes</option><option>Prefer not to say</option></select></label>
               <label><span>Medication that may affect attention today *</span><select name="attention_medication" required><option value="">Select…</option><option>No</option><option>Yes</option><option>Unsure</option><option>Prefer not to say</option></select></label>
               <label><span>Caffeine in the last 4 hours *</span><select name="caffeine_4h" required><option value="">Select…</option><option>None</option><option>1 serving</option><option>2 servings</option><option>3 or more servings</option><option>Prefer not to say</option></select></label>
+              <label><span>Who is physically near you while you play? *</span><select name="physical_presence" required><option value="">Select…</option><option>Completely alone</option><option>One person nearby</option><option>Two or more people nearby</option><option>Prefer not to say</option></select><small>You must make every prediction yourself; this question only records social presence.</small></label>
+              <label><span>Are nearby people watching the game? *</span><select name="observer_attention" required><option value="">Select…</option><option>No one is nearby</option><option>Nearby, but not watching</option><option>Watching occasionally</option><option>Watching most or all rounds</option><option>Prefer not to say</option></select></label>
+              <label><span>Relationship to the nearest observer *</span><select name="observer_relationship" required><option value="">Select…</option><option>Not applicable — I am alone</option><option>Romantic partner / spouse</option><option>Family member</option><option>Friend</option><option>Colleague / acquaintance</option><option>Other or mixed group</option><option>Prefer not to say</option></select></label>
               <label><span>How often do you play videogames? *</span><select name="gaming" required><option value="">Select…</option><option>Never</option><option>Monthly or less</option><option>Weekly</option><option>Most days</option><option>Daily</option></select></label>
               <label><span>How often do you gamble with real money? *</span><select name="gambling" required><option value="">Select…</option><option>Never</option><option>Less than monthly</option><option>Monthly</option><option>Weekly or more</option><option>Prefer not to say</option></select></label>
               <label><span>Completed this game before? *</span><select name="prior_participation" required><option value="">Select…</option><option>No</option><option>Yes</option><option>Not sure</option></select></label>
@@ -77,6 +80,7 @@
               <label><input name="understood" type="checkbox" required><span>I understand that all winnings are fictional, have no monetary value, and that no purchase or wager is possible.</span></label>
               <label><input name="consent" type="checkbox" required><span>I consent to this pseudonymous pilot and understand that my research nickname links repeated sessions. I can stop at any time.</span></label>
               <label><input name="storage" type="checkbox" required><span>I understand that my pseudonymous research data will be sent automatically to the study database hosted by Supabase in the EU, while a recovery copy remains on this device.</span></label>
+              <label><input name="solo_decisions" type="checkbox" required><span>I confirm that I will make every prediction independently. People may be physically nearby or observe, but they must not choose symbols, suggest answers or play with me.</span></label>
             </fieldset>
             <p class="error" id="form-error" hidden>Please complete every required field and consent item.</p>
             <div class="form-actions"><button class="secondary" id="consent-back" type="button">← BACK</button><button class="cta" type="submit">SEAL MY FUTURE <b>→</b></button></div>
@@ -141,6 +145,6 @@
     <footer><span>MIND JACKPOT · PILOT 1.2</span><span>NO REAL MONEY · NO BETTING · PSEUDONYMOUS RESEARCH DATA</span></footer>
   </div>
   <noscript>This research arcade requires JavaScript.</noscript>
-  <script src="jackpot.js?v=20260810-engagement1" defer></script>
+  <script src="jackpot.js?v=20260810-socialpresence1" defer></script>
 </body>
 </html>
