@@ -90,7 +90,7 @@
   }
   function lockControls(value){Array.prototype.forEach.call($("symbol-grid").querySelectorAll("button"),function(b){b.disabled=value;});locked=value;updatePickControls();}
 
-  function formData(form){var o={};new FormData(form).forEach(function(v,k){o[k]=v;});["adult","understood","consent","storage"].forEach(function(k){o[k]=form.elements[k].checked;});return o;}
+  function formData(form){var o={};new FormData(form).forEach(function(v,k){o[k]=v;});["adult","understood","consent","storage","solo_decisions"].forEach(function(k){o[k]=form.elements[k].checked;});return o;}
   function createSession(participant){
     var nickname=String(participant.research_nickname||"").trim(),normalized=nickname.toLowerCase();participant.research_nickname=nickname;
     return sha256("mind-jackpot-longitudinal-v1|"+normalized).then(function(nicknameHash){
