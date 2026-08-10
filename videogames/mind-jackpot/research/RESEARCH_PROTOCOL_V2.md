@@ -100,6 +100,14 @@ For eligible primary sessions the automated snapshot tabulates age band, gender,
 
 Candidate summaries use only a generated participant code and those categories. They exclude the local nickname, session secret and unrevealed deck. Small cells must be suppressed in emailed prose. Associations with alcohol, substances, company or any other context are exploratory, non-causal and should not be tested or narrated when group sizes are too small. A confirmatory moderator analysis requires a separate preregistration and appropriate participant-level modelling.
 
+## Exploratory common-pattern analysis
+
+The recurring report also describes common patterns in four explicitly labelled populations: all eligible participants; participants prospectively above chance under the confirmation rule; exploratory candidates who are not confirmed; and participants with no statistical evidence above chance. The last label must never be shortened to “without premonition,” because a non-significant result does not establish absence.
+
+Context patterns use one record per pseudonymous participant and summarize the most common combinations of physical company, observer attention, alcohol, psychoactive substances, attention-affecting medication, caffeine, sleep, alertness and prior belief. Behavioural patterns use eligible primary sessions and summarize symbol preferences, common three-symbol predictions, all-same/pair/all-different motifs, same-reel repetition after a match or non-match, early-versus-late match rates and median response time.
+
+No group-level pattern is narrated with fewer than five participants. Comparisons are descriptive and exploratory: the report adds no post-hoc p-values, does not treat a selected pattern as a mechanism, and states that searching many patterns raises the false-positive risk. Any candidate pattern intended as evidence requires a separate preregistration and independent future data.
+
 ## Randomisation quality control
 
 The report counts target and prediction indices. These diagnostics can find implementation errors, missing symbols or gross imbalance. They cannot prove randomness. The reproducible evidence for reviewers is the combination of:
@@ -135,4 +143,3 @@ Run `node research/verify-precommitment.mjs` from the game directory to verify t
 ```bash
 node research/verify-precommitment.mjs MIND_JACKPOT_MJ2-XXXXXXXXXXXXXXX_complete.json
 ```
-
