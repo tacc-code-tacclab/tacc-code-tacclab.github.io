@@ -1915,3 +1915,172 @@ h3 {
 .jackpot-preview .game-route i::after {
   background: #ffd347;
 }
+
+/* ---------------------------------------------------------------- 05 · THE CRYSTAL SHIP */
+
+.crystal-showcase {
+  border-color: #b0894a;
+  background: #060d12;
+}
+
+.crystal-showcase .game-copy {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(176, 137, 74, 0.12), transparent 38%),
+    radial-gradient(circle at 90% 90%, rgba(60, 108, 130, 0.14), transparent 40%),
+    #060d12;
+}
+
+.game-copy h3.crystal-title {
+  width: 100%;
+  max-width: 100%;
+  color: #e9dfc4;
+  font-size: clamp(2.4rem, 4.7vw, 4.4rem);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+}
+
+.crystal-title span {
+  display: block;
+  color: #c9a15a;
+  text-shadow: 0 0 34px rgba(201, 161, 90, 0.3);
+}
+
+.crystal-title small {
+  display: block;
+  margin-top: 1.1rem;
+  color: #7fa2ae;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.16em;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+}
+
+.game-showcase .crystal-button {
+  border-color: #c9a15a;
+  background: linear-gradient(135deg, #c9a15a, #8a6a33);
+  color: #0a1015;
+}
+
+.game-showcase .crystal-button:hover {
+  background: #7fa2ae;
+  color: #060d12;
+}
+
+/* The preview is a porthole with the North Atlantic behind it — the motif the
+   game is built on, and the creature's own eyes. */
+.crystal-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(60, 108, 130, 0.28), transparent 55%),
+    linear-gradient(#050a10, #02060a);
+  color: #e9dfc4;
+}
+
+.crystal-preview::before {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(233, 223, 196, 0.05) 0 1px,
+      transparent 1px 3px
+    );
+  opacity: 0.5;
+}
+
+.crystal-preview .game-preview-label {
+  color: #9fb4bc;
+}
+
+.crystal-porthole {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: clamp(9rem, 17vw, 13rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 0.55rem solid #b0894a;
+  background: linear-gradient(#0b1c28 0 58%, #08131b 58% 100%);
+  box-shadow:
+    0 0 0 0.18rem #7d5f31,
+    0 1.4rem 3rem rgba(0, 0, 0, 0.6),
+    inset 0 0 2.4rem rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+}
+
+.crystal-sea {
+  position: absolute;
+  inset: 58% 0 0 0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(150, 186, 196, 0.16) 0 1px,
+      transparent 1px 7px
+    ),
+    #0a1a24;
+}
+
+.crystal-horizon {
+  position: absolute;
+  top: 58%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(196, 216, 224, 0.75), transparent);
+}
+
+.crystal-glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(150deg, rgba(233, 240, 244, 0.22) 0 22%, transparent 46%);
+}
+
+.crystal-dogs {
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: 50%;
+}
+
+.crystal-dogs i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.9rem;
+  margin: -0.45rem 0 0 -0.25rem;
+  border-radius: 0.12rem;
+  background: #c9a15a;
+  transform-origin: 50% 50%;
+}
+
+.crystal-dogs i:nth-child(1) { transform: rotate(0deg) translateY(-5.1rem); }
+.crystal-dogs i:nth-child(2) { transform: rotate(60deg) translateY(-5.1rem); }
+.crystal-dogs i:nth-child(3) { transform: rotate(120deg) translateY(-5.1rem); }
+.crystal-dogs i:nth-child(4) { transform: rotate(180deg) translateY(-5.1rem); }
+.crystal-dogs i:nth-child(5) { transform: rotate(240deg) translateY(-5.1rem); }
+.crystal-dogs i:nth-child(6) { transform: rotate(300deg) translateY(-5.1rem); }
+
+.crystal-preview:hover .crystal-porthole {
+  transform: scale(1.04);
+  box-shadow:
+    0 0 0 0.18rem #a37f42,
+    0 1.6rem 3.4rem rgba(0, 0, 0, 0.7),
+    inset 0 0 2.4rem rgba(0, 0, 0, 0.6);
+}
+
+.crystal-preview .game-route {
+  color: #9fb4bc;
+}
+
+.crystal-preview .game-route i::after {
+  background: #b0894a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crystal-preview:hover .crystal-porthole {
+    transform: none;
+  }
+}

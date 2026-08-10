@@ -1,0 +1,806 @@
+/*
+ * THE CRYSTAL SHIP — interface.
+ *
+ * The HUD is HTML, not texture: it stays sharp on a phone, it reads in both
+ * languages without re-baking anything, and it respects safe areas so nothing
+ * sits under a notch or a home indicator.
+ *
+ * Layout rule that matters: the objective text lives top-left, the touch
+ * controls live along the bottom and the right edge, and the two never share
+ * space at any viewport size.
+ */
+
+:root {
+  --ink: #e6dcc2;
+  --ink-dim: #a89c82;
+  --brass: #c39a52;
+  --steel: #7d8b8e;
+  --deep: #070f13;
+  --panel: rgba(9, 18, 22, 0.88);
+  --panel-edge: rgba(196, 166, 106, 0.32);
+  --danger: #b8402c;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --ui-font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono-font: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--deep);
+  color: var(--ink);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body.touch-input {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#root,
+.shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.canvas-host {
+  position: absolute;
+  inset: 0;
+  transition: filter 0.2s linear;
+}
+
+.canvas-host canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+}
+
+/* ---------------------------------------------------------------- overlays */
+
+.film-grade,
+.vignette,
+.damage-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* A restrained VHS pass: fine scanlines and a hint of chroma drift. Strong
+   enough to date the image, weak enough to keep a doorway legible. */
+.film-grade {
+  background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.028) 0px,
+      rgba(255, 255, 255, 0.028) 1px,
+      rgba(0, 0, 0, 0.045) 2px,
+      rgba(0, 0, 0, 0.045) 3px
+    ),
+    linear-gradient(90deg, rgba(255, 90, 70, 0.028), transparent 12%, transparent 88%, rgba(70, 140, 255, 0.028));
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+
+.vignette {
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(3, 8, 10, 0.62) 100%);
+}
+
+.damage-wash {
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(150, 24, 12, 0.75) 100%);
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
+}
+
+/* -------------------------------------------------------------------- HUD */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.shell.in-game .hud {
+  opacity: 1;
+}
+
+.hud-eyebrow {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.hud-objective {
+  position: absolute;
+  top: calc(var(--safe-top) + 14px);
+  left: calc(var(--safe-left) + 16px);
+  max-width: min(42ch, 46vw);
+  padding: 10px 14px;
+  background: var(--panel);
+  border-left: 2px solid var(--brass);
+  backdrop-filter: blur(3px);
+}
+
+.hud-objective-text {
+  margin-top: 4px;
+  font-size: 0.94rem;
+  line-height: 1.35;
+  color: var(--ink);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-deck {
+  position: absolute;
+  top: calc(var(--safe-top) + 14px);
+  right: calc(var(--safe-right) + 16px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-right: 2px solid var(--brass);
+}
+
+.hud-deck-name {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.hud-compass {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 50%;
+}
+
+.hud-compass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+.hud-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 13px;
+  margin: -13px 0 0 -1px;
+  background: linear-gradient(to top, transparent, var(--brass));
+  transform-origin: 50% 100%;
+}
+
+.hud-compass[data-level="up"] {
+  border-color: rgba(126, 200, 150, 0.6);
+}
+
+.hud-compass[data-level="down"] {
+  border-color: rgba(200, 140, 110, 0.6);
+}
+
+.hud-compass[data-level="up"]::before,
+.hud-compass[data-level="down"]::before {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+}
+
+.hud-compass[data-level="up"]::before {
+  content: "▲";
+}
+
+.hud-compass[data-level="down"]::before {
+  content: "▼";
+}
+
+.hud-breath {
+  position: absolute;
+  left: calc(var(--safe-left) + 16px);
+  bottom: calc(var(--safe-bottom) + 16px);
+  width: 150px;
+}
+
+.hud-breath-track {
+  margin-top: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.hud-breath-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass), #e0cf9a);
+  transform-origin: left center;
+  transition: transform 0.12s linear;
+}
+
+.reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: rgba(230, 220, 194, 0.5);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+.prompt {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.prompt.visible {
+  opacity: 1;
+}
+
+.subtitle {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 92px);
+  transform: translateX(-50%);
+  width: min(70ch, 86vw);
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink);
+  background: rgba(5, 10, 12, 0.74);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.subtitle.visible {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------- touch controls */
+
+.touch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+}
+
+body.touch-input .shell.in-game .touch {
+  display: block;
+}
+
+.touch-look {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 58%;
+  pointer-events: auto;
+}
+
+.touch-stick {
+  position: absolute;
+  left: calc(var(--safe-left) + 22px);
+  bottom: calc(var(--safe-bottom) + 22px);
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 1px solid rgba(196, 166, 106, 0.32);
+  background: radial-gradient(circle, rgba(10, 20, 24, 0.55), rgba(10, 20, 24, 0.2));
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.touch-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: rgba(196, 166, 106, 0.34);
+  border: 1px solid rgba(230, 220, 194, 0.4);
+  transition: transform 0.05s linear;
+}
+
+.touch-buttons {
+  position: absolute;
+  right: calc(var(--safe-right) + 20px);
+  bottom: calc(var(--safe-bottom) + 22px);
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.touch-button {
+  pointer-events: auto;
+  touch-action: none;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 1px solid rgba(196, 166, 106, 0.4);
+  background: rgba(9, 18, 22, 0.72);
+  color: var(--ink);
+  font-family: var(--ui-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: grid;
+  place-items: center;
+}
+
+.touch-button.primary {
+  width: 96px;
+  height: 96px;
+  border-color: var(--brass);
+  background: rgba(28, 22, 12, 0.8);
+  font-size: 0.86rem;
+}
+
+.touch-button.pressed {
+  background: rgba(196, 166, 106, 0.32);
+}
+
+.touch-button.latched {
+  border-color: #e0cf9a;
+  background: rgba(196, 166, 106, 0.26);
+}
+
+.touch-button.corner {
+  position: absolute;
+  top: calc(var(--safe-top) + 14px);
+  right: calc(var(--safe-right) + 16px);
+  width: 46px;
+  height: 46px;
+  font-size: 0.7rem;
+}
+
+/* On a phone in portrait the objective card would collide with nothing, but
+   the subtitle would sit on the buttons; lift it clear. */
+@media (max-width: 820px) {
+  .hud-objective {
+    max-width: 60vw;
+    font-size: 0.9rem;
+  }
+
+  .subtitle {
+    bottom: calc(var(--safe-bottom) + 172px);
+    font-size: 0.92rem;
+  }
+
+  .hud-breath {
+    left: calc(var(--safe-left) + 22px);
+    bottom: calc(var(--safe-bottom) + 166px);
+    width: 120px;
+  }
+
+  .prompt {
+    top: 62%;
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
+  .touch-stick {
+    width: 116px;
+    height: 116px;
+  }
+
+  .subtitle {
+    width: 92vw;
+  }
+}
+
+/* ---------------------------------------------------------------- overlays */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 16px)
+    calc(var(--safe-left) + 16px);
+  background: linear-gradient(160deg, rgba(4, 9, 12, 0.94), rgba(8, 16, 20, 0.98));
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.title-art {
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/the-passenger-cruise.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.16;
+  filter: grayscale(0.5) contrast(1.15) brightness(0.7);
+}
+
+.title-panel,
+.modal-panel {
+  position: relative;
+  width: min(62ch, 92vw);
+  padding: 26px 28px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.title-heading {
+  margin: 8px 0 2px;
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.title-heading em {
+  display: block;
+  font-style: normal;
+  color: var(--brass);
+}
+
+.title-subtitle {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.title-story {
+  margin: 0 0 18px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #cdc3a9;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 18px;
+  margin-bottom: 20px;
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+
+.controls-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.controls-row b {
+  min-width: 8ch;
+  font-family: var(--mono-font);
+  font-size: 0.76rem;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+.primary-button,
+.ghost-button {
+  font-family: var(--ui-font);
+  font-size: 0.86rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 13px 22px;
+  border: 1px solid var(--brass);
+  background: linear-gradient(180deg, rgba(196, 166, 106, 0.22), rgba(196, 166, 106, 0.08));
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 46px;
+}
+
+.ghost-button {
+  background: transparent;
+  border-color: rgba(196, 166, 106, 0.4);
+  color: var(--ink-dim);
+}
+
+.primary-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.primary-button:hover:not(:disabled),
+.ghost-button:hover {
+  background: rgba(196, 166, 106, 0.28);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 0.76rem;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+.modal-panel h2 {
+  margin: 6px 0 10px;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.modal-panel p {
+  margin: 0 0 6px;
+  line-height: 1.55;
+  color: #cdc3a9;
+}
+
+.overlay.death .modal-panel {
+  border-color: rgba(184, 64, 44, 0.5);
+}
+
+/* -------------------------------------------------------------- settings */
+
+.settings-details {
+  margin-top: 18px;
+  border-top: 1px solid rgba(196, 166, 106, 0.2);
+  padding-top: 12px;
+}
+
+.settings-details summary {
+  cursor: pointer;
+  font-size: 0.76rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.settings {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.field,
+.language-switch {
+  display: grid;
+  grid-template-columns: 12ch 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.language-switch {
+  grid-template-columns: 12ch 1fr;
+}
+
+.field-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.field-range {
+  width: 100%;
+  accent-color: var(--brass);
+  height: 26px;
+}
+
+.field-value {
+  font-family: var(--mono-font);
+  font-size: 0.74rem;
+  color: var(--ink-dim);
+  min-width: 4ch;
+  text-align: right;
+}
+
+.field-toggle {
+  font-family: var(--ui-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  min-height: 38px;
+  border: 1px solid rgba(196, 166, 106, 0.4);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  grid-column: 2 / span 2;
+  justify-self: start;
+}
+
+.field-toggle.on {
+  color: var(--ink);
+  border-color: var(--brass);
+  background: rgba(196, 166, 106, 0.18);
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segment {
+  font-family: var(--ui-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 8px 14px;
+  min-height: 38px;
+  border: 1px solid rgba(196, 166, 106, 0.3);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.segment.active {
+  color: var(--ink);
+  border-color: var(--brass);
+  background: rgba(196, 166, 106, 0.2);
+}
+
+@media (max-width: 560px) {
+  .field,
+  .language-switch {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .field-value {
+    text-align: left;
+  }
+
+  .field-toggle {
+    grid-column: 1;
+  }
+
+  .title-panel,
+  .modal-panel {
+    padding: 20px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-grade {
+    display: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------- short viewports (phones)
+
+   A phone held in landscape gives about 390 px of height. Without this the
+   title panel overflows and the start button ends up below the fold, so the
+   game cannot be started without scrolling. The panel becomes a flex column:
+   the story and the control list scroll inside it, and the button stays put. */
+
+@media (max-height: 560px) {
+  .overlay {
+    align-items: stretch;
+    padding: calc(var(--safe-top) + 8px) calc(var(--safe-right) + 12px) calc(var(--safe-bottom) + 8px)
+      calc(var(--safe-left) + 12px);
+  }
+
+  .title-panel,
+  .modal-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    padding: 14px 18px;
+  }
+
+  .title-heading {
+    margin: 4px 0 0;
+    font-size: clamp(1.3rem, 5.5vw, 2.1rem);
+  }
+
+  .title-subtitle {
+    margin-bottom: 8px;
+    font-size: 0.7rem;
+  }
+
+  .title-story,
+  .modal-panel p {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-bottom: 10px;
+    overflow-y: auto;
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
+  .controls-grid {
+    margin-bottom: 12px;
+    font-size: 0.74rem;
+    overflow-y: auto;
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
+  .settings-details {
+    overflow-y: auto;
+    flex: 0 1 auto;
+    min-height: 0;
+    margin-top: 10px;
+  }
+
+  .primary-button,
+  .button-row {
+    flex: 0 0 auto;
+  }
+
+  .note {
+    margin-top: 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* On a phone held in landscape the viewport is wide but only ~390 px tall, so
+   the width-based rules above do not fire. Lift the subtitle and the breath
+   meter clear of the touch buttons on height instead. */
+
+@media (max-height: 560px) {
+  body.touch-input .subtitle {
+    bottom: calc(var(--safe-bottom) + 128px);
+    width: min(60ch, 66vw);
+    font-size: 0.86rem;
+    padding: 8px 12px;
+  }
+
+  body.touch-input .hud-breath {
+    bottom: calc(var(--safe-bottom) + 160px);
+    width: 110px;
+  }
+
+  body.touch-input .prompt {
+    top: 50%;
+  }
+}

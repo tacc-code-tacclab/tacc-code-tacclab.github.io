@@ -1,0 +1,14 @@
+{
+  "name": "The Crystal Ship",
+  "short_name": "Crystal Ship",
+  "description": "Chapter I: Black Tide — a first-person horror game aboard the ocean liner Orpheus.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070f13",
+  "theme_color": "#070f13",
+  "icons": [
+    { "src": "./assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
