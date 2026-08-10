@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">Oracle</title>
+  <path d="M7 50s15-28 43-28 43 28 43 28-15 28-43 28S7 50 7 50Z" fill="#ff63c9" stroke="#ffd9f3" stroke-width="3"/>
+  <circle cx="50" cy="50" r="19" fill="#422071"/>
+  <circle cx="50" cy="50" r="9" fill="#48e7ff"/>
+  <circle cx="54" cy="45" r="3" fill="#fff"/>
+</svg>

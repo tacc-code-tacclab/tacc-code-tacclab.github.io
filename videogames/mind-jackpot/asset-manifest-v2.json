@@ -1,0 +1,48 @@
+{
+  "schema": "mind-jackpot-asset-manifest-2.0",
+  "algorithm": "SHA-256",
+  "symbols": [
+    {
+      "index": 0,
+      "id": "nova",
+      "name": "Nova",
+      "path": "symbols/nova.svg",
+      "sha256": "5b03e10a4627e28aae60b2fbd76b98348626d75d311d55558a43797eef654b54"
+    },
+    {
+      "index": 1,
+      "id": "gem",
+      "name": "Gem",
+      "path": "symbols/gem.svg",
+      "sha256": "c0fb6daaa050988d0d5739fea3eab34f92597e77b09471a7bbbe430634d6887b"
+    },
+    {
+      "index": 2,
+      "id": "moon",
+      "name": "Moon",
+      "path": "symbols/moon.svg",
+      "sha256": "d35338843a720a8914d6473fe1fb9f964e2276523371c6002ebdc0f346cbde6b"
+    },
+    {
+      "index": 3,
+      "id": "flame",
+      "name": "Flame",
+      "path": "symbols/flame.svg",
+      "sha256": "674ffc852349c974447e2551dbf3d3cb0222072b6857bb10a14b848a0f97b89d"
+    },
+    {
+      "index": 4,
+      "id": "oracle",
+      "name": "Oracle",
+      "path": "symbols/oracle.svg",
+      "sha256": "2764ba5eca90cb9228d868392b6dd5a7982690f3bc55fba2158b7bf2c13cf2e4"
+    },
+    {
+      "index": 5,
+      "id": "crown",
+      "name": "Crown",
+      "path": "symbols/crown.svg",
+      "sha256": "c3e7e0ccc6944164657548e706384cbc9f4736685a12f9fe34d567b926f78237"
+    }
+  ]
+}

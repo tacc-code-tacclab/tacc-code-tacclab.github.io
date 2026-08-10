@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">Gem</title>
+  <path d="M18 30 35 11h30l17 19-32 58Z" fill="#54e8ff" stroke="#d9fbff" stroke-width="3"/>
+  <path d="m18 30 32 13 32-13M35 11l15 32 15-32M50 43v45" fill="none" stroke="#246ea7" stroke-width="3"/>
+</svg>
