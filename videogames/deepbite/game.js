@@ -28,6 +28,7 @@
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function random(min, max) { return min + Math.random() * (max - min); }
   function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+  function safeTopPixels() { return isMobile ? clamp(vh * .13, 72, 110) : 72; }
   function ellipseOverlap(a, b, aRadiusX, aRadiusY, bRadiusX, bRadiusY) {
     const dx = (a.x - b.x) / Math.max(1, aRadiusX + bRadiusX);
     const dy = (a.y - b.y) / Math.max(1, aRadiusY + bRadiusY);
@@ -79,7 +80,8 @@
     else kind = roll < .64 ? "small" : roll < .77 ? "piranha" : roll < .87 ? "shark" : roll < .94 ? "lionfish" : "jelly";
     const size = kind === "small" ? random(12, 23) : kind === "piranha" ? random(30, 43) : kind === "shark" ? random(52, 72) : kind === "lionfish" ? random(36, 49) : random(27, 40);
     const x = initial ? state.camera.x + random(vw * .35, vw * 1.7) : state.camera.x + vw * .62 + random(100, 360);
-    const y = random(kind === "jelly" ? 0 : -vh * .36, vh * .34);
+    const safeTopY = -vh / 2 + safeTopPixels() + size * .55;
+    const y = random(kind === "jelly" ? Math.max(0, safeTopY) : safeTopY, vh * .34);
     return { kind, x, y, size, heading: Math.PI, speed: kind === "small" ? random(72, 112) : kind === "shark" ? random(115, 155) : random(92, 136), phase: random(0, TAU), alive: true };
   }
 
@@ -153,7 +155,7 @@
     player.x += (scrollSpeed + player.speed) * dt;
     player.y += move.y * 245 * dt;
     player.x = clamp(player.x, state.camera.x - vw * .36, state.camera.x + vw * .22);
-    player.y = clamp(player.y, -vh * .4, vh * .33);
+    player.y = clamp(player.y, -vh / 2 + safeTopPixels() + player.size * .55, vh * .33);
     player.angle += (move.y * .2 - player.angle) * Math.min(1, dt * 10);
     player.pulse = Math.max(0, player.pulse - dt);
 
