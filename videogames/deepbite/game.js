@@ -354,7 +354,14 @@
   addEventListener("resize", resize, { passive: true });
   addEventListener("keydown", (e) => { if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "a", "s", "d"].includes(e.key)) { e.preventDefault(); input.keys.add(e.key); } if (e.key === "Escape" && state.running) state.paused ? resumeGame() : pauseGame(); });
   addEventListener("keyup", (e) => input.keys.delete(e.key));
-  addEventListener("blur", () => { input.keys.clear(); if (state.running && !state.paused) pauseGame(); });
+  addEventListener("blur", () => {
+    input.keys.clear();
+    // Mobile Safari may emit blur while a touch control is gaining focus.
+    if (!isMobile && state.running && !state.paused) pauseGame();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state.running && !state.paused) pauseGame();
+  });
   ui.joystick.addEventListener("pointerdown", (e) => { input.pointer = e.pointerId; ui.joystick.setPointerCapture(e.pointerId); joystickMove(e); });
   ui.joystick.addEventListener("pointermove", (e) => { if (input.pointer === e.pointerId) joystickMove(e); });
   ui.joystick.addEventListener("pointerup", releaseJoystick); ui.joystick.addEventListener("pointercancel", releaseJoystick);
