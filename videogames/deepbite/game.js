@@ -28,6 +28,11 @@
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function random(min, max) { return min + Math.random() * (max - min); }
   function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+  function ellipseOverlap(a, b, aRadiusX, aRadiusY, bRadiusX, bRadiusY) {
+    const dx = (a.x - b.x) / Math.max(1, aRadiusX + bRadiusX);
+    const dy = (a.y - b.y) / Math.max(1, aRadiusY + bRadiusY);
+    return dx * dx + dy * dy < 1;
+  }
   function hash(x, y, salt = 0) {
     let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(salt | 0, 1442695041);
     h = Math.imul(h ^ h >>> 13, 1274126177);
@@ -162,7 +167,7 @@
         fish.y += Math.sin(fish.phase * .55) * 5 * dt;
       }
 
-      if (distance(fish, player) < player.size * .55 + fish.size * .48) {
+      if (ellipseOverlap(player, fish, player.size * .58, player.size * .3, fish.size * .57, fish.size * .28)) {
         if (fish.kind === "small") eat(fish);
         else { end(fish.kind); return; }
       }
@@ -170,9 +175,15 @@
 
     for (const object of state.obstacles) {
       if (!object.alive) continue;
-      if (distance(object, player) < player.size * .52 + object.size * .38) {
-        if (object.kind === "treasure") collectTreasure(object);
-        else { end(object.kind); return; }
+      const isTreasure = object.kind === "treasure";
+      const touching = ellipseOverlap(
+        player, object,
+        player.size * .55, player.size * .28,
+        object.size * (isTreasure ? .42 : .34), object.size * (isTreasure ? .3 : .17),
+      );
+      if (touching) {
+        if (isTreasure) collectTreasure(object);
+        else if (player.y > vh * .14) { end(object.kind); return; }
       }
     }
 
@@ -224,6 +235,22 @@
     return true;
   }
 
+  function drawMovingFins(length, phase, flip, color) {
+    const beat = Math.sin(phase);
+    ctx.save();
+    if (flip) ctx.scale(-1, 1);
+    ctx.globalAlpha = .72;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-length * .39, -length * .12);
+    ctx.quadraticCurveTo(-length * .63, -length * (.34 + beat * .08), -length * .7, beat * length * .12);
+    ctx.quadraticCurveTo(-length * .63, length * (.34 - beat * .08), -length * .39, length * .12);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = .5;
+    ctx.beginPath(); ctx.ellipse(-length * .03, length * .2, length * .22, length * .07, beat * .3, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+
   function drawOcean() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#075a91"; ctx.fillRect(0, 0, vw, vh);
@@ -264,7 +291,13 @@
     else if (fish.kind === "lionfish") { index = 7; ratio = 1.45; }
     else { index = 3; ratio = 1.45; }
     if (fish.kind !== "jelly") ctx.rotate(flip ? -fish.heading + Math.PI : fish.heading);
-    const height = fish.size * 1.6; atlasCell(index, 0, 0, height * ratio, height, flip);
+    const height = fish.size * 1.6;
+    if (fish.kind !== "jelly") {
+      const finColor = fish.kind === "shark" ? "#167bc0" : fish.kind === "lionfish" ? "#f0422e" : fish.kind === "piranha" ? "#9a35c8" : "#f6cf31";
+      drawMovingFins(height, fish.phase * 1.8, flip, finColor);
+      ctx.scale(1, 1 + Math.sin(fish.phase * 1.8) * .025);
+    }
+    atlasCell(index, 0, 0, height * ratio, height, flip);
     ctx.restore();
   }
 
@@ -275,7 +308,11 @@
     ctx.fillStyle = "rgba(0,8,28,.34)"; ctx.beginPath(); ctx.ellipse(5, player.size * .48, player.size * 1.05, player.size * .35, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = "rgba(118,249,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, player.size * .5, player.size * 1.12, player.size * .42, 0, 0, TAU); ctx.stroke();
     const index = 2;
-    const height = player.size * 2.05; ctx.filter = "drop-shadow(0 8px 6px rgba(0,16,40,.48)) drop-shadow(0 0 7px rgba(68,243,255,.5))"; atlasCell(index, 0, 0, height * 1.43, height, flip); ctx.filter = "none";
+    const height = player.size * 2.05;
+    const swimPhase = state.time * (8 + Math.abs(player.speed) * .018);
+    drawMovingFins(height, swimPhase, flip, "#ff7d16");
+    ctx.scale(1, 1 + Math.sin(swimPhase) * .027);
+    ctx.filter = "drop-shadow(0 8px 6px rgba(0,16,40,.48)) drop-shadow(0 0 7px rgba(68,243,255,.5))"; atlasCell(index, 0, 0, height * 1.43, height, flip); ctx.filter = "none";
     ctx.restore();
   }
 
