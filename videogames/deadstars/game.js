@@ -185,6 +185,21 @@
   let performanceMode = "desktop";
   let record = loadRecord();
 
+  function cameraZoom() { return performanceMode === "mobile" ? .76 : 1; }
+
+  function clearTouchInput() {
+    input.keys.clear();
+    touchDirections.clear();
+    input.moveX = 0;
+    input.moveY = 0;
+    input.joystickActive = false;
+    input.mobileFire = false;
+    input.fireAim = null;
+    input.pointerAim = null;
+    if (moveKnob) moveKnob.style.transform = "translate(0, 0)";
+    document.querySelectorAll("[data-direction]").forEach((button) => button.classList.remove("pressed"));
+  }
+
   function loadRecord() {
     try {
       return JSON.parse(localStorage.getItem("deadstars-record")) || { wins: 0, kills: 0 };
@@ -251,14 +266,32 @@
 
   function setupUI() {
     buildMenu();
-    ui.play.addEventListener("click", startGame);
-    ui.again.addEventListener("click", startGame);
-    ui.menuBtn.addEventListener("click", returnToMenu);
+    const bindAction = (element, action) => {
+      let pointerHandled = false;
+      element.addEventListener("pointerup", (event = {}) => {
+        if (event.pointerType === "mouse") return;
+        event.preventDefault?.();
+        event.stopPropagation?.();
+        pointerHandled = true;
+        clearTouchInput();
+        action();
+        setTimeout(() => { pointerHandled = false; }, 350);
+      }, { passive: false });
+      element.addEventListener("click", (event = {}) => {
+        if (pointerHandled) return;
+        event.preventDefault?.();
+        clearTouchInput();
+        action();
+      });
+    };
+    bindAction(ui.play, startGame);
+    bindAction(ui.again, startGame);
+    bindAction(ui.menuBtn, returnToMenu);
     document.querySelector("#how-btn").addEventListener("click", () => show(ui.how));
     document.querySelectorAll("[data-close='how']").forEach((button) => button.addEventListener("click", () => show(ui.how, false)));
-    ui.pauseBtn.addEventListener("click", pauseGame);
-    document.querySelector("#resume-btn").addEventListener("click", resumeGame);
-    document.querySelector("#quit-btn").addEventListener("click", returnToMenu);
+    bindAction(ui.pauseBtn, pauseGame);
+    bindAction(document.querySelector("#resume-btn"), resumeGame);
+    bindAction(document.querySelector("#quit-btn"), returnToMenu);
     ui.audio.addEventListener("click", () => {
       game.audio = !game.audio;
       ui.audio.textContent = `Suono: ${game.audio ? "ON" : "OFF"}`;
@@ -622,14 +655,7 @@
 
   function returnToMenu() {
     game.scene = "menu";
-    input.keys.clear();
-    touchDirections.clear();
-    input.moveX = 0;
-    input.moveY = 0;
-    input.joystickActive = false;
-    input.mobileFire = false;
-    input.fireAim = null;
-    input.pointerAim = null;
+    clearTouchInput();
     show(ui.result, false);
     show(ui.pause, false);
     show(ui.hud, false);
@@ -644,10 +670,7 @@
   function pauseGame() {
     if (game.scene !== "playing") return;
     game.scene = "paused";
-    touchDirections.clear();
-    input.moveX = 0;
-    input.moveY = 0;
-    input.mobileFire = false;
+    clearTouchInput();
     show(ui.pause);
     show(ui.mobile, false);
   }
@@ -1216,9 +1239,10 @@
   }
 
   function screenToWorld(screenX, screenY) {
+    const zoom = cameraZoom();
     return {
-      x: screenX - vw / 2 + game.camera.x,
-      y: screenY - vh / 2 + game.camera.y,
+      x: (screenX - vw / 2) / zoom + game.camera.x,
+      y: (screenY - vh / 2) / zoom + game.camera.y,
     };
   }
 
@@ -1234,7 +1258,8 @@
   }
 
   function visible(x, y, margin = 100) {
-    return x > game.camera.x - vw / 2 - margin && x < game.camera.x + vw / 2 + margin && y > game.camera.y - vh / 2 - margin && y < game.camera.y + vh / 2 + margin;
+    const zoom = cameraZoom();
+    return x > game.camera.x - vw / (2 * zoom) - margin && x < game.camera.x + vw / (2 * zoom) + margin && y > game.camera.y - vh / (2 * zoom) - margin && y < game.camera.y + vh / (2 * zoom) + margin;
   }
 
   function drawSheetCell(sheet, index, x, y, width, height, alpha = 1) {
@@ -1353,15 +1378,53 @@
         ctx.fill();
       }
       ctx.restore();
+    } else if (game.selectedMap === "catacombs") {
+      // Cavern floor: broad flagstones, mineral seams, pits and damp highlights.
+      ctx.save();
+      const slab = 118;
+      const viewW = vw / cameraZoom();
+      const viewH = vh / cameraZoom();
+      const startX = Math.max(0, Math.floor((game.camera.x - viewW / 2 - slab) / slab) * slab);
+      const endX = Math.min(WORLD.w, game.camera.x + viewW / 2 + slab);
+      const startY = Math.max(0, Math.floor((game.camera.y - viewH / 2 - slab) / slab) * slab);
+      const endY = Math.min(WORLD.h, game.camera.y + viewH / 2 + slab);
+      for (let y = startY; y < endY; y += slab) {
+        for (let x = startX; x < endX; x += slab) {
+          const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233));
+          const offset = (Math.floor(y / slab) % 2) * slab * .48;
+          const px = x + offset;
+          ctx.fillStyle = hash > .55 ? "#27282b" : "#202226";
+          roundedRectPath(ctx, px + 4, y + 5, slab - 9, slab - 10, 13); ctx.fill();
+          ctx.strokeStyle = "rgba(151,157,157,.12)"; ctx.lineWidth = 3;
+          roundedRectPath(ctx, px + 7, y + 7, slab - 15, slab - 16, 11); ctx.stroke();
+          ctx.strokeStyle = "rgba(4,5,7,.62)"; ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(px + 20 + hash * 24, y + 25);
+          ctx.lineTo(px + 47, y + 50 + hash * 25);
+          ctx.lineTo(px + 38 + hash * 45, y + 91);
+          ctx.stroke();
+        }
+      }
+      for (let i = 0; i < 18; i += 1) {
+        const px = 70 + ((i * 431 + game.matchSeed * 7) % (WORLD.w - 140));
+        const py = 60 + ((i * 283 + game.matchSeed * 11) % (WORLD.h - 120));
+        if (!visible(px, py, 80)) continue;
+        ctx.fillStyle = "rgba(4,5,7,.72)";
+        ctx.beginPath(); ctx.ellipse(px, py, 30 + i % 3 * 8, 17 + i % 2 * 5, i * .47, 0, TAU); ctx.fill();
+        ctx.strokeStyle = i % 3 ? "rgba(226,153,79,.15)" : "rgba(113,210,190,.16)";
+        ctx.lineWidth = 3; ctx.stroke();
+      }
+      ctx.restore();
     }
 
     drawLavaRivers(t);
 
     const tile = 80;
-    const minX = Math.max(0, Math.floor((game.camera.x - vw / 2 - 100) / tile) * tile);
-    const maxX = Math.min(WORLD.w, game.camera.x + vw / 2 + 100);
-    const minY = Math.max(0, Math.floor((game.camera.y - vh / 2 - 100) / tile) * tile);
-    const maxY = Math.min(WORLD.h, game.camera.y + vh / 2 + 100);
+    const zoom = cameraZoom();
+    const minX = Math.max(0, Math.floor((game.camera.x - vw / (2 * zoom) - 100) / tile) * tile);
+    const maxX = Math.min(WORLD.w, game.camera.x + vw / (2 * zoom) + 100);
+    const minY = Math.max(0, Math.floor((game.camera.y - vh / (2 * zoom) - 100) / tile) * tile);
+    const maxY = Math.min(WORLD.h, game.camera.y + vh / (2 * zoom) + 100);
     ctx.strokeStyle = map.line;
     ctx.lineWidth = 1;
     ctx.globalAlpha = .48;
@@ -1866,7 +1929,10 @@
     }
     const shakeX = game.camera.shake ? (Math.random() - .5) * game.camera.shake : 0;
     const shakeY = game.camera.shake ? (Math.random() - .5) * game.camera.shake : 0;
-    ctx.translate(vw / 2 - game.camera.x + shakeX, vh / 2 - game.camera.y + shakeY);
+    const zoom = cameraZoom();
+    ctx.translate(vw / 2 + shakeX, vh / 2 + shakeY);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-game.camera.x, -game.camera.y);
 
     const map = MAPS[game.selectedMap];
     drawGround(map, t);

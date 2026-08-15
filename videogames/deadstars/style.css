@@ -28,6 +28,7 @@ body {
 }
 
 button { font: inherit; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 #app,
 #game {
@@ -304,6 +305,9 @@ h1 span {
   backdrop-filter: blur(8px);
 }
 
+.modal-screen.active { pointer-events: auto; }
+.modal-screen button { position: relative; z-index: 5; pointer-events: auto; }
+
 .modal-card { width: min(760px, 94vw); }
 .modal-card h2,
 .result-card h2 {
@@ -564,6 +568,11 @@ kbd {
 .mobile-landscape-hint { display: none; }
 
 @media (max-width: 760px), (pointer: coarse) {
+  .modal-screen { padding: 10px; }
+  .modal-card.compact, .result-card { width: min(390px, 91vw); padding: 18px 20px; }
+  .result-stats { margin-bottom: 15px; }
+  .result-stats div { padding: 10px 4px; }
+  .result-stats strong { font-size: 23px; }
   .menu-card { width: min(540px, 96vw); padding: 19px 17px; }
   h1 { font-size: clamp(50px, 17vw, 78px); }
   .tagline { margin-bottom: 14px; font-size: 12px; }
