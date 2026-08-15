@@ -563,6 +563,11 @@ kbd {
 .result-stats strong { display: block; color: var(--violet); font-size: 29px; }
 .result-stats span { color: var(--muted); font-size: 9px; text-transform: uppercase; }
 .result-card .ghost-btn { display: block; margin: 15px auto 0; }
+.name-entry { display: none; margin: -8px auto 14px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.name-entry.active { display: block; }
+.name-entry input { display: block; width: min(280px, 80vw); margin: 7px auto 0; padding: 11px 13px; border: 2px solid rgba(188,255,60,.35); border-radius: 9px; outline: none; background: #0d0a14; color: #fff; font-size: 16px; text-align: center; touch-action: auto; user-select: text; }
+.leaderboard { max-width: 330px; margin: 0 auto 12px; color: #d7d0dc; font-size: 10px; line-height: 1.55; }
+.leaderboard b { color: #ffd85c; }
 
 #mobile-controls { display: none; }
 .mobile-landscape-hint { display: none; }

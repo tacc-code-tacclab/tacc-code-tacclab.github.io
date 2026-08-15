@@ -10,7 +10,7 @@
     />
     <title>DeadStars — Horror Arena</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect rx=%2214%22 width=%2264%22 height=%2264%22 fill=%22%2309070f%22/><path d=%22M32 8l6.4 14.7L54 24.2 42.2 34.5 45.7 50 32 41.8 18.3 50l3.5-15.5L10 24.2l15.6-1.5z%22 fill=%22%23bbff3c%22/><circle cx=%2226%22 cy=%2230%22 r=%223%22 fill=%22%2309070f%22/><circle cx=%2238%22 cy=%2230%22 r=%223%22 fill=%22%2309070f%22/></svg>" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
     <main id="app">
@@ -111,9 +111,9 @@
       <section id="hud" aria-live="polite">
         <div class="top-hud">
           <div class="score-panel">
-            <span class="score-icon">✦</span>
+            <span class="score-icon">●</span>
             <strong id="player-score">0</strong>
-            <span>/ 12</span>
+            <span> DOBLONI</span>
           </div>
           <div class="timer" id="timer">2:30</div>
           <div class="leader-panel">
@@ -145,10 +145,14 @@
           <div class="eyebrow" id="result-eyebrow">PARTITA CONCLUSA</div>
           <h2 id="result-title">LA NOTTE È TUA</h2>
           <div class="result-stats">
-            <div><strong id="result-place">1°</strong><span>posizione</span></div>
-            <div><strong id="result-souls">12</strong><span>anime</span></div>
-            <div><strong id="result-kills">7</strong><span>atterraggi</span></div>
+            <div><strong id="result-place">—</strong><span>esito</span></div>
+            <div><strong id="result-souls">0</strong><span>dobloni</span></div>
+            <div><strong id="result-kills">0</strong><span>nemici</span></div>
           </div>
+          <label class="name-entry" for="player-name">Nome per la classifica
+            <input id="player-name" maxlength="18" autocomplete="nickname" placeholder="Il tuo nome" />
+          </label>
+          <div id="leaderboard" class="leaderboard" aria-live="polite"></div>
           <button id="again-btn" class="primary-btn">RIVINCITA</button>
           <button id="menu-btn" class="ghost-btn">CAMBIA PERSONAGGIO</button>
         </div>
@@ -177,6 +181,6 @@
         <div class="mobile-landscape-hint">Ruota il telefono in orizzontale</div>
       </div>
     </main>
-    <script src="game.js"></script>
+    <script src="game.js?v=4"></script>
   </body>
 </html>

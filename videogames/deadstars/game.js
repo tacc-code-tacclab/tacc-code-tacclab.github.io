@@ -84,7 +84,7 @@
       title: "Strega senza volto",
       detail: "Agile e spettrale. Atterra in silenzio.",
       skill: "SALTO",
-      color: "#a986ff",
+      color: "#ff65df",
       dark: "#42266f",
       hp: 850,
       speed: 235,
@@ -97,7 +97,7 @@
       title: "Custode dell'ultima fossa",
       detail: "Pesante. L'atterraggio scuote le tombe.",
       skill: "SALTO",
-      color: "#ff795e",
+      color: "#f4f2e9",
       dark: "#722516",
       hp: 1320,
       speed: 205,
@@ -166,6 +166,10 @@
     ambienceClock: 0,
     soulSpawnClock: 0,
     soundClock: new Map(),
+    mode: "infinite",
+    endReason: null,
+    boss: null,
+    pyramidCooldown: 0,
   };
 
   const input = {
@@ -211,6 +215,27 @@
   function saveRecord() {
     try { localStorage.setItem("deadstars-record", JSON.stringify(record)); } catch (_) {}
     ui.record.textContent = `Vittorie: ${record.wins} · Record atterraggi: ${record.kills}`;
+  }
+
+  function loadLeaderboard() {
+    try { return JSON.parse(localStorage.getItem("deadstars-leaderboard")) || []; } catch (_) { return []; }
+  }
+
+  function saveRun() {
+    const field = document.querySelector("#player-name");
+    const name = (field.value || "Viandante").trim().slice(0, 18) || "Viandante";
+    const board = loadLeaderboard();
+    board.push({ name, coins: game.player?.score || 0, kills: game.player?.kills || 0, won: game.endReason === "boss", at: Date.now() });
+    board.sort((a, b) => Number(b.won) - Number(a.won) || b.coins - a.coins || b.kills - a.kills);
+    try { localStorage.setItem("deadstars-leaderboard", JSON.stringify(board.slice(0, 8))); } catch (_) {}
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    const board = loadLeaderboard().slice(0, 5);
+    document.querySelector("#leaderboard").innerHTML = board.length
+      ? `<b>CLASSIFICA LOCALE</b><br>${board.map((row, i) => `${i + 1}. ${escapeHtml(row.name)} · ${row.coins} oro · ${row.kills} KO${row.won ? " · RE DEGLI INFERI" : ""}`).join("<br>")}`
+      : "";
   }
 
   function buildMenu() {
@@ -285,8 +310,23 @@
       });
     };
     bindAction(ui.play, startGame);
-    bindAction(ui.again, startGame);
-    bindAction(ui.menuBtn, returnToMenu);
+    bindAction(ui.again, () => {
+      if (game.endReason) saveRun();
+      game.endReason === "death" ? continueRun() : startGame();
+    });
+    bindAction(ui.menuBtn, () => {
+      const ids = Object.keys(HEROES);
+      game.selectedHero = ids[(ids.indexOf(game.selectedHero) + 1) % ids.length];
+      const hero = HEROES[game.selectedHero];
+      ui.selectedHeroName.textContent = hero.name;
+      ui.heroList.querySelectorAll("[data-hero]").forEach((card) => {
+        const selected = card.dataset.hero === game.selectedHero;
+        card.classList.toggle("selected", selected);
+        card.setAttribute("aria-checked", String(selected));
+      });
+      ui.lobbyHero.style.filter = `${game.selectedHero === "vela" ? "hue-rotate(70deg) saturate(1.8)" : game.selectedHero === "becchino" ? "grayscale(1) brightness(1.45)" : "hue-rotate(315deg) saturate(1.4)"} drop-shadow(0 22px 20px rgba(0,0,0,.6))`;
+      returnToMenu();
+    });
     document.querySelector("#how-btn").addEventListener("click", () => show(ui.how));
     document.querySelectorAll("[data-close='how']").forEach((button) => button.addEventListener("click", () => show(ui.how, false)));
     bindAction(ui.pauseBtn, pauseGame);
@@ -539,6 +579,12 @@
     }
   }
 
+  function infiniteHash(cx, cy, salt = 0) {
+    let h = Math.imul(cx | 0, 374761393) ^ Math.imul(cy | 0, 668265263) ^ Math.imul(salt | 0, 1442695041);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+  }
+
   function spawnPoint(index = 0) {
     const points = [
       [WORLD.w / 2, WORLD.h / 2 + 420],
@@ -611,6 +657,9 @@
     game.elapsed = 0;
     game.soulSpawnClock = 1.5;
     game.uid = 1;
+    game.mode = "infinite";
+    game.endReason = null;
+    game.boss = null;
     game.matchSeed = Date.now() % 100000 + Object.keys(MAPS).indexOf(game.selectedMap) * 7919;
     game.shards.length = 0;
     game.bullets.length = 0;
@@ -619,18 +668,24 @@
     createArena();
 
     game.player = makeFighter({ heroId: game.selectedHero, name: "TU", bot: false, spawnIndex: 0 });
+    game.player.x = 0;
+    game.player.y = 0;
+    game.player.maxHp = 10;
+    game.player.hp = 10;
     game.fighters.push(game.player);
     const heroIds = Object.keys(HEROES);
     const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - .5);
     for (let i = 0; i < 5; i += 1) {
-      game.fighters.push(makeFighter({
+      const enemy = makeFighter({
         heroId: heroIds[(i + Math.floor(Math.random() * heroIds.length)) % heroIds.length],
         name: shuffledNames[i],
         bot: true,
         spawnIndex: i + 1,
-      }));
+      });
+      respawnEnemyNearPlayer(enemy, i);
+      game.fighters.push(enemy);
     }
-    for (let i = 0; i < 22; i += 1) spawnFreeShard();
+    game.shards.length = 0;
 
     game.camera.x = game.player.x;
     game.camera.y = game.player.y;
@@ -643,6 +698,8 @@
     show(ui.hud);
     show(ui.pauseBtn);
     show(ui.mobile, isTouchLayout());
+    document.querySelector(".name-entry").classList.remove("active");
+    renderLeaderboard();
     ui.hudName.textContent = game.player.hero.name;
     ui.portrait.textContent = game.player.hero.glyph;
     ui.portrait.style.borderColor = game.player.hero.color;
@@ -651,6 +708,34 @@
     announce("MIETITURA DELLE ANIME");
     sound("select");
     updateHUD();
+  }
+
+  function respawnEnemyNearPlayer(enemy, index = 0) {
+    const angle = Math.random() * TAU;
+    const radius = 430 + Math.random() * 430 + index * 18;
+    enemy.x = (game.player?.x || 0) + Math.cos(angle) * radius;
+    enemy.y = (game.player?.y || 0) + Math.sin(angle) * radius;
+    enemy.hp = enemy.maxHp;
+    enemy.alive = true;
+    enemy.invuln = .35;
+    enemy.respawn = 0;
+  }
+
+  function continueRun() {
+    game.scene = "playing";
+    game.endReason = null;
+    game.player.alive = true;
+    game.player.hp = 10;
+    game.player.invuln = 1.8;
+    game.player.vx = 0;
+    game.player.vy = 0;
+    game.last = performance.now();
+    show(ui.result, false);
+    show(ui.hud);
+    show(ui.pauseBtn);
+    show(ui.mobile, isTouchLayout());
+    document.querySelector(".name-entry").classList.remove("active");
+    announce("LA CACCIA CONTINUA");
   }
 
   function returnToMenu() {
@@ -683,16 +768,17 @@
     show(ui.mobile, isTouchLayout());
   }
 
-  function endGame(winner = null) {
+  function endGame(winner = null, reason = "round") {
     if (game.scene !== "playing") return;
     game.scene = "result";
+    game.endReason = reason;
     const ranking = [...game.fighters].sort((a, b) => b.score - a.score || b.kills - a.kills);
     const place = ranking.findIndex((f) => f === game.player) + 1;
-    const won = place === 1 && (!winner || winner === game.player);
-    document.querySelector("#result-eyebrow").textContent = won ? "VITTORIA" : `HA VINTO ${ranking[0].name}`;
-    document.querySelector("#result-title").textContent = won ? "LA NOTTE È TUA" : "L'ABISSO TI RECLAMA";
+    const won = reason === "boss";
+    document.querySelector("#result-eyebrow").textContent = won ? "VITTORIA FINALE" : "LA MORTE TI HA RAGGIUNTO";
+    document.querySelector("#result-title").textContent = won ? "HAI UCCISO IL DEMONIO" : "VUOI CONTINUARE?";
     document.querySelector("#result-title").style.color = won ? "var(--acid)" : "var(--blood)";
-    document.querySelector("#result-place").textContent = `${place}°`;
+    document.querySelector("#result-place").textContent = won ? "VINTO" : "KO";
     document.querySelector("#result-souls").textContent = game.player.score;
     document.querySelector("#result-kills").textContent = game.player.kills;
     if (won) record.wins += 1;
@@ -701,6 +787,9 @@
     show(ui.hud, false);
     show(ui.pauseBtn, false);
     show(ui.mobile, false);
+    ui.again.textContent = won ? "NUOVA PARTITA" : "SÌ, CONTINUA";
+    document.querySelector(".name-entry").classList.add("active");
+    renderLeaderboard();
     setTimeout(() => show(ui.result), 450);
     sound(won ? "win" : "death");
   }
@@ -756,6 +845,7 @@
   }
 
   function collidesObstacle(x, y, radius) {
+    if (game.mode === "infinite" || game.mode === "boss") return false;
     return game.obstacles.some((o) => {
       const nx = clamp(x, o.x, o.x + o.w);
       const ny = clamp(y, o.y, o.y + o.h);
@@ -765,9 +855,9 @@
 
   function moveFighter(fighter, dx, dy) {
     const radius = fighter.radius;
-    let nx = clamp(fighter.x + dx, radius + 18, WORLD.w - radius - 18);
+    let nx = fighter.x + dx;
     if (fighter.z > 30 || !collidesObstacle(nx, fighter.y, radius)) fighter.x = nx;
-    let ny = clamp(fighter.y + dy, radius + 18, WORLD.h - radius - 18);
+    let ny = fighter.y + dy;
     if (fighter.z > 30 || !collidesObstacle(fighter.x, ny, radius)) fighter.y = ny;
   }
 
@@ -799,7 +889,7 @@
       vy: Math.sin(angle) * speed,
       owner: fighter,
       radius: fighter.bot ? 10.8 : 12.5,
-      damage: fighter.bot ? 82 : 108,
+      damage: fighter.bot ? 1 : 1,
       life: .94,
       maxLife: .94,
       color,
@@ -821,7 +911,7 @@
 
   function damageFighter(target, amount, attacker, knockX = 0, knockY = 0) {
     if (!target.alive || target.invuln > 0 || target === attacker) return false;
-    const applied = amount;
+    const applied = target.isBoss ? 1 : target === game.player ? 1 : target.bot ? target.maxHp : amount;
     target.hp -= applied;
     target.flash = .12;
     target.lastHit = 3.8;
@@ -836,7 +926,7 @@
   function killFighter(victim, attacker) {
     if (!victim.alive) return;
     victim.alive = false;
-    victim.respawn = 2.8;
+    victim.respawn = victim === game.player ? Infinity : 1.15 + Math.random() * .65;
     victim.hp = 0;
     victim.z = 0;
     victim.vz = 0;
@@ -857,18 +947,28 @@
     }
     if (attacker && attacker !== victim) {
       attacker.kills += 1;
+      if (attacker === game.player && victim.bot) attacker.score += victim.isBoss ? 50 : 1;
       addFeed(attacker, victim);
     }
     burst(victim.x, victim.y, "#ff3d61", 32, 260);
-    if (victim === game.player) announce("SEI STATO SEPOLTO");
+    if (victim.isBoss) {
+      announce("IL DEMONIO È CADUTO!");
+      setTimeout(() => endGame(game.player, "boss"), 650);
+    } else if (victim === game.player) {
+      announce("SEI STATO SEPOLTO");
+      setTimeout(() => endGame(null, "death"), 520);
+    }
     if (victim === game.player || attacker === game.player) sound("death");
     game.camera.shake = victim === game.player ? 16 : Math.max(game.camera.shake, 7);
   }
 
   function respawnFighter(fighter) {
-    const point = spawnPoint(1 + Math.floor(Math.random() * 6));
-    fighter.x = point.x;
-    fighter.y = point.y;
+    if (fighter.bot && game.mode === "infinite") respawnEnemyNearPlayer(fighter);
+    else {
+      const point = spawnPoint(1 + Math.floor(Math.random() * 6));
+      fighter.x = point.x;
+      fighter.y = point.y;
+    }
     fighter.hp = fighter.maxHp;
     fighter.z = 0;
     fighter.vz = 0;
@@ -1080,7 +1180,7 @@
           if (wasAirborne) landFighter(fighter);
         }
       }
-      if (fighter.lastHit <= 0 && fighter.hp < fighter.maxHp) fighter.hp = Math.min(fighter.maxHp, fighter.hp + fighter.maxHp * .12 * dt);
+      // Ten discrete enemy hits defeat the player; health does not regenerate during a run.
       if (fighter.z < 24 && fighter.lavaCd <= 0 && inLava(fighter.x, fighter.y, fighter.radius * .25)) {
         fighter.lavaCd = .34;
         if (damageFighter(fighter, 36, null)) {
@@ -1129,7 +1229,7 @@
       for (let step = 0; step < steps && !removed; step += 1) {
         bullet.x += travelX / steps;
         bullet.y += travelY / steps;
-        if (bullet.x < 8 || bullet.x > WORLD.w - 8 || bullet.y < 8 || bullet.y > WORLD.h - 8 || (bullet.z < 62 && collidesObstacle(bullet.x, bullet.y, bullet.radius))) {
+        if (bullet.z < 62 && collidesObstacle(bullet.x, bullet.y, bullet.radius)) {
           burst(bullet.x, bullet.y, bullet.color, 4, 58);
           removed = true;
           break;
@@ -1166,11 +1266,6 @@
         burst(shard.x, shard.y, "#b98cff", 9, 130);
         if (collector === game.player) sound("collect");
         game.shards.splice(i, 1);
-        if (collector.score >= TARGET_SOULS) {
-          announce(`${collector.name} HA DIVORATO 12 ANIME`);
-          endGame(collector);
-          return;
-        }
       } else if (shard.life <= 0) {
         game.shards.splice(i, 1);
       }
@@ -1189,21 +1284,79 @@
     }
   }
 
+  function isPyramidChunk(cx, cy) {
+    return (cx === 2 && cy === 1) || infiniteHash(cx, cy, 91) > .972;
+  }
+
+  function pyramidAt(cx, cy) {
+    const chunk = 720;
+    return {
+      x: cx * chunk + 150 + infiniteHash(cx, cy, 92) * 420,
+      y: cy * chunk + 150 + infiniteHash(cx, cy, 93) * 420,
+    };
+  }
+
+  function updateInfiniteWorld() {
+    if (!game.player?.alive) return;
+    if (game.mode === "infinite") {
+      const chunk = 720;
+      const pcx = Math.floor(game.player.x / chunk);
+      const pcy = Math.floor(game.player.y / chunk);
+      for (let cy = pcy - 1; cy <= pcy + 1; cy += 1) {
+        for (let cx = pcx - 1; cx <= pcx + 1; cx += 1) {
+          if (!isPyramidChunk(cx, cy)) continue;
+          const pyramid = pyramidAt(cx, cy);
+          if (Math.hypot(game.player.x - pyramid.x, game.player.y - pyramid.y) < 72) enterBossRealm();
+        }
+      }
+      // Maintain a constant nearby population without retaining an ever-growing world.
+      for (const enemy of game.fighters) {
+        if (!enemy.bot || enemy.isBoss || !enemy.alive) continue;
+        if (distance(enemy, game.player) > 1450) respawnEnemyNearPlayer(enemy);
+      }
+    }
+  }
+
+  function enterBossRealm() {
+    if (game.mode !== "infinite") return;
+    game.mode = "boss";
+    game.bullets.length = 0;
+    game.shards.length = 0;
+    game.player.x = 0;
+    game.player.y = 360;
+    game.player.vx = 0;
+    game.player.vy = 0;
+    game.fighters = [game.player];
+    const boss = makeFighter({ heroId: "becchino", name: "MALACHAR", bot: true, spawnIndex: 0 });
+    boss.x = 0;
+    boss.y = -190;
+    boss.radius = 52;
+    boss.maxHp = 20;
+    boss.hp = 20;
+    boss.isBoss = true;
+    boss.invuln = 1.2;
+    boss.hero = { ...boss.hero, speed: 150, radius: 52, color: "#ff342e" };
+    game.boss = boss;
+    game.fighters.push(boss);
+    announce("REGNO DEGLI INFERI · MALACHAR");
+    sound("death");
+  }
+
   function updateHUD() {
     const player = game.player;
     if (!player) return;
     ui.playerScore.textContent = player.score;
-    const seconds = Math.max(0, Math.ceil(game.time));
+    const seconds = Math.max(0, Math.floor(game.elapsed));
     ui.timer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-    ui.timer.style.color = seconds <= 20 ? "var(--blood)" : "var(--acid)";
+    ui.timer.style.color = game.mode === "boss" ? "var(--blood)" : "var(--acid)";
     const leader = [...game.fighters].sort((a, b) => b.score - a.score || b.kills - a.kills)[0];
     ui.leaderName.textContent = leader?.name || "—";
     ui.leaderScore.textContent = leader?.score || 0;
     const hpPercent = clamp(player.hp / player.maxHp * 100, 0, 100);
     ui.hpFill.style.width = `${hpPercent}%`;
     ui.hpFill.style.background = hpPercent < 30 ? "linear-gradient(90deg,#b51e40,#ff3d61)" : "linear-gradient(90deg,#4fd16d,var(--acid))";
-    ui.hpText.textContent = player.alive ? `${Math.ceil(player.hp)} / ${player.maxHp}` : `RITORNO IN ${Math.max(0, player.respawn).toFixed(1)}`;
-    ui.killCount.textContent = `${player.kills} ATTERRAGGI`;
+    ui.hpText.textContent = player.alive ? `${Math.ceil(player.hp)} / 10 COLPI` : "SCONFITTO";
+    ui.killCount.textContent = `${player.kills} NEMICI`;
     const skillPercent = player.skillCd <= 0 ? 100 : (1 - player.skillCd / .78) * 100;
     ui.skill.querySelector("i").style.height = `${skillPercent}%`;
     ui.skill.classList.toggle("ready", player.skillCd <= 0 && player.alive && player.z <= 1);
@@ -1222,13 +1375,7 @@
     updateBullets(dt);
     updateShards(dt);
     updateParticles(dt);
-    game.soulSpawnClock -= dt;
-    if (game.soulSpawnClock <= 0) {
-      game.soulSpawnClock = 1.3 + Math.random() * 1.4;
-      if (game.shards.length < 16) spawnFreeShard();
-    }
-
-    if (game.scene === "playing" && game.time <= 0) endGame();
+    updateInfiniteWorld();
     if (game.player) {
       const follow = 1 - Math.pow(.001, dt);
       game.camera.x += (game.player.x - game.camera.x) * follow;
@@ -1329,7 +1476,102 @@
     ctx.restore();
   }
 
+  function drawGoldPyramid(x, y, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    const glow = .72 + Math.sin(t * 2.8) * .18;
+    ctx.fillStyle = "rgba(255,194,36,.18)";
+    ctx.beginPath(); ctx.ellipse(0, 24, 78, 35, 0, 0, TAU); ctx.fill();
+    ctx.shadowColor = "#ffd43b"; ctx.shadowBlur = performanceMode === "mobile" ? 8 : 23;
+    const gold = ctx.createLinearGradient(-55, -80, 60, 30);
+    gold.addColorStop(0, "#fff1a0"); gold.addColorStop(.35, "#f7bf25"); gold.addColorStop(1, "#8a4d08");
+    ctx.fillStyle = gold;
+    ctx.beginPath(); ctx.moveTo(0, -92); ctx.lineTo(-72, 28); ctx.lineTo(72, 28); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#b36b0b";
+    ctx.beginPath(); ctx.moveTo(0, -92); ctx.lineTo(72, 28); ctx.lineTo(19, 10); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = `rgba(255,245,155,${glow})`; ctx.lineWidth = 4; ctx.stroke();
+    ctx.shadowBlur = 12; ctx.fillStyle = "#16070c";
+    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(-17, 25); ctx.lineTo(17, 25); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ff4b21"; ctx.beginPath(); ctx.arc(0, 3, 5, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#fff3aa"; ctx.font = "900 11px system-ui"; ctx.textAlign = "center"; ctx.fillText("TOMBA D'ORO", 0, 47);
+    ctx.restore();
+  }
+
+  function drawInfiniteGround(map, t) {
+    const zoom = cameraZoom();
+    const halfW = vw / (2 * zoom) + 180;
+    const halfH = vh / (2 * zoom) + 180;
+    const left = game.camera.x - halfW;
+    const top = game.camera.y - halfH;
+    ctx.fillStyle = game.mode === "boss" ? "#310407" : map.ground;
+    ctx.fillRect(left, top, halfW * 2, halfH * 2);
+    const chunk = 720;
+    const minCx = Math.floor(left / chunk);
+    const maxCx = Math.floor((left + halfW * 2) / chunk);
+    const minCy = Math.floor(top / chunk);
+    const maxCy = Math.floor((top + halfH * 2) / chunk);
+
+    if (game.mode === "boss") {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,65,41,.22)"; ctx.lineWidth = 9;
+      for (let ring = 120; ring <= 720; ring += 120) { ctx.beginPath(); ctx.arc(0, 0, ring + Math.sin(t * 2 + ring) * 5, 0, TAU); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(255,205,126,.18)"; ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + i * Math.PI * 4 / 5; const r = 285; const x = Math.cos(a) * r; const y = Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.closePath(); ctx.stroke();
+      for (let cy = minCy; cy <= maxCy; cy += 1) for (let cx = minCx; cx <= maxCx; cx += 1) {
+        for (let i = 0; i < 5; i += 1) {
+          const x = cx * chunk + infiniteHash(cx, cy, i * 2 + 401) * chunk;
+          const y = cy * chunk + infiniteHash(cx, cy, i * 2 + 402) * chunk;
+          ctx.fillStyle = i % 2 ? "#51090b" : "#160408"; ctx.beginPath(); ctx.ellipse(x, y, 42, 18, i, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.restore();
+      return;
+    }
+
+    for (let cy = minCy; cy <= maxCy; cy += 1) {
+      for (let cx = minCx; cx <= maxCx; cx += 1) {
+        const ox = cx * chunk;
+        const oy = cy * chunk;
+        if (game.selectedMap === "cemetery" && hauntedGrass.complete && hauntedGrass.naturalWidth) {
+          ctx.globalAlpha = .88;
+          ctx.drawImage(hauntedGrass, ox, oy, chunk, chunk);
+          ctx.globalAlpha = 1;
+        } else if (game.selectedMap === "catacombs") {
+          ctx.fillStyle = "#202226"; ctx.fillRect(ox, oy, chunk, chunk);
+          ctx.strokeStyle = "rgba(151,157,157,.13)"; ctx.lineWidth = 4;
+          for (let sy = 0; sy < chunk; sy += 120) for (let sx = 0; sx < chunk; sx += 120) {
+            const offset = (sy / 120) % 2 ? 58 : 0;
+            roundedRectPath(ctx, ox + sx + offset + 5, oy + sy + 6, 109, 108, 12); ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle = "#0c1d19"; ctx.fillRect(ox, oy, chunk, chunk);
+          ctx.strokeStyle = "rgba(73,133,107,.16)"; ctx.lineWidth = 9;
+          for (let root = 0; root < 6; root += 1) {
+            const rx = ox + infiniteHash(cx, cy, root + 301) * chunk;
+            ctx.beginPath(); ctx.moveTo(rx, oy); ctx.bezierCurveTo(rx - 90, oy + 210, rx + 120, oy + 450, rx - 35, oy + chunk); ctx.stroke();
+          }
+        }
+        ctx.strokeStyle = "rgba(190,255,159,.035)"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, chunk, chunk);
+        const props = performanceMode === "mobile" ? 5 : 7;
+        const types = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant"];
+        for (let i = 0; i < props; i += 1) {
+          const x = ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110);
+          const y = oy + 55 + infiniteHash(cx, cy, i * 5 + 12) * (chunk - 110);
+          const type = types[Math.floor(infiniteHash(cx, cy, i * 5 + 13) * types.length)];
+          drawDecor({ x, y, type, size: .7 + infiniteHash(cx, cy, i * 5 + 14) * .5, rot: infiniteHash(cx, cy, i * 5 + 15) * TAU, variant: .82, phase: i }, map, t);
+        }
+        if (isPyramidChunk(cx, cy)) { const pyramid = pyramidAt(cx, cy); drawGoldPyramid(pyramid.x, pyramid.y, t); }
+      }
+    }
+  }
+
   function drawGround(map, t) {
+    if (game.mode === "infinite" || game.mode === "boss") {
+      drawInfiniteGround(map, t);
+      return;
+    }
     ctx.fillStyle = "#050409";
     ctx.fillRect(-400, -400, WORLD.w + 800, WORLD.h + 800);
     ctx.fillStyle = map.ground;
@@ -1724,11 +1966,11 @@
   function drawFighter(fighter, t) {
     if (!fighter.alive || !visible(fighter.x, fighter.y, 120)) return;
     const hero = fighter.hero;
-    const blink = fighter.invuln > 0 && Math.sin(t * 25) > .25;
+    const blink = fighter.invuln > 0 && Math.sin(t * 25) > .45;
     const isPlayer = fighter === game.player;
     const directionSheet = fighter.bot ? enemyDirections : playerDirections;
     const fallbackSprite = fighter.bot ? enemySprite : playerSprite;
-    const spriteWidth = isPlayer ? 112 : 100;
+    const spriteWidth = fighter.isBoss ? 205 : isPlayer ? 112 : 100;
     const spriteHeight = spriteWidth * (684 / 1024) * 2;
     const spriteTop = -spriteHeight + 39;
     const directionFloat = ((fighter.aim + Math.PI / 2 + TAU) % TAU) / TAU * 8;
@@ -1742,7 +1984,7 @@
     // Contact ring and projected shadow anchor the 3D body to the arena.
     ctx.save();
     ctx.translate(fighter.x, fighter.y);
-    ctx.globalAlpha = blink ? .68 : 1;
+    ctx.globalAlpha = blink ? .9 : 1;
 
     if (fighter.landedPulse > 0) {
       const progress = 1 - fighter.landedPulse / .34;
@@ -1769,16 +2011,17 @@
       fighter.x - Math.cos(fighter.aim) * fighter.recoil * 4,
       fighter.y - fighter.z - movementBob - Math.sin(fighter.aim) * fighter.recoil * 2,
     );
-    ctx.globalAlpha = blink ? .68 : 1;
+    ctx.globalAlpha = blink ? .9 : 1;
     ctx.rotate(bodySway);
     const strideScale = 1 + Math.abs(step) * .018 * fighter.moveAmount;
     ctx.scale(strideScale + fighter.recoil * .025, 1 - Math.abs(step) * .012 * fighter.moveAmount);
     if (directionSheet.complete && directionSheet.naturalWidth) {
-      if (performanceMode !== "mobile") {
-        ctx.filter = fighter.flash > 0
-          ? "brightness(2.35) saturate(.4)"
-          : `drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 5px ${fighter.bot ? "rgba(255,38,64,.42)" : "rgba(118,255,53,.42)"})`;
-      }
+      const heroTone = fighter.isBoss ? "hue-rotate(285deg) saturate(2.4) brightness(.8)"
+        : hero.id === "vela" ? "hue-rotate(75deg) saturate(1.9) brightness(1.08)"
+          : hero.id === "becchino" ? "grayscale(1) brightness(1.5) contrast(1.08)"
+            : "hue-rotate(315deg) saturate(1.55) brightness(1.1)";
+      const shadow = performanceMode !== "mobile" ? ` drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 5px ${fighter.bot ? "rgba(255,38,64,.42)" : hero.color})` : "";
+      ctx.filter = fighter.flash > 0 ? "brightness(2.4) saturate(.35)" : `${heroTone}${shadow}`;
       drawSheetCell(directionSheet, frame, -spriteWidth / 2, spriteTop, spriteWidth, spriteHeight);
       ctx.filter = "none";
     } else if (fallbackSprite.complete && fallbackSprite.naturalWidth) {
@@ -1939,15 +2182,16 @@
     game.shards.forEach((shard) => { if (visible(shard.x, shard.y, 40)) drawShard(shard, t); });
 
     const drawables = [];
-    game.obstacles.forEach((obstacle) => drawables.push({ y: obstacle.y + obstacle.h, type: "obstacle", value: obstacle }));
+    if (game.mode !== "infinite" && game.mode !== "boss") game.obstacles.forEach((obstacle) => drawables.push({ y: obstacle.y + obstacle.h, type: "obstacle", value: obstacle }));
     game.bullets.forEach((bullet) => drawables.push({ y: bullet.y, type: "bullet", value: bullet }));
-    game.fighters.forEach((fighter) => { if (fighter.alive) drawables.push({ y: fighter.y, type: "fighter", value: fighter }); });
+    game.fighters.forEach((fighter) => { if (fighter.alive && fighter !== game.player) drawables.push({ y: fighter.y, type: "fighter", value: fighter }); });
     drawables.sort((a, b) => a.y - b.y);
     for (const item of drawables) {
       if (item.type === "fighter") drawFighter(item.value, t);
       else if (item.type === "bullet") drawBullet(item.value);
       else drawObstacle(item.value, map);
     }
+    if (game.player?.alive) drawFighter(game.player, t);
     drawPlayerBeacon(t);
     drawParticles();
     drawFog(map, t);
