@@ -1785,7 +1785,7 @@ h3 {
 .deepbite-ocean::after { position: absolute; inset: 0; background: radial-gradient(circle at 45% 35%, transparent 35%, rgba(0,12,46,.42)); content: ""; pointer-events: none; }
 .db-fish, .db-coral { position: absolute; z-index: 2; display: block; background-image: url("videogames/deepbite/assets/ocean-atlas.webp"); background-repeat: no-repeat; background-size: 400% 300%; filter: drop-shadow(0 8px 6px rgba(0,15,39,.45)); }
 .db-small { left: 10%; top: 25%; width: 16%; aspect-ratio: 4 / 3; background-position: 0 0; animation: db-swim 3s ease-in-out infinite; }
-.db-player { left: 39%; top: 34%; width: 25%; aspect-ratio: 4 / 3; background-position: 33.333% 0; animation: db-swim 2.2s ease-in-out -.8s infinite; }
+.db-player { left: 39%; top: 34%; width: 25%; aspect-ratio: 4 / 3; background-position: 66.666% 0; animation: db-swim 2.2s ease-in-out -.8s infinite; }
 .db-shark { right: -2%; top: 13%; width: 38%; aspect-ratio: 4 / 3; background-position: 0 50%; transform: scaleX(-1); }
 .db-jelly { left: 18%; bottom: 3%; width: 17%; aspect-ratio: 4 / 3; background-position: 33.333% 50%; animation: db-float 2.5s ease-in-out infinite; }
 .db-coral { z-index: 1; right: 8%; bottom: -10%; width: 22%; aspect-ratio: 4 / 3; background-position: 0 100%; }

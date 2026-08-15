@@ -16,7 +16,7 @@
   };
 
   const input = { x: 0, y: 0, keys: new Set(), pointer: null };
-  const state = { running: false, paused: false, last: 0, time: 0, score: 0, eaten: 0, camera: { x: 0, y: 0 }, player: null, creatures: [], particles: [], pattern: null, messageTimer: 0, spawnTimer: 0 };
+  const state = { running: false, paused: false, last: 0, time: 0, score: 0, eaten: 0, camera: { x: 0, y: 0 }, player: null, creatures: [], obstacles: [], particles: [], pattern: null, messageTimer: 0, spawnTimer: 0 };
   let vw = innerWidth;
   let vh = innerHeight;
   let dpr = 1;
@@ -65,33 +65,35 @@
     ui.message.textContent = text; ui.message.classList.add("show"); state.messageTimer = 1.15;
   }
 
-  function makeCreature(force = false) {
-    const angle = random(0, TAU);
-    const radius = force ? random(100, Math.max(vw, vh) * .72) : random(Math.max(vw, vh) * .62, Math.max(vw, vh) * .9);
-    const x = state.player.x + Math.cos(angle) * radius;
-    const y = state.player.y + Math.sin(angle) * radius;
+  function makeCreature(initial = false) {
     const roll = Math.random();
-    let kind = "fish";
-    if (roll > .91) kind = "jelly";
-    else if (roll > .84 && state.time > 12) kind = "shark";
-    const playerSize = state.player.size;
-    let size;
-    if (kind === "jelly") size = random(25, 42);
-    else if (kind === "shark") size = Math.max(58, playerSize * random(1.35, 2.05));
-    else {
-      const biasSmall = Math.random() < .64;
-      size = biasSmall ? random(11, Math.max(14, playerSize * .76)) : random(playerSize * 1.12, playerSize * 1.9);
-    }
-    const heading = random(0, TAU);
-    return { kind, x, y, size, vx: Math.cos(heading), vy: Math.sin(heading), heading, speed: kind === "shark" ? random(72, 104) : random(34, 76), phase: random(0, TAU), turn: random(-.6, .6), alive: true };
+    const kind = roll < .64 ? "small" : roll < .77 ? "piranha" : roll < .87 ? "shark" : roll < .94 ? "lionfish" : "jelly";
+    const size = kind === "small" ? random(12, 23) : kind === "piranha" ? random(30, 43) : kind === "shark" ? random(52, 72) : kind === "lionfish" ? random(36, 49) : random(27, 40);
+    const x = initial ? state.camera.x + random(vw * .35, vw * 1.7) : state.camera.x + vw * .62 + random(100, 360);
+    const y = random(kind === "jelly" ? 0 : -vh * .36, vh * .34);
+    return { kind, x, y, size, heading: Math.PI, speed: kind === "small" ? random(72, 112) : kind === "shark" ? random(115, 155) : random(92, 136), phase: random(0, TAU), alive: true };
+  }
+
+  function makeObstacle(initial = false) {
+    const roll = Math.random();
+    const kind = roll < .45 ? "coral" : roll < .78 ? "shell" : "treasure";
+    return { kind, x: initial ? state.camera.x + random(vw * .35, vw * 2.1) : state.camera.x + vw * .62 + random(160, 520), y: vh * .39, size: kind === "coral" ? random(54, 76) : kind === "shell" ? random(42, 59) : random(47, 62), phase: random(0, TAU), alive: true };
   }
 
   function reset() {
     state.time = 0; state.score = 0; state.eaten = 0; state.spawnTimer = 0; state.messageTimer = 0;
-    state.player = { x: 0, y: 0, size: 30, angle: 0, speed: 0, pulse: 0, alive: true };
-    state.camera.x = 0; state.camera.y = 0; state.creatures.length = 0; state.particles.length = 0;
-    const target = isMobile ? 42 : 62;
+    state.player = { x: -vw * .2, y: 0, size: 30, angle: 0, speed: 0, pulse: 0, alive: true };
+    state.camera.x = 0; state.camera.y = 0; state.creatures.length = 0; state.obstacles.length = 0; state.particles.length = 0;
+    const target = isMobile ? 15 : 22;
     for (let i = 0; i < target; i += 1) state.creatures.push(makeCreature(true));
+    ["small", "piranha", "shark", "lionfish", "jelly"].forEach((kind, index) => {
+      const creature = state.creatures[index];
+      if (!creature) return;
+      creature.kind = kind;
+      creature.size = kind === "small" ? 17 : kind === "piranha" ? 37 : kind === "shark" ? 62 : kind === "lionfish" ? 42 : 34;
+    });
+    for (let i = 0; i < (isMobile ? 5 : 7); i += 1) state.obstacles.push(makeObstacle(true));
+    ["coral", "shell", "treasure"].forEach((kind, index) => { if (state.obstacles[index]) state.obstacles[index].kind = kind; });
     updateHud();
   }
 
@@ -106,7 +108,12 @@
     if (!state.running) return;
     state.running = false; state.player.alive = false; sound("death"); burst(state.player.x, state.player.y, "#8ef7ff", 26);
     best = Math.max(best, state.score); localStorage.setItem("deepbite-best", String(best));
-    ui.endTitle.textContent = reason === "jelly" ? "MEDUSA VELENOSA!" : reason === "shark" ? "LO SQUALO TI HA PRESO" : "SEI STATO MANGIATO";
+    ui.endTitle.textContent = reason === "jelly" ? "MEDUSA VELENOSA!"
+      : reason === "shark" ? "LO SQUALO TI HA PRESO"
+        : reason === "piranha" ? "MORSO DAL PIRANHA!"
+          : reason === "lionfish" ? "PESCE VELENOSO!"
+            : reason === "coral" ? "CONTRO IL CORALLO!"
+              : reason === "shell" ? "CONCHIGLIA FATALE!" : "SEI STATO MANGIATO";
     ui.finalScore.textContent = state.score.toLocaleString("it-IT"); ui.finalSize.textContent = `Taglia raggiunta: ${(state.player.size / 30).toFixed(1)}× · ${state.eaten} pesci mangiati`;
     show(ui.over, true); show(ui.hud, false); ui.mobile.classList.remove("active");
   }
@@ -125,51 +132,45 @@
     state.time += dt;
     const player = state.player;
     const move = updateInput();
-    const amount = Math.hypot(move.x, move.y);
-    if (amount > .08) {
-      const targetAngle = Math.atan2(move.y, move.x);
-      let delta = ((targetAngle - player.angle + Math.PI) % TAU + TAU) % TAU - Math.PI;
-      player.angle += delta * Math.min(1, dt * 13);
-      const maxSpeed = clamp(285 - (player.size - 30) * .75, 145, 285);
-      player.speed += (maxSpeed * amount - player.speed) * Math.min(1, dt * 15);
-    } else player.speed *= Math.pow(.001, dt);
-    player.x += Math.cos(player.angle) * player.speed * dt;
-    player.y += Math.sin(player.angle) * player.speed * dt;
+    const scrollSpeed = Math.min(245, 128 + state.time * 1.25);
+    state.camera.x += scrollSpeed * dt;
+    player.speed += (move.x * 150 - player.speed) * Math.min(1, dt * 13);
+    player.x += (scrollSpeed + player.speed) * dt;
+    player.y += move.y * 245 * dt;
+    player.x = clamp(player.x, state.camera.x - vw * .36, state.camera.x + vw * .22);
+    player.y = clamp(player.y, -vh * .4, vh * .33);
+    player.angle += (move.y * .2 - player.angle) * Math.min(1, dt * 10);
     player.pulse = Math.max(0, player.pulse - dt);
-    state.camera.x += (player.x - state.camera.x) * Math.min(1, dt * 8);
-    state.camera.y += (player.y - state.camera.y) * Math.min(1, dt * 8);
 
     for (const fish of state.creatures) {
-      fish.phase += dt * (fish.kind === "jelly" ? 2.2 : 4.5);
-      const dx = player.x - fish.x, dy = player.y - fish.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const dangerous = fish.kind === "shark" || (fish.kind === "fish" && fish.size > player.size * 1.08);
-      const prey = fish.kind === "fish" && fish.size < player.size * .86;
-      let desired = fish.heading + fish.turn * dt;
-      if (dangerous && dist < 520) desired = Math.atan2(dy, dx);
-      else if (prey && dist < 360) desired = Math.atan2(-dy, -dx);
-      let turn = ((desired - fish.heading + Math.PI) % TAU + TAU) % TAU - Math.PI;
-      fish.heading += turn * Math.min(1, dt * (fish.kind === "shark" ? 2.2 : 1.5));
-      const speedBoost = dangerous && dist < 520 ? 1.38 : prey && dist < 360 ? 1.22 : 1;
+      fish.phase += dt * (fish.kind === "jelly" ? 2.2 : 5);
       if (fish.kind === "jelly") {
-        fish.x += Math.cos(fish.heading) * fish.speed * .34 * dt;
-        fish.y += (Math.sin(fish.heading) * fish.speed * .25 + Math.sin(fish.phase) * 13) * dt;
+        fish.x -= fish.speed * .28 * dt;
+        fish.y += Math.sin(fish.phase) * 10 * dt;
       } else {
-        fish.x += Math.cos(fish.heading) * fish.speed * speedBoost * dt;
-        fish.y += Math.sin(fish.heading) * fish.speed * speedBoost * dt;
+        fish.x -= fish.speed * dt;
+        fish.y += Math.sin(fish.phase * .55) * 5 * dt;
       }
 
-      if (dist < player.size * .56 + fish.size * .5) {
-        if (fish.kind === "jelly") { end("jelly"); return; }
-        if (dangerous) { end(fish.kind === "shark" ? "shark" : "fish"); return; }
-        if (prey) eat(fish);
+      if (distance(fish, player) < player.size * .55 + fish.size * .48) {
+        if (fish.kind === "small") eat(fish);
+        else { end(fish.kind); return; }
       }
     }
 
-    const recycleDistance = Math.max(vw, vh) * 1.2 + 500;
-    state.creatures = state.creatures.filter((fish) => fish.alive && distance(fish, player) < recycleDistance);
-    const target = isMobile ? 42 : 62;
+    for (const object of state.obstacles) {
+      if (!object.alive) continue;
+      if (distance(object, player) < player.size * .52 + object.size * .38) {
+        if (object.kind === "treasure") collectTreasure(object);
+        else { end(object.kind); return; }
+      }
+    }
+
+    state.creatures = state.creatures.filter((fish) => fish.alive && fish.x > state.camera.x - vw * .7);
+    state.obstacles = state.obstacles.filter((object) => object.alive && object.x > state.camera.x - vw * .7);
+    const target = isMobile ? 15 : 22;
     while (state.creatures.length < target) state.creatures.push(makeCreature());
+    while (state.obstacles.length < (isMobile ? 5 : 7)) state.obstacles.push(makeObstacle());
     updateParticles(dt);
     if (state.messageTimer > 0 && (state.messageTimer -= dt) <= 0) ui.message.classList.remove("show");
     updateHud();
@@ -179,9 +180,14 @@
     fish.alive = false; state.eaten += 1;
     const gain = Math.max(1, Math.round(fish.size)); state.score += gain;
     const previousTier = Math.floor(state.player.size / 18);
-    state.player.size = Math.min(150, Math.sqrt(state.player.size ** 2 + fish.size ** 2 * .16));
+    state.player.size = Math.min(105, state.player.size + 1.15 + fish.size * .035);
     state.player.pulse = .2; sound("bite"); burst(fish.x, fish.y, "#ffe45d", 9);
     if (Math.floor(state.player.size / 18) > previousTier) { sound("grow"); announce("SEI DIVENTATO PIÙ GRANDE!"); }
+  }
+
+  function collectTreasure(object) {
+    object.alive = false; state.score += 75; state.player.size = Math.min(105, state.player.size + 4.5); state.player.pulse = .24;
+    sound("grow"); burst(object.x, object.y, "#ffe45d", 16); announce("TESORO! CRESCITA EXTRA");
   }
 
   function burst(x, y, color, count) {
@@ -223,18 +229,16 @@
   function visible(x, y, margin = 100) { const p = worldToScreen(x, y); return p.x > -margin && p.x < vw + margin && p.y > -margin && p.y < vh + margin; }
 
   function drawDecor() {
-    const chunk = 560;
-    const cx = Math.floor(state.camera.x / chunk), cy = Math.floor(state.camera.y / chunk);
-    for (let oy = -2; oy <= 2; oy += 1) for (let ox = -2; ox <= 2; ox += 1) {
-      const gx = cx + ox, gy = cy + oy;
-      for (let i = 0; i < 4; i += 1) {
-        const x = gx * chunk + 45 + hash(gx, gy, i * 4) * (chunk - 90);
-        const y = gy * chunk + 45 + hash(gx, gy, i * 4 + 1) * (chunk - 90);
-        if (!visible(x, y, 120)) continue;
-        const p = worldToScreen(x, y); const roll = hash(gx, gy, i * 4 + 2); const index = roll < .35 ? 8 : roll < .62 ? 9 : roll < .76 ? 10 : 11;
-        const size = 52 + hash(gx, gy, i * 4 + 3) * 42;
-        ctx.save(); ctx.globalAlpha = .7; atlasCell(index, p.x, p.y, size * 1.28, size); ctx.restore();
-      }
+    const floorY = vh * .88;
+    const floor = ctx.createLinearGradient(0, floorY - 80, 0, vh);
+    floor.addColorStop(0, "rgba(7,72,98,0)"); floor.addColorStop(.35, "rgba(7,54,73,.42)"); floor.addColorStop(1, "rgba(2,25,42,.82)");
+    ctx.fillStyle = floor; ctx.fillRect(0, floorY - 80, vw, 120);
+    for (const object of state.obstacles) {
+      if (!object.alive || !visible(object.x, object.y, 100)) continue;
+      const p = worldToScreen(object.x, object.y);
+      const index = object.kind === "coral" ? 8 : object.kind === "shell" ? 9 : 10;
+      const bob = object.kind === "treasure" ? Math.sin(state.time * 2.4 + object.phase) * 4 : 0;
+      atlasCell(index, p.x, p.y + bob, object.size * 1.32, object.size);
     }
   }
 
@@ -246,10 +250,9 @@
     let index, ratio;
     if (fish.kind === "jelly") { index = fish.phase % TAU > Math.PI ? 5 : 6; ratio = .8; }
     else if (fish.kind === "shark") { index = 4; ratio = 1.75; }
-    else if (fish.size < 24) { index = 0; ratio = 1.42; }
-    else if (fish.size < 43) { index = 1; ratio = 1.38; }
-    else if (fish.size < 70) { index = 2; ratio = 1.45; }
-    else { index = fish.size > 95 ? 3 : 7; ratio = 1.45; }
+    else if (fish.kind === "small") { index = fish.size < 18 ? 0 : 1; ratio = 1.42; }
+    else if (fish.kind === "lionfish") { index = 7; ratio = 1.45; }
+    else { index = 3; ratio = 1.45; }
     if (fish.kind !== "jelly") ctx.rotate(flip ? -fish.heading + Math.PI : fish.heading);
     const height = fish.size * 1.6; atlasCell(index, 0, 0, height * ratio, height, flip);
     ctx.restore();
@@ -261,7 +264,7 @@
     const pulse = player.pulse > 0 ? 1.12 : 1; ctx.scale(pulse, pulse);
     ctx.fillStyle = "rgba(0,8,28,.34)"; ctx.beginPath(); ctx.ellipse(5, player.size * .48, player.size * 1.05, player.size * .35, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = "rgba(118,249,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, player.size * .5, player.size * 1.12, player.size * .42, 0, 0, TAU); ctx.stroke();
-    const index = player.size < 46 ? 0 : player.size < 78 ? 1 : player.size < 112 ? 2 : 3;
+    const index = 2;
     const height = player.size * 2.05; ctx.filter = "drop-shadow(0 8px 6px rgba(0,16,40,.48)) drop-shadow(0 0 7px rgba(68,243,255,.5))"; atlasCell(index, 0, 0, height * 1.43, height, flip); ctx.filter = "none";
     ctx.restore();
   }
