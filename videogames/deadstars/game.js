@@ -205,7 +205,7 @@
       const saved = localStorage.getItem("deadstars-quality");
       if (["low", "medium", "high"].includes(saved)) return saved;
     } catch (_) {}
-    return (FORCE_MOBILE || matchMedia("(pointer: coarse)").matches) ? "low" : "high";
+    return "medium";
   }
 
   function setQuality(value) {
@@ -598,10 +598,8 @@
     const rng = seededRandom(game.matchSeed);
     game.obstacles = [];
     game.decor = [];
-    game.lavaRivers = game.selectedMap === "cemetery" ? [
-      { width: 58, points: [[-70, 735], [190, 705], [410, 625], [650, 675], [860, 805]] },
-      { width: 64, points: [[1515, 990], [1735, 1060], [1960, 985], [2200, 1045], [2470, 955]] },
-    ] : [];
+    // Keep every arena readable: the old broad lava bands looked like roads.
+    game.lavaRivers = [];
     const addObstacle = (x, y, w, h, type) => game.obstacles.push({ x, y, w, h, type });
 
     // A symmetrical, readable battlefield with safe spawn lanes.
@@ -1942,9 +1940,16 @@
       const isCreature = creatureIndex < 4;
       const pulse = Math.sin(t * (creatureIndex < 2 ? 2.8 : 5.2) + (item.phase || 0));
       const sizes = creatureIndex < 4 ? [78, 104] : creatureIndex === 7 ? [112, 149] : [94, 125];
-      if (isCreature) ctx.translate(Math.cos(t * 1.7 + item.phase) * 3.5, Math.sin(t * 1.35 + item.phase) * 2.5);
-      ctx.rotate((item.rot || 0) + (isCreature ? pulse * .045 : 0));
-      ctx.scale(item.size * (1 + (isCreature ? pulse * .018 : 0)), item.size * (1 - (isCreature ? pulse * .012 : 0)));
+      if (isCreature) {
+        const isSnake = creatureIndex < 2;
+        const travel = isSnake ? 8 : 6;
+        ctx.translate(
+          Math.cos(t * (isSnake ? 1.45 : 2.35) + item.phase) * travel,
+          Math.sin(t * (isSnake ? 1.1 : 2.05) + item.phase) * travel * .58,
+        );
+      }
+      ctx.rotate((item.rot || 0) + (isCreature ? pulse * (creatureIndex < 2 ? .1 : .075) : 0));
+      ctx.scale(item.size * (1 + (isCreature ? pulse * .025 : 0)), item.size * (1 - (isCreature ? pulse * .018 : 0)));
       ctx.fillStyle = creatureIndex === 6 ? "rgba(255,75,17,.38)" : "rgba(2,7,3,.44)";
       ctx.beginPath(); ctx.ellipse(5, 19, sizes[0] * .34, 10, 0, 0, TAU); ctx.fill();
       if (performanceMode !== "mobile") {
