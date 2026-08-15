@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#031c3b" />
+    <meta name="description" content="DeepBite — mangia, cresci e sopravvivi in un oceano infinito." />
+    <title>DeepBite — Grow or be eaten</title>
+    <link rel="stylesheet" href="style.css?v=1" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Oceano infinito di DeepBite"></canvas>
+
+      <section id="menu" class="screen active">
+        <div class="bubble-field" aria-hidden="true"></div>
+        <div class="menu-card">
+          <p class="eyebrow">OCEANO INFINITO</p>
+          <h1>DEEP<span>BITE</span></h1>
+          <p class="tagline">CRESCI O VIENI MANGIATO</p>
+          <div class="hero-fish" aria-hidden="true"></div>
+          <p class="intro">Mangia i pesci più piccoli, fuggi da quelli più grandi e non toccare le meduse.</p>
+          <div class="rules">
+            <span>🐟 Piccoli = cibo</span><span>🦈 Grandi = pericolo</span><span>🪼 Meduse = morte</span>
+          </div>
+          <button id="play-btn" class="primary">GIOCA</button>
+          <p class="controls-hint">PC: frecce o WASD · iPhone: joystick</p>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="brand">DEEP<span>BITE</span></div>
+        <div class="stat"><small>PUNTI</small><b id="score">0</b></div>
+        <div class="stat"><small>TAGLIA</small><b id="size">1.0×</b></div>
+        <div class="stat record"><small>RECORD</small><b id="record">0</b></div>
+        <button id="pause-btn" class="round-btn" aria-label="Pausa">Ⅱ</button>
+      </section>
+
+      <div id="message" class="message" aria-live="polite"></div>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card">
+          <p class="eyebrow">L'OCEANO HA VINTO</p>
+          <h2 id="end-title">SEI STATO MANGIATO</h2>
+          <div class="final-score"><small>PUNTEGGIO</small><strong id="final-score">0</strong></div>
+          <p id="final-size">Taglia raggiunta: 1.0×</p>
+          <button id="again-btn" class="primary">RIVINCITA</button>
+          <button id="home-btn" class="secondary">MENU</button>
+        </div>
+      </section>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">PAUSA</p>
+          <h2>RESTIAMO A GALLA?</h2>
+          <button id="resume-btn" class="primary">CONTINUA</button>
+          <button id="quit-btn" class="secondary">TORNA AL MENU</button>
+        </div>
+      </section>
+
+      <div id="mobile-controls" aria-hidden="true">
+        <div id="joystick" class="joystick"><div id="stick"></div></div>
+      </div>
+    </main>
+    <script src="game.js?v=1"></script>
+  </body>
+</html>

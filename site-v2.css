@@ -1770,6 +1770,31 @@ h3 {
   }
 }
 
+.deepbite-showcase { border-color: #087fbb; background: #03182f; }
+.deepbite-showcase .game-copy { background: radial-gradient(circle at 15% 18%, rgba(41,220,240,.16), transparent 34%), radial-gradient(circle at 92% 82%, rgba(255,213,57,.1), transparent 33%), #03182f; }
+.game-copy h3.deepbite-title { width: 100%; color: #f3fdff; font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; font-size: clamp(3rem, 5.5vw, 5.3rem); font-weight: 900; letter-spacing: -.035em; line-height: .78; }
+.deepbite-title span { display: block; color: #ffd94d; text-shadow: 0 0 28px rgba(255,217,77,.24); }
+.deepbite-title small { display: block; margin-top: 1.15rem; color: #59efff; font: 850 .15em/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .2em; }
+.game-showcase .deepbite-button { border-color: #5cefff; background: linear-gradient(135deg, #5cefff, #078aca); color: #02172c; }
+.game-showcase .deepbite-button:hover { background: #ffd94d; color: #10223a; }
+.deepbite-preview { overflow: hidden; background: linear-gradient(155deg, #075688, #02152f 75%); color: #d7fbff; }
+.deepbite-preview::before { background: radial-gradient(circle at 50% 32%, rgba(71,238,255,.15), transparent 34%); }
+.deepbite-preview .game-preview-label, .deepbite-preview .game-route { color: #93dce8; }
+.deepbite-preview .game-preview-label::after { background: #ffd94d; color: #082542; }
+.deepbite-ocean { position: relative; display: block; overflow: hidden; aspect-ratio: 16 / 9; margin-block: clamp(2rem, 6vw, 5rem) 2rem; border: 1px solid #25b8df; border-radius: .9rem; background: linear-gradient(rgba(3,41,83,.12), rgba(0,16,51,.38)), url("videogames/deepbite/assets/ocean-water.webp") center / cover; box-shadow: 0 25px 58px rgba(0,0,0,.45), inset 0 0 55px rgba(0,19,58,.35); }
+.deepbite-ocean::after { position: absolute; inset: 0; background: radial-gradient(circle at 45% 35%, transparent 35%, rgba(0,12,46,.42)); content: ""; pointer-events: none; }
+.db-fish, .db-coral { position: absolute; z-index: 2; display: block; background-image: url("videogames/deepbite/assets/ocean-atlas.webp"); background-repeat: no-repeat; background-size: 400% 300%; filter: drop-shadow(0 8px 6px rgba(0,15,39,.45)); }
+.db-small { left: 10%; top: 25%; width: 16%; aspect-ratio: 4 / 3; background-position: 0 0; animation: db-swim 3s ease-in-out infinite; }
+.db-player { left: 39%; top: 34%; width: 25%; aspect-ratio: 4 / 3; background-position: 33.333% 0; animation: db-swim 2.2s ease-in-out -.8s infinite; }
+.db-shark { right: -2%; top: 13%; width: 38%; aspect-ratio: 4 / 3; background-position: 0 50%; transform: scaleX(-1); }
+.db-jelly { left: 18%; bottom: 3%; width: 17%; aspect-ratio: 4 / 3; background-position: 33.333% 50%; animation: db-float 2.5s ease-in-out infinite; }
+.db-coral { z-index: 1; right: 8%; bottom: -10%; width: 22%; aspect-ratio: 4 / 3; background-position: 0 100%; }
+@keyframes db-swim { 50% { translate: 12px -5px; rotate: -2deg; } }
+@keyframes db-float { 50% { translate: 0 -10px; scale: 1.03 .96; } }
+.deepbite-preview .game-route i { background: #12799d; }
+.deepbite-preview .game-route i::after { background: #5cefff; }
+@media (prefers-reduced-motion: reduce) { .db-fish { animation: none; } }
+
 
 /* MIND JACKPOT */
 .jackpot-showcase {
