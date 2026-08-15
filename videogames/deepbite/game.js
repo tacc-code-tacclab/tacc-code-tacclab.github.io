@@ -65,9 +65,13 @@
     ui.message.textContent = text; ui.message.classList.add("show"); state.messageTimer = 1.15;
   }
 
-  function makeCreature(initial = false) {
+  function makeCreature(initial = false, forcedKind = null) {
     const roll = Math.random();
-    const kind = roll < .64 ? "small" : roll < .77 ? "piranha" : roll < .87 ? "shark" : roll < .94 ? "lionfish" : "jelly";
+    let kind;
+    if (forcedKind) kind = forcedKind;
+    else if (state.time < 12) kind = roll < .92 ? "small" : roll < .96 ? "piranha" : "jelly";
+    else if (state.time < 35) kind = roll < .78 ? "small" : roll < .87 ? "piranha" : roll < .91 ? "shark" : roll < .95 ? "lionfish" : "jelly";
+    else kind = roll < .64 ? "small" : roll < .77 ? "piranha" : roll < .87 ? "shark" : roll < .94 ? "lionfish" : "jelly";
     const size = kind === "small" ? random(12, 23) : kind === "piranha" ? random(30, 43) : kind === "shark" ? random(52, 72) : kind === "lionfish" ? random(36, 49) : random(27, 40);
     const x = initial ? state.camera.x + random(vw * .35, vw * 1.7) : state.camera.x + vw * .62 + random(100, 360);
     const y = random(kind === "jelly" ? 0 : -vh * .36, vh * .34);
@@ -80,20 +84,26 @@
     return { kind, x: initial ? state.camera.x + random(vw * .35, vw * 2.1) : state.camera.x + vw * .62 + random(160, 520), y: vh * .39, size: kind === "coral" ? random(54, 76) : kind === "shell" ? random(42, 59) : random(47, 62), phase: random(0, TAU), alive: true };
   }
 
+  function creatureTarget() {
+    const base = isMobile ? 8 : 10;
+    const maximum = isMobile ? 15 : 22;
+    return Math.min(maximum, base + Math.floor(state.time / 14) * (isMobile ? 1 : 2));
+  }
+
+  function obstacleTarget() {
+    const base = 3;
+    const maximum = isMobile ? 5 : 7;
+    return Math.min(maximum, base + Math.floor(state.time / 25));
+  }
+
   function reset() {
     state.time = 0; state.score = 0; state.eaten = 0; state.spawnTimer = 0; state.messageTimer = 0;
     state.player = { x: -vw * .2, y: 0, size: 30, angle: 0, speed: 0, pulse: 0, alive: true };
     state.camera.x = 0; state.camera.y = 0; state.creatures.length = 0; state.obstacles.length = 0; state.particles.length = 0;
-    const target = isMobile ? 15 : 22;
-    for (let i = 0; i < target; i += 1) state.creatures.push(makeCreature(true));
-    ["small", "piranha", "shark", "lionfish", "jelly"].forEach((kind, index) => {
-      const creature = state.creatures[index];
-      if (!creature) return;
-      creature.kind = kind;
-      creature.size = kind === "small" ? 17 : kind === "piranha" ? 37 : kind === "shark" ? 62 : kind === "lionfish" ? 42 : 34;
+    for (let i = 0; i < creatureTarget(); i += 1) state.creatures.push(makeCreature(true, "small"));
+    ["treasure", "coral", "shell"].forEach((kind, index) => {
+      const object = makeObstacle(true); object.kind = kind; object.x = vw * (.75 + index * .58); state.obstacles.push(object);
     });
-    for (let i = 0; i < (isMobile ? 5 : 7); i += 1) state.obstacles.push(makeObstacle(true));
-    ["coral", "shell", "treasure"].forEach((kind, index) => { if (state.obstacles[index]) state.obstacles[index].kind = kind; });
     updateHud();
   }
 
@@ -132,7 +142,7 @@
     state.time += dt;
     const player = state.player;
     const move = updateInput();
-    const scrollSpeed = Math.min(245, 128 + state.time * 1.25);
+    const scrollSpeed = Math.min(235, 112 + state.time * 1.05);
     state.camera.x += scrollSpeed * dt;
     player.speed += (move.x * 150 - player.speed) * Math.min(1, dt * 13);
     player.x += (scrollSpeed + player.speed) * dt;
@@ -168,9 +178,9 @@
 
     state.creatures = state.creatures.filter((fish) => fish.alive && fish.x > state.camera.x - vw * .7);
     state.obstacles = state.obstacles.filter((object) => object.alive && object.x > state.camera.x - vw * .7);
-    const target = isMobile ? 15 : 22;
+    const target = creatureTarget();
     while (state.creatures.length < target) state.creatures.push(makeCreature());
-    while (state.obstacles.length < (isMobile ? 5 : 7)) state.obstacles.push(makeObstacle());
+    while (state.obstacles.length < obstacleTarget()) state.obstacles.push(makeObstacle());
     updateParticles(dt);
     if (state.messageTimer > 0 && (state.messageTimer -= dt) <= 0) ui.message.classList.remove("show");
     updateHud();
