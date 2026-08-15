@@ -2298,8 +2298,14 @@
         : hero.id === "vela" ? "sepia(1) saturate(7) hue-rotate(5deg) brightness(1.25)"
           : hero.id === "becchino" ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(.95)"
             : "hue-rotate(315deg) saturate(1.55) brightness(1.1)";
-      const coloredSheet = tintedSheet(directionSheet, `${fighter.bot ? "enemy" : "player"}-${fighter.isBoss ? "boss" : hero.id}`, heroTone);
-      if (fighter.flash > 0) ctx.filter = "brightness(2.4) saturate(.35)";
+      // iOS may purge an offscreen canvas while retaining its JS object. Draw the
+      // player's original image directly on mobile so it can always be re-decoded.
+      const directMobilePlayer = performanceMode === "mobile" && isPlayer;
+      const coloredSheet = directMobilePlayer
+        ? directionSheet
+        : tintedSheet(directionSheet, `${fighter.bot ? "enemy" : "player"}-${fighter.isBoss ? "boss" : hero.id}`, heroTone);
+      if (directMobilePlayer) ctx.filter = fighter.flash > 0 ? `${heroTone} brightness(2.1)` : heroTone;
+      else if (fighter.flash > 0) ctx.filter = "brightness(2.4) saturate(.35)";
       else if (performanceMode !== "mobile") ctx.filter = `drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 5px ${fighter.bot ? "rgba(255,38,64,.42)" : hero.color})`;
       drawSheetCell(coloredSheet, frame, -spriteWidth / 2, spriteTop, spriteWidth, spriteHeight);
       ctx.filter = "none";
