@@ -195,8 +195,27 @@
   let performanceMode = "desktop";
   let record = loadRecord();
   let economy = loadEconomy();
+  let graphicsQuality = loadQuality();
 
   function cameraZoom() { return performanceMode === "mobile" ? .76 : 1; }
+
+  function loadQuality() {
+    try {
+      const saved = localStorage.getItem("deadstars-quality");
+      if (["low", "medium", "high"].includes(saved)) return saved;
+    } catch (_) {}
+    return (FORCE_MOBILE || matchMedia("(pointer: coarse)").matches) ? "low" : "high";
+  }
+
+  function setQuality(value) {
+    if (!["low", "medium", "high"].includes(value)) return;
+    graphicsQuality = value;
+    try { localStorage.setItem("deadstars-quality", value); } catch (_) {}
+    proceduralChunkCache.clear();
+    document.querySelectorAll("[data-quality]").forEach((button) => button.classList.toggle("selected", button.dataset.quality === value));
+    resize();
+    shopMessage(`Qualità ${value === "low" ? "bassa · massima velocità" : value === "medium" ? "media" : "alta · massimo dettaglio"}`);
+  }
 
   function clearTouchInput() {
     input.keys.clear();
@@ -379,6 +398,8 @@
       shopMessage(`${id === "armor" ? "Armatura" : "Arma"} equipaggiata`);
       sound("collect");
     }));
+    document.querySelectorAll("[data-quality]").forEach((button) => button.addEventListener("click", () => setQuality(button.dataset.quality)));
+    document.querySelectorAll("[data-quality]").forEach((button) => button.classList.toggle("selected", button.dataset.quality === graphicsQuality));
     document.querySelector("#how-btn").addEventListener("click", () => show(ui.how));
     document.querySelectorAll("[data-close='how']").forEach((button) => button.addEventListener("click", () => show(ui.how, false)));
     bindAction(ui.pauseBtn, pauseGame);
@@ -396,11 +417,16 @@
     vw = innerWidth;
     vh = innerHeight;
     performanceMode = isTouchLayout() ? "mobile" : "desktop";
-    dpr = Math.min(devicePixelRatio || 1, performanceMode === "mobile" ? 1.25 : 1.65);
+    const qualityCap = graphicsQuality === "low" ? (performanceMode === "mobile" ? .72 : 1)
+      : graphicsQuality === "medium" ? (performanceMode === "mobile" ? 1 : 1.25)
+        : (performanceMode === "mobile" ? 1.25 : 1.65);
+    dpr = Math.min(devicePixelRatio || 1, qualityCap);
     canvas.width = Math.round(vw * dpr);
     canvas.height = Math.round(vh * dpr);
     canvas.style.width = `${vw}px`;
     canvas.style.height = `${vh}px`;
+    canvas.classList.toggle("pixelated", graphicsQuality === "low");
+    ctx.imageSmoothingEnabled = graphicsQuality !== "low";
     if (game.scene === "playing") show(ui.mobile, isTouchLayout());
   }
 
@@ -645,7 +671,8 @@
     const ox = cx * chunk;
     const oy = cy * chunk;
     const structures = [];
-    if (infiniteHash(cx, cy, 701) > .35) {
+    const structureThreshold = graphicsQuality === "low" ? .58 : graphicsQuality === "medium" ? .4 : .28;
+    if (infiniteHash(cx, cy, 701) > structureThreshold) {
       const types = ["mausoleum-art", "church-art", "castle-art", "gate-art", "grave-art", "cross-art", "coffin-art", "stone-wall-art"];
       const type = types[Math.floor(infiniteHash(cx, cy, 702) * types.length)];
       structures.push({
@@ -658,7 +685,7 @@
     }
     const propTypes = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well", "pit"];
     const props = [];
-    const propCount = performanceMode === "mobile" ? 5 : 7;
+    const propCount = graphicsQuality === "low" ? 3 : graphicsQuality === "medium" ? 5 : 7;
     for (let i = 0; i < propCount; i += 1) {
       props.push({
         x: ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110),
@@ -1153,7 +1180,8 @@
   }
 
   function burst(x, y, color, count = 8, speed = 100) {
-    const fxCount = performanceMode === "mobile" ? Math.max(2, Math.ceil(count * .58)) : count;
+    const fxRatio = graphicsQuality === "low" ? .28 : graphicsQuality === "medium" ? .58 : 1;
+    const fxCount = Math.max(2, Math.ceil(count * (performanceMode === "mobile" ? fxRatio : Math.max(.55, fxRatio))));
     for (let i = 0; i < fxCount; i += 1) {
       const angle = Math.random() * TAU;
       const velocity = speed * (.35 + Math.random() * .65);
@@ -1167,7 +1195,7 @@
         color,
       });
     }
-    const particleCap = performanceMode === "mobile" ? 130 : 300;
+    const particleCap = graphicsQuality === "low" ? 55 : graphicsQuality === "medium" ? (performanceMode === "mobile" ? 120 : 210) : (performanceMode === "mobile" ? 165 : 300);
     if (game.particles.length > particleCap) game.particles.splice(0, game.particles.length - particleCap);
   }
 
@@ -1202,7 +1230,8 @@
       fighter.targetVx = 0;
       fighter.targetVy = 0;
     }
-    const steering = 1 - Math.exp(-dt * (length > 0 ? 18 : 14));
+    const responseRate = performanceMode === "mobile" ? (length > 0 ? 52 : 40) : (length > 0 ? 27 : 22);
+    const steering = 1 - Math.exp(-dt * responseRate);
     fighter.vx += (fighter.targetVx - fighter.vx) * steering;
     fighter.vy += (fighter.targetVy - fighter.vy) * steering;
     const currentSpeed = Math.hypot(fighter.vx, fighter.vy);
@@ -1736,21 +1765,31 @@
       for (let cx = minCx; cx <= maxCx; cx += 1) {
         const ox = cx * chunk;
         const oy = cy * chunk;
-        if (game.selectedMap === "cemetery" && hauntedGrass.complete && hauntedGrass.naturalWidth) {
+        if (game.selectedMap === "cemetery" && graphicsQuality !== "low" && hauntedGrass.complete && hauntedGrass.naturalWidth) {
           ctx.globalAlpha = .88;
           ctx.drawImage(hauntedGrass, ox, oy, chunk, chunk);
           ctx.globalAlpha = 1;
+        } else if (game.selectedMap === "cemetery") {
+          ctx.fillStyle = "#1b4726"; ctx.fillRect(ox, oy, chunk, chunk);
+          ctx.fillStyle = "rgba(117,169,77,.2)";
+          for (let patch = 0; patch < 10; patch += 1) {
+            const gx = ox + infiniteHash(cx, cy, 900 + patch * 2) * chunk;
+            const gy = oy + infiniteHash(cx, cy, 901 + patch * 2) * chunk;
+            ctx.fillRect(gx, gy, 18, 8);
+          }
         } else if (game.selectedMap === "catacombs") {
           ctx.fillStyle = "#202226"; ctx.fillRect(ox, oy, chunk, chunk);
           ctx.strokeStyle = "rgba(151,157,157,.13)"; ctx.lineWidth = 4;
-          for (let sy = 0; sy < chunk; sy += 120) for (let sx = 0; sx < chunk; sx += 120) {
+          const slabStep = graphicsQuality === "low" ? 240 : 120;
+          for (let sy = 0; sy < chunk; sy += slabStep) for (let sx = 0; sx < chunk; sx += slabStep) {
             const offset = (sy / 120) % 2 ? 58 : 0;
-            roundedRectPath(ctx, ox + sx + offset + 5, oy + sy + 6, 109, 108, 12); ctx.stroke();
+            roundedRectPath(ctx, ox + sx + offset + 5, oy + sy + 6, slabStep - 11, slabStep - 12, 12); ctx.stroke();
           }
         } else {
           ctx.fillStyle = "#0c1d19"; ctx.fillRect(ox, oy, chunk, chunk);
           ctx.strokeStyle = "rgba(73,133,107,.16)"; ctx.lineWidth = 9;
-          for (let root = 0; root < 6; root += 1) {
+          const rootCount = graphicsQuality === "low" ? 2 : graphicsQuality === "medium" ? 4 : 6;
+          for (let root = 0; root < rootCount; root += 1) {
             const rx = ox + infiniteHash(cx, cy, root + 301) * chunk;
             ctx.beginPath(); ctx.moveTo(rx, oy); ctx.bezierCurveTo(rx - 90, oy + 210, rx + 120, oy + 450, rx - 35, oy + chunk); ctx.stroke();
           }
@@ -2391,7 +2430,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.save();
     ctx.fillStyle = map.fog;
-    const fogBanks = performanceMode === "mobile" ? 3 : 5;
+    const fogBanks = graphicsQuality === "low" ? 0 : graphicsQuality === "medium" ? (performanceMode === "mobile" ? 2 : 3) : (performanceMode === "mobile" ? 3 : 5);
     for (let i = 0; i < fogBanks; i += 1) {
       const x = ((t * (10 + i * 3) + i * 260) % (vw + 500)) - 250;
       const y = vh * (.25 + i * .14) + Math.sin(t * .3 + i) * 45;

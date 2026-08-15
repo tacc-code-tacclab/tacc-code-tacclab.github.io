@@ -37,6 +37,7 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   width: 100%;
   height: 100%;
 }
+#game.pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 #game {
   display: block;
@@ -900,6 +901,9 @@ kbd {
 .upgrade-shop button { flex: 1; padding: 5px 4px; border: 1px solid rgba(255,216,92,.28); border-radius: 5px; background: rgba(17,12,23,.88); color: #ffd85c; font-size: 7px; font-weight: 900; cursor: pointer; }
 .upgrade-shop button.owned { border-color: rgba(188,255,60,.55); color: var(--acid); }
 .shop-notice { min-height: 11px; margin-top: 3px; color: #aaa1b4; font-size: 7px; text-align: center; }
+.quality-select { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 6px; }
+.quality-select button { padding: 5px 2px; border: 1px solid rgba(255,255,255,.14); border-radius: 5px; background: #191421; color: #9f98a8; font-size: 7px; font-weight: 900; cursor: pointer; }
+.quality-select button.selected { border-color: var(--acid); background: #314516; color: #e7ffba; }
 
 .event-panel { display: grid; grid-template-columns: 150px 1fr; grid-template-rows: 1fr auto; gap: 5px 10px; background: linear-gradient(155deg, #332a43, #17131f); }
 .event-heading { align-self: center; padding: 7px; }
