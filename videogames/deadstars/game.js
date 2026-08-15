@@ -28,6 +28,7 @@
   const creatureProps = new Image();
   creatureProps.src = "assets/creatures-props-v4.webp";
   let groundPattern = null;
+  const tintedSheetCache = new Map();
 
   const ui = {
     menu: document.querySelector("#menu"),
@@ -170,6 +171,7 @@
     endReason: null,
     boss: null,
     pyramidCooldown: 0,
+    difficultyLevel: 0,
   };
 
   const input = {
@@ -675,7 +677,8 @@
     game.fighters.push(game.player);
     const heroIds = Object.keys(HEROES);
     const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - .5);
-    for (let i = 0; i < 5; i += 1) {
+    game.difficultyLevel = 0;
+    for (let i = 0; i < 2; i += 1) {
       const enemy = makeFighter({
         heroId: heroIds[(i + Math.floor(Math.random() * heroIds.length)) % heroIds.length],
         name: shuffledNames[i],
@@ -708,6 +711,21 @@
     announce("MIETITURA DELLE ANIME");
     sound("select");
     updateHUD();
+  }
+
+  function addProgressEnemy() {
+    if (game.mode !== "infinite") return;
+    const heroIds = Object.keys(HEROES);
+    const count = game.fighters.filter((fighter) => fighter.bot && !fighter.isBoss).length;
+    const enemy = makeFighter({
+      heroId: heroIds[count % heroIds.length],
+      name: BOT_NAMES[count % BOT_NAMES.length],
+      bot: true,
+      spawnIndex: count + 1,
+    });
+    respawnEnemyNearPlayer(enemy, count);
+    game.fighters.push(enemy);
+    announce(`L'ORDA CRESCE · ${count + 1} NEMICI`);
   }
 
   function respawnEnemyNearPlayer(enemy, index = 0) {
@@ -876,10 +894,11 @@
     if (!fighter?.alive || fighter.shotCd > 0 || fighter.stun > 0 || game.scene !== "playing") return false;
     const angle = fighter.aim + (fighter.bot ? (Math.random() - .5) * .085 : 0);
     const color = fighter.bot ? "#ff304d" : "#76ff35";
-    const speed = fighter.bot ? 980 : PLAYER_BULLET_SPEED;
+    const danger = clamp(game.elapsed / 180, 0, 1);
+    const speed = fighter.bot ? 620 + danger * 360 : PLAYER_BULLET_SPEED;
     const muzzle = fighter.radius + 32;
     fighter.lastAttack = "shot";
-    fighter.shotCd = fighter.bot ? .24 + Math.random() * .09 : PLAYER_SHOT_COOLDOWN;
+    fighter.shotCd = fighter.bot ? .7 - danger * .42 + Math.random() * .11 : PLAYER_SHOT_COOLDOWN;
     fighter.recoil = 1;
     game.bullets.push({
       x: fighter.x + Math.cos(angle) * muzzle,
@@ -1088,7 +1107,8 @@
     const attackAngle = enemy ? Math.atan2(enemy.y - bot.y, enemy.x - bot.x) : angle;
     bot.targetAim = attackAngle;
     bot.aim += angleDelta(bot.targetAim, bot.aim) * (1 - Math.exp(-dt * 13));
-    if (enemy && enemyDistance < 720 && Math.abs(angleDelta(attackAngle, bot.aim)) < .3) shoot(bot);
+    const aggressionRange = 460 + clamp(game.elapsed / 180, 0, 1) * 300;
+    if (enemy && enemyDistance < aggressionRange && Math.abs(angleDelta(attackAngle, bot.aim)) < .3) shoot(bot);
 
     const blocked = collidesObstacle(bot.x + Math.cos(angle) * 58, bot.y + Math.sin(angle) * 58, bot.radius);
     if (blocked && bot.z <= 1 && bot.skillCd <= 0) useSkill(bot);
@@ -1376,6 +1396,12 @@
     updateShards(dt);
     updateParticles(dt);
     updateInfiniteWorld();
+    if (game.mode === "infinite") {
+      const desired = Math.min(performanceMode === "mobile" ? 8 : 10, 2 + Math.floor(game.elapsed / 32));
+      const current = game.fighters.filter((fighter) => fighter.bot && !fighter.isBoss).length;
+      if (current < desired) addProgressEnemy();
+      game.difficultyLevel = desired - 2;
+    }
     if (game.player) {
       const follow = 1 - Math.pow(.001, dt);
       game.camera.x += (game.player.x - game.camera.x) * follow;
@@ -1410,9 +1436,11 @@
   }
 
   function drawSheetCell(sheet, index, x, y, width, height, alpha = 1) {
-    if (!sheet.complete || !sheet.naturalWidth || !sheet.naturalHeight) return false;
-    const cellWidth = sheet.naturalWidth / 4;
-    const cellHeight = sheet.naturalHeight / 2;
+    const sourceWidth = sheet.naturalWidth || sheet.width || 0;
+    const sourceHeight = sheet.naturalHeight || sheet.height || 0;
+    if ((sheet.complete === false) || !sourceWidth || !sourceHeight) return false;
+    const cellWidth = sourceWidth / 4;
+    const cellHeight = sourceHeight / 2;
     const sourceX = (index % 4) * cellWidth;
     const sourceY = Math.floor(index / 4) * cellHeight;
     const previousAlpha = ctx.globalAlpha;
@@ -1420,6 +1448,22 @@
     ctx.drawImage(sheet, sourceX, sourceY, cellWidth, cellHeight, x, y, width, height);
     ctx.globalAlpha = previousAlpha;
     return true;
+  }
+
+  function tintedSheet(sheet, key, filter) {
+    if (!sheet.complete || !sheet.naturalWidth || !sheet.naturalHeight) return sheet;
+    if (tintedSheetCache.has(key)) return tintedSheetCache.get(key);
+    const buffer = document.createElement("canvas");
+    if (!buffer?.getContext) return sheet;
+    buffer.width = sheet.naturalWidth;
+    buffer.height = sheet.naturalHeight;
+    const bufferContext = buffer.getContext("2d");
+    if (!bufferContext) return sheet;
+    bufferContext.filter = filter;
+    bufferContext.drawImage(sheet, 0, 0);
+    bufferContext.filter = "none";
+    tintedSheetCache.set(key, buffer);
+    return buffer;
   }
 
   function drawLavaRivers(t) {
@@ -1554,8 +1598,22 @@
           }
         }
         ctx.strokeStyle = "rgba(190,255,159,.035)"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, chunk, chunk);
+        // Reuse the detailed illustrated architecture throughout the endless world.
+        if (infiniteHash(cx, cy, 701) > (performanceMode === "mobile" ? .42 : .24)) {
+          const structureTypes = ["mausoleum-art", "gate-art", "grave-art", "cross-art", "coffin-art", "stone-wall-art"];
+          const structureType = structureTypes[Math.floor(infiniteHash(cx, cy, 702) * structureTypes.length)];
+          const sw = structureType === "stone-wall-art" ? 170 : 90;
+          const sh = structureType === "stone-wall-art" ? 65 : 88;
+          drawArtObstacle({
+            x: ox + 105 + infiniteHash(cx, cy, 703) * (chunk - 300),
+            y: oy + 115 + infiniteHash(cx, cy, 704) * (chunk - 300),
+            w: sw,
+            h: sh,
+            type: structureType,
+          });
+        }
         const props = performanceMode === "mobile" ? 5 : 7;
-        const types = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant"];
+        const types = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well"];
         for (let i = 0; i < props; i += 1) {
           const x = ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110);
           const y = oy + 55 + infiniteHash(cx, cy, i * 5 + 12) * (chunk - 110);
@@ -1771,6 +1829,25 @@
         ctx.fillStyle = item.variant > .5 ? "#69717b" : "#59616b";
         roundedRectPath(ctx, -8, -36, 12, 41, 3); ctx.fill(); roundedRectPath(ctx, -18, -24, 32, 11, 3); ctx.fill();
         ctx.strokeStyle = "rgba(225,230,220,.27)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-5, -33); ctx.lineTo(1, -33); ctx.lineTo(1, 1); ctx.moveTo(-15, -21); ctx.lineTo(11, -21); ctx.stroke();
+        break;
+      }
+      case "obelisk": {
+        ctx.fillStyle = "rgba(2,2,6,.58)"; ctx.beginPath(); ctx.ellipse(7, 17, 25, 9, 0, 0, TAU); ctx.fill();
+        const stone = ctx.createLinearGradient(-12, -50, 16, 18);
+        stone.addColorStop(0, "#8c9290"); stone.addColorStop(.5, "#4b5254"); stone.addColorStop(1, "#23282c");
+        ctx.fillStyle = stone; ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(-14, -37); ctx.lineTo(-11, 13); ctx.lineTo(13, 13); ctx.lineTo(16, -37); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = map.accent; ctx.globalAlpha = .62; ctx.font = "900 17px serif"; ctx.textAlign = "center"; ctx.fillText("☠", 1, -14);
+        ctx.globalAlpha = .88; ctx.fillStyle = "#3b4144"; roundedRectPath(ctx, -20, 12, 42, 9, 3); ctx.fill();
+        break;
+      }
+      case "soul-well": {
+        ctx.fillStyle = "rgba(1,2,5,.65)"; ctx.beginPath(); ctx.ellipse(5, 15, 31, 13, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = "#4c5357"; ctx.beginPath(); ctx.ellipse(0, 4, 27, 15, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = "#171b20"; ctx.beginPath(); ctx.ellipse(0, 1, 20, 10, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = "#858d8b"; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(0, 0, 25, 14, 0, 0, TAU); ctx.stroke();
+        ctx.shadowColor = map.accent; ctx.shadowBlur = performanceMode === "mobile" ? 5 : 14;
+        ctx.fillStyle = map.accent; ctx.globalAlpha = .5 + Math.sin(t * 3 + item.phase) * .18;
+        ctx.beginPath(); ctx.arc(0, -8, 7, 0, TAU); ctx.fill();
         break;
       }
       case "dead-tree": {
@@ -2020,9 +2097,10 @@
         : hero.id === "vela" ? "hue-rotate(75deg) saturate(1.9) brightness(1.08)"
           : hero.id === "becchino" ? "grayscale(1) brightness(1.5) contrast(1.08)"
             : "hue-rotate(315deg) saturate(1.55) brightness(1.1)";
-      const shadow = performanceMode !== "mobile" ? ` drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 5px ${fighter.bot ? "rgba(255,38,64,.42)" : hero.color})` : "";
-      ctx.filter = fighter.flash > 0 ? "brightness(2.4) saturate(.35)" : `${heroTone}${shadow}`;
-      drawSheetCell(directionSheet, frame, -spriteWidth / 2, spriteTop, spriteWidth, spriteHeight);
+      const coloredSheet = tintedSheet(directionSheet, `${fighter.bot ? "enemy" : "player"}-${fighter.isBoss ? "boss" : hero.id}`, heroTone);
+      if (fighter.flash > 0) ctx.filter = "brightness(2.4) saturate(.35)";
+      else if (performanceMode !== "mobile") ctx.filter = `drop-shadow(0 6px 4px rgba(0,0,0,.55)) drop-shadow(0 0 5px ${fighter.bot ? "rgba(255,38,64,.42)" : hero.color})`;
+      drawSheetCell(coloredSheet, frame, -spriteWidth / 2, spriteTop, spriteWidth, spriteHeight);
       ctx.filter = "none";
     } else if (fallbackSprite.complete && fallbackSprite.naturalWidth) {
       const fallbackHeight = spriteWidth * fallbackSprite.naturalHeight / fallbackSprite.naturalWidth;

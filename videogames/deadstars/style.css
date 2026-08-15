@@ -961,7 +961,11 @@ kbd {
   .brand-lockup .tagline { display: block; font-size: 9px; }
   .hero-stage { top: 43%; width: 86vw; height: 55vh; }
   .lobby-bottom { left: 8px; right: 8px; bottom: 8px; grid-template-columns: 1fr 130px; }
-  .roster-panel { display: none; }
+  .roster-panel { display: block; min-height: 86px; padding: 6px; }
+  .roster-panel h2 { display: none; }
+  .roster-panel .hero-card { min-height: 67px; padding-left: 42px; }
+  .roster-panel .hero-avatar { width: 32px; height: 43px; font-size: 17px; }
+  .event-panel { display: none; }
   .event-panel { min-height: 94px; grid-template-columns: 1fr; padding: 6px; }
   .event-heading { display: none; }
   .event-panel .map-card { min-height: 52px; }
