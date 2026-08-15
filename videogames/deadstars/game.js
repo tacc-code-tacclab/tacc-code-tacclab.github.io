@@ -9,7 +9,7 @@
   const PLAYER_BULLET_SPEED = 1260;
   const HERO_COSTS = { nox: 0, vela: 30, becchino: 70 };
   const MAP_COSTS = { cemetery: 0, catacombs: 45, blackwood: 90 };
-  const PROCEDURAL_SOLIDS = new Set(["grave", "cross", "skull-pile", "thorn-plant", "obelisk", "soul-well", "pit", "river"]);
+  const PROCEDURAL_SOLIDS = new Set(["grave", "cross", "skull-pile", "thorn-plant", "obelisk", "soul-well", "pit", "rock"]);
   const FORCE_MOBILE = /(?:^|[?&])mobile=1(?:&|$)/.test(globalThis.location?.search || "")
     || document.documentElement?.dataset?.forceMobile === "true";
 
@@ -33,6 +33,7 @@
   let groundPattern = null;
   const tintedSheetCache = new Map();
   const proceduralChunkCache = new Map();
+  let lightGrassTile = null;
 
   const ui = {
     menu: document.querySelector("#menu"),
@@ -683,9 +684,9 @@
         type,
       });
     }
-    const propTypes = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well", "pit"];
+    const propTypes = ["grave", "cross", "bones", "grass", "rock", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well", "pit"];
     const props = [];
-    const propCount = graphicsQuality === "low" ? 3 : graphicsQuality === "medium" ? 5 : 7;
+    const propCount = graphicsQuality === "low" ? 4 : graphicsQuality === "medium" ? 5 : 7;
     for (let i = 0; i < propCount; i += 1) {
       props.push({
         x: ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110),
@@ -697,17 +698,6 @@
         phase: i,
       });
     }
-    if (infiniteHash(cx, cy, 811) > .78) props.push({
-      x: ox + 160,
-      y: oy + 80 + infiniteHash(cx, cy, 812) * 520,
-      type: "river",
-      size: 1,
-      rot: 0,
-      w: 400,
-      h: 52,
-      variant: .8,
-      phase: cx + cy,
-    });
     const value = { structures, props };
     proceduralChunkCache.set(key, value);
     return value;
@@ -1022,11 +1012,6 @@
           return (x - nx) ** 2 + (y - ny) ** 2 < radius ** 2;
         }
         if (!PROCEDURAL_SOLIDS.has(object.type)) return false;
-        if (object.type === "river") {
-          const nx = clamp(x, object.x - object.w / 2, object.x + object.w / 2);
-          const ny = clamp(y, object.y - object.h / 2, object.y + object.h / 2);
-          return (x - nx) ** 2 + (y - ny) ** 2 < radius ** 2;
-        }
         const objectRadius = (object.type === "pit" ? 34 : object.type === "soul-well" ? 26 : 22) * (object.size || 1);
         return Math.hypot(x - object.x, y - object.y) < radius + objectRadius;
       }));
@@ -1653,6 +1638,21 @@
     return buffer;
   }
 
+  function lightweightGrassTexture() {
+    if (lightGrassTile) return lightGrassTile;
+    if (!hauntedGrass.complete || !hauntedGrass.naturalWidth || !hauntedGrass.naturalHeight) return null;
+    const buffer = document.createElement("canvas");
+    if (!buffer?.getContext) return null;
+    buffer.width = 384;
+    buffer.height = 384;
+    const bufferContext = buffer.getContext("2d");
+    if (!bufferContext) return null;
+    bufferContext.imageSmoothingEnabled = true;
+    bufferContext.drawImage(hauntedGrass, 0, 0, buffer.width, buffer.height);
+    lightGrassTile = buffer;
+    return lightGrassTile;
+  }
+
   function drawLavaRivers(t) {
     if (!game.lavaRivers.length) return;
     ctx.save();
@@ -1770,12 +1770,13 @@
           ctx.drawImage(hauntedGrass, ox, oy, chunk, chunk);
           ctx.globalAlpha = 1;
         } else if (game.selectedMap === "cemetery") {
-          ctx.fillStyle = "#1b4726"; ctx.fillRect(ox, oy, chunk, chunk);
-          ctx.fillStyle = "rgba(117,169,77,.2)";
-          for (let patch = 0; patch < 10; patch += 1) {
-            const gx = ox + infiniteHash(cx, cy, 900 + patch * 2) * chunk;
-            const gy = oy + infiniteHash(cx, cy, 901 + patch * 2) * chunk;
-            ctx.fillRect(gx, gy, 18, 8);
+          const grassTile = lightweightGrassTexture();
+          if (grassTile) {
+            ctx.globalAlpha = .93;
+            ctx.drawImage(grassTile, ox, oy, chunk, chunk);
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.fillStyle = "#1b4726"; ctx.fillRect(ox, oy, chunk, chunk);
           }
         } else if (game.selectedMap === "catacombs") {
           ctx.fillStyle = "#202226"; ctx.fillRect(ox, oy, chunk, chunk);
@@ -2025,14 +2026,12 @@
         ctx.fillStyle = "#050309"; ctx.beginPath(); ctx.ellipse(-2, 0, 27, 16, 0, 0, TAU); ctx.fill();
         break;
       }
-      case "river": {
-        const width = item.w || 400;
-        const height = item.h || 52;
-        ctx.strokeStyle = "rgba(6,12,14,.8)"; ctx.lineWidth = height + 18; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(-width / 2, 0); ctx.bezierCurveTo(-width / 6, -18, width / 6, 18, width / 2, 0); ctx.stroke();
-        ctx.strokeStyle = game.selectedMap === "cemetery" ? "#397b72" : game.selectedMap === "catacombs" ? "#6b2025" : "#315f55";
-        ctx.lineWidth = height; ctx.stroke();
-        ctx.strokeStyle = "rgba(178,238,208,.28)"; ctx.lineWidth = 5; ctx.setLineDash([22, 18]); ctx.lineDashOffset = -t * 42; ctx.stroke(); ctx.setLineDash([]);
+      case "rock": {
+        ctx.fillStyle = "rgba(2,3,5,.48)"; ctx.beginPath(); ctx.ellipse(7, 12, 26, 10, 0, 0, TAU); ctx.fill();
+        const rock = ctx.createLinearGradient(-18, -24, 20, 18);
+        rock.addColorStop(0, "#89918c"); rock.addColorStop(.45, "#59625d"); rock.addColorStop(1, "#29312e");
+        ctx.fillStyle = rock; ctx.beginPath(); ctx.moveTo(-23, 7); ctx.lineTo(-15, -15); ctx.lineTo(2, -26); ctx.lineTo(22, -11); ctx.lineTo(27, 9); ctx.lineTo(8, 17); ctx.lineTo(-13, 15); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(223,239,220,.24)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-13, -12); ctx.lineTo(1, -19); ctx.lineTo(14, -9); ctx.stroke();
         break;
       }
       case "soul-well": {
