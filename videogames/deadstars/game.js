@@ -7,6 +7,9 @@
   const ROUND_SECONDS = 150;
   const PLAYER_SHOT_COOLDOWN = .095;
   const PLAYER_BULLET_SPEED = 1260;
+  const HERO_COSTS = { nox: 0, vela: 30, becchino: 70 };
+  const MAP_COSTS = { cemetery: 0, catacombs: 45, blackwood: 90 };
+  const PROCEDURAL_SOLIDS = new Set(["grave", "cross", "skull-pile", "thorn-plant", "obelisk", "soul-well", "pit", "river"]);
   const FORCE_MOBILE = /(?:^|[?&])mobile=1(?:&|$)/.test(globalThis.location?.search || "")
     || document.documentElement?.dataset?.forceMobile === "true";
 
@@ -29,6 +32,7 @@
   creatureProps.src = "assets/creatures-props-v4.webp";
   let groundPattern = null;
   const tintedSheetCache = new Map();
+  const proceduralChunkCache = new Map();
 
   const ui = {
     menu: document.querySelector("#menu"),
@@ -85,7 +89,7 @@
       title: "Strega senza volto",
       detail: "Agile e spettrale. Atterra in silenzio.",
       skill: "SALTO",
-      color: "#ff65df",
+      color: "#eaff31",
       dark: "#42266f",
       hp: 850,
       speed: 235,
@@ -98,7 +102,7 @@
       title: "Custode dell'ultima fossa",
       detail: "Pesante. L'atterraggio scuote le tombe.",
       skill: "SALTO",
-      color: "#f4f2e9",
+      color: "#ff3d43",
       dark: "#722516",
       hp: 1320,
       speed: 205,
@@ -190,6 +194,7 @@
   let vh = innerHeight;
   let performanceMode = "desktop";
   let record = loadRecord();
+  let economy = loadEconomy();
 
   function cameraZoom() { return performanceMode === "mobile" ? .76 : 1; }
 
@@ -219,6 +224,49 @@
     ui.record.textContent = `Vittorie: ${record.wins} · Record atterraggi: ${record.kills}`;
   }
 
+  function loadEconomy() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("deadstars-economy")) || {};
+      return {
+        coins: Math.max(0, Number(saved.coins) || 0),
+        heroes: Array.isArray(saved.heroes) ? saved.heroes : ["nox"],
+        maps: Array.isArray(saved.maps) ? saved.maps : ["cemetery"],
+        armor: Boolean(saved.armor),
+        weapon: Boolean(saved.weapon),
+      };
+    } catch (_) { return { coins: 0, heroes: ["nox"], maps: ["cemetery"], armor: false, weapon: false }; }
+  }
+
+  function refreshShop() {
+    const wallet = document.querySelector("#wallet-coins");
+    if (wallet) wallet.textContent = economy.coins;
+    ui.heroList?.querySelectorAll("[data-hero]").forEach((card) => card.classList.toggle("locked", !economy.heroes.includes(card.dataset.hero)));
+    ui.mapList?.querySelectorAll("[data-map]").forEach((card) => card.classList.toggle("locked", !economy.maps.includes(card.dataset.map)));
+    document.querySelectorAll("[data-upgrade]").forEach((button) => button.classList.toggle("owned", Boolean(economy[button.dataset.upgrade])));
+  }
+
+  function saveEconomy() {
+    try { localStorage.setItem("deadstars-economy", JSON.stringify(economy)); } catch (_) {}
+    refreshShop();
+  }
+
+  function shopMessage(text) {
+    const notice = document.querySelector("#shop-notice");
+    if (notice) notice.textContent = text;
+  }
+
+  function buyUnlock(kind, id, cost) {
+    const collection = kind === "hero" ? economy.heroes : economy.maps;
+    if (collection.includes(id)) return true;
+    if (economy.coins < cost) { shopMessage(`Servono ${cost} dobloni · ne hai ${economy.coins}`); sound("enemyShot"); return false; }
+    economy.coins -= cost;
+    collection.push(id);
+    saveEconomy();
+    shopMessage(`Sbloccato! Restano ${economy.coins} dobloni`);
+    sound("collect");
+    return true;
+  }
+
   function loadLeaderboard() {
     try { return JSON.parse(localStorage.getItem("deadstars-leaderboard")) || []; } catch (_) { return []; }
   }
@@ -246,20 +294,21 @@
         <span class="hero-avatar">${hero.glyph}</span>
         <strong>${hero.name}</strong>
         <small>${hero.detail}</small>
-        <em>${hero.title}</em>
+        <em>${hero.title}${HERO_COSTS[hero.id] ? ` · <span class="price">◉ ${HERO_COSTS[hero.id]}</span>` : ""}</em>
       </button>`).join("");
 
     ui.mapList.innerHTML = Object.values(MAPS).map((map) => `
       <button class="map-card${map.id === game.selectedMap ? " selected" : ""}" data-map="${map.id}" data-icon="${map.icon}" role="radio" aria-checked="${map.id === game.selectedMap}" style="--map-color:${map.accent}">
-        <strong>${map.name}</strong><small>${map.detail}</small>
+        <strong>${map.name}</strong><small>${map.detail}</small>${MAP_COSTS[map.id] ? `<span class="price">◉ ${MAP_COSTS[map.id]}</span>` : ""}
       </button>`).join("");
 
     ui.heroList.addEventListener("click", (event) => {
       const card = event.target.closest("[data-hero]");
       if (!card) return;
+      if (!buyUnlock("hero", card.dataset.hero, HERO_COSTS[card.dataset.hero])) return;
       game.selectedHero = card.dataset.hero;
       ui.selectedHeroName.textContent = HEROES[game.selectedHero].name;
-      const heroFilter = game.selectedHero === "vela" ? "hue-rotate(45deg)" : game.selectedHero === "becchino" ? "hue-rotate(285deg) saturate(.9)" : "none";
+      const heroFilter = game.selectedHero === "vela" ? "sepia(1) saturate(7) hue-rotate(5deg) brightness(1.25)" : game.selectedHero === "becchino" ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(.95)" : "hue-rotate(315deg) saturate(1.5)";
       ui.lobbyHero.style.filter = `${heroFilter} drop-shadow(0 22px 20px rgba(0,0,0,.6))`;
       ui.heroList.querySelectorAll("[data-hero]").forEach((el) => {
         const selected = el === card;
@@ -272,6 +321,7 @@
     ui.mapList.addEventListener("click", (event) => {
       const card = event.target.closest("[data-map]");
       if (!card) return;
+      if (!buyUnlock("map", card.dataset.map, MAP_COSTS[card.dataset.map])) return;
       game.selectedMap = card.dataset.map;
       if (game.selectedMap !== "cemetery" && !groundTexture.src) {
         groundTexture.src = "assets/cemetery-ground.webp";
@@ -286,6 +336,7 @@
       createArena();
       sound("select");
     });
+    refreshShop();
     saveRecord();
   }
 
@@ -316,19 +367,18 @@
       if (game.endReason) saveRun();
       game.endReason === "death" ? continueRun() : startGame();
     });
-    bindAction(ui.menuBtn, () => {
-      const ids = Object.keys(HEROES);
-      game.selectedHero = ids[(ids.indexOf(game.selectedHero) + 1) % ids.length];
-      const hero = HEROES[game.selectedHero];
-      ui.selectedHeroName.textContent = hero.name;
-      ui.heroList.querySelectorAll("[data-hero]").forEach((card) => {
-        const selected = card.dataset.hero === game.selectedHero;
-        card.classList.toggle("selected", selected);
-        card.setAttribute("aria-checked", String(selected));
-      });
-      ui.lobbyHero.style.filter = `${game.selectedHero === "vela" ? "hue-rotate(70deg) saturate(1.8)" : game.selectedHero === "becchino" ? "grayscale(1) brightness(1.45)" : "hue-rotate(315deg) saturate(1.4)"} drop-shadow(0 22px 20px rgba(0,0,0,.6))`;
-      returnToMenu();
-    });
+    bindAction(ui.menuBtn, returnToMenu);
+    document.querySelectorAll("[data-upgrade]").forEach((button) => button.addEventListener("click", () => {
+      const id = button.dataset.upgrade;
+      const cost = id === "armor" ? 35 : 50;
+      if (economy[id]) { shopMessage(`${id === "armor" ? "Armatura" : "Arma"} già equipaggiata`); return; }
+      if (economy.coins < cost) { shopMessage(`Servono ${cost} dobloni · ne hai ${economy.coins}`); return; }
+      economy.coins -= cost;
+      economy[id] = true;
+      saveEconomy();
+      shopMessage(`${id === "armor" ? "Armatura" : "Arma"} equipaggiata`);
+      sound("collect");
+    }));
     document.querySelector("#how-btn").addEventListener("click", () => show(ui.how));
     document.querySelectorAll("[data-close='how']").forEach((button) => button.addEventListener("click", () => show(ui.how, false)));
     bindAction(ui.pauseBtn, pauseGame);
@@ -587,6 +637,79 @@
     return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
   }
 
+  function proceduralChunk(cx, cy) {
+    const key = `${cx}:${cy}`;
+    if (proceduralChunkCache.has(key)) return proceduralChunkCache.get(key);
+    if (proceduralChunkCache.size > 72) proceduralChunkCache.clear();
+    const chunk = 720;
+    const ox = cx * chunk;
+    const oy = cy * chunk;
+    const structures = [];
+    if (infiniteHash(cx, cy, 701) > .35) {
+      const types = ["mausoleum-art", "church-art", "castle-art", "gate-art", "grave-art", "cross-art", "coffin-art", "stone-wall-art"];
+      const type = types[Math.floor(infiniteHash(cx, cy, 702) * types.length)];
+      structures.push({
+        x: ox + 105 + infiniteHash(cx, cy, 703) * (chunk - 300),
+        y: oy + 115 + infiniteHash(cx, cy, 704) * (chunk - 300),
+        w: type === "stone-wall-art" || type === "castle-art" ? 170 : type === "mausoleum-art" || type === "church-art" ? 135 : 90,
+        h: type === "stone-wall-art" ? 65 : type === "castle-art" ? 105 : type === "mausoleum-art" || type === "church-art" ? 115 : 88,
+        type,
+      });
+    }
+    const propTypes = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well", "pit"];
+    const props = [];
+    const propCount = performanceMode === "mobile" ? 5 : 7;
+    for (let i = 0; i < propCount; i += 1) {
+      props.push({
+        x: ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110),
+        y: oy + 55 + infiniteHash(cx, cy, i * 5 + 12) * (chunk - 110),
+        type: propTypes[Math.floor(infiniteHash(cx, cy, i * 5 + 13) * propTypes.length)],
+        size: .7 + infiniteHash(cx, cy, i * 5 + 14) * .5,
+        rot: infiniteHash(cx, cy, i * 5 + 15) * TAU,
+        variant: .82,
+        phase: i,
+      });
+    }
+    if (infiniteHash(cx, cy, 811) > .78) props.push({
+      x: ox + 160,
+      y: oy + 80 + infiniteHash(cx, cy, 812) * 520,
+      type: "river",
+      size: 1,
+      rot: 0,
+      w: 400,
+      h: 52,
+      variant: .8,
+      phase: cx + cy,
+    });
+    const value = { structures, props };
+    proceduralChunkCache.set(key, value);
+    return value;
+  }
+
+  function nearbyProceduralObjects(x, y) {
+    const chunk = 720;
+    const cx = Math.floor(x / chunk);
+    const cy = Math.floor(y / chunk);
+    const objects = [];
+    for (let oy = -1; oy <= 1; oy += 1) for (let ox = -1; ox <= 1; ox += 1) {
+      const cell = proceduralChunk(cx + ox, cy + oy);
+      objects.push(...cell.structures, ...cell.props);
+    }
+    return objects;
+  }
+
+  function findProceduralObject(x, y, predicate) {
+    const chunk = 720;
+    const cx = Math.floor(x / chunk);
+    const cy = Math.floor(y / chunk);
+    for (let oy = -1; oy <= 1; oy += 1) for (let ox = -1; ox <= 1; ox += 1) {
+      const cell = proceduralChunk(cx + ox, cy + oy);
+      for (const object of cell.structures) if (predicate(object)) return object;
+      for (const object of cell.props) if (predicate(object)) return object;
+    }
+    return null;
+  }
+
   function spawnPoint(index = 0) {
     const points = [
       [WORLD.w / 2, WORLD.h / 2 + 420],
@@ -672,8 +795,8 @@
     game.player = makeFighter({ heroId: game.selectedHero, name: "TU", bot: false, spawnIndex: 0 });
     game.player.x = 0;
     game.player.y = 0;
-    game.player.maxHp = 10;
-    game.player.hp = 10;
+    game.player.maxHp = economy.armor ? 12 : 10;
+    game.player.hp = game.player.maxHp;
     game.fighters.push(game.player);
     const heroIds = Object.keys(HEROES);
     const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - .5);
@@ -743,7 +866,7 @@
     game.scene = "playing";
     game.endReason = null;
     game.player.alive = true;
-    game.player.hp = 10;
+    game.player.hp = game.player.maxHp;
     game.player.invuln = 1.8;
     game.player.vx = 0;
     game.player.vy = 0;
@@ -863,7 +986,24 @@
   }
 
   function collidesObstacle(x, y, radius) {
-    if (game.mode === "infinite" || game.mode === "boss") return false;
+    if (game.mode === "boss") return false;
+    if (game.mode === "infinite") {
+      return Boolean(findProceduralObject(x, y, (object) => {
+        if (object.type.endsWith?.("-art")) {
+          const nx = clamp(x, object.x, object.x + object.w);
+          const ny = clamp(y, object.y, object.y + object.h);
+          return (x - nx) ** 2 + (y - ny) ** 2 < radius ** 2;
+        }
+        if (!PROCEDURAL_SOLIDS.has(object.type)) return false;
+        if (object.type === "river") {
+          const nx = clamp(x, object.x - object.w / 2, object.x + object.w / 2);
+          const ny = clamp(y, object.y - object.h / 2, object.y + object.h / 2);
+          return (x - nx) ** 2 + (y - ny) ** 2 < radius ** 2;
+        }
+        const objectRadius = (object.type === "pit" ? 34 : object.type === "soul-well" ? 26 : 22) * (object.size || 1);
+        return Math.hypot(x - object.x, y - object.y) < radius + objectRadius;
+      }));
+    }
     return game.obstacles.some((o) => {
       const nx = clamp(x, o.x, o.x + o.w);
       const ny = clamp(y, o.y, o.y + o.h);
@@ -895,10 +1035,10 @@
     const angle = fighter.aim + (fighter.bot ? (Math.random() - .5) * .085 : 0);
     const color = fighter.bot ? "#ff304d" : "#76ff35";
     const danger = clamp(game.elapsed / 180, 0, 1);
-    const speed = fighter.bot ? 620 + danger * 360 : PLAYER_BULLET_SPEED;
+    const speed = fighter.bot ? 620 + danger * 360 : PLAYER_BULLET_SPEED * (economy.weapon ? 1.14 : 1);
     const muzzle = fighter.radius + 32;
     fighter.lastAttack = "shot";
-    fighter.shotCd = fighter.bot ? .7 - danger * .42 + Math.random() * .11 : PLAYER_SHOT_COOLDOWN;
+    fighter.shotCd = fighter.bot ? .7 - danger * .42 + Math.random() * .11 : PLAYER_SHOT_COOLDOWN * (economy.weapon ? .78 : 1);
     fighter.recoil = 1;
     game.bullets.push({
       x: fighter.x + Math.cos(angle) * muzzle,
@@ -907,7 +1047,7 @@
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       owner: fighter,
-      radius: fighter.bot ? 10.8 : 12.5,
+      radius: fighter.bot ? 10.8 : economy.weapon ? 15 : 12.5,
       damage: fighter.bot ? 1 : 1,
       life: .94,
       maxLife: .94,
@@ -966,7 +1106,12 @@
     }
     if (attacker && attacker !== victim) {
       attacker.kills += 1;
-      if (attacker === game.player && victim.bot) attacker.score += victim.isBoss ? 50 : 1;
+      if (attacker === game.player && victim.bot) {
+        const reward = victim.isBoss ? 50 : 1;
+        attacker.score += reward;
+        economy.coins += reward;
+        saveEconomy();
+      }
       addFeed(attacker, victim);
     }
     burst(victim.x, victim.y, "#ff3d61", 32, 260);
@@ -1208,6 +1353,19 @@
           if (fighter === game.player) game.camera.shake = Math.max(game.camera.shake, 4);
         }
       }
+      if (game.mode === "infinite" && fighter.z < 28 && fighter.lavaCd <= 0) {
+        const hazard = findProceduralObject(fighter.x, fighter.y, (object) => (
+          (object.type === "snake" || object.type === "spider")
+          && Math.hypot(fighter.x - object.x, fighter.y - object.y) < fighter.radius + 22 * (object.size || 1)
+        ));
+        if (hazard) {
+          fighter.lavaCd = 1.05;
+          if (damageFighter(fighter, 1, null)) {
+            burst(fighter.x, fighter.y, hazard.type === "snake" ? "#b9ff38" : "#bc70ff", 9, 110);
+            if (fighter === game.player) announce(hazard.type === "snake" ? "MORSO DI SERPENTE!" : "RAGNO VELENOSO!");
+          }
+        }
+      }
       if (fighter.stun <= 0) {
         if (fighter.bot) updateBot(fighter, dt);
         else updatePlayer(fighter, dt);
@@ -1375,12 +1533,12 @@
     const hpPercent = clamp(player.hp / player.maxHp * 100, 0, 100);
     ui.hpFill.style.width = `${hpPercent}%`;
     ui.hpFill.style.background = hpPercent < 30 ? "linear-gradient(90deg,#b51e40,#ff3d61)" : "linear-gradient(90deg,#4fd16d,var(--acid))";
-    ui.hpText.textContent = player.alive ? `${Math.ceil(player.hp)} / 10 COLPI` : "SCONFITTO";
+    ui.hpText.textContent = player.alive ? `${Math.ceil(player.hp)} / ${player.maxHp} COLPI` : "SCONFITTO";
     ui.killCount.textContent = `${player.kills} NEMICI`;
     const skillPercent = player.skillCd <= 0 ? 100 : (1 - player.skillCd / .78) * 100;
     ui.skill.querySelector("i").style.height = `${skillPercent}%`;
     ui.skill.classList.toggle("ready", player.skillCd <= 0 && player.alive && player.z <= 1);
-    const shotPercent = player.shotCd <= 0 ? 100 : (1 - player.shotCd / PLAYER_SHOT_COOLDOWN) * 100;
+    const shotPercent = player.shotCd <= 0 ? 100 : (1 - player.shotCd / (PLAYER_SHOT_COOLDOWN * (economy.weapon ? .78 : 1))) * 100;
     ui.shot.querySelector("i").style.height = `${shotPercent}%`;
     ui.shot.classList.toggle("ready", player.shotCd <= 0 && player.alive);
     document.querySelector("#mobile-skill").style.opacity = player.skillCd <= 0 && player.z <= 1 ? "1" : ".38";
@@ -1598,28 +1756,9 @@
           }
         }
         ctx.strokeStyle = "rgba(190,255,159,.035)"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, chunk, chunk);
-        // Reuse the detailed illustrated architecture throughout the endless world.
-        if (infiniteHash(cx, cy, 701) > (performanceMode === "mobile" ? .42 : .24)) {
-          const structureTypes = ["mausoleum-art", "gate-art", "grave-art", "cross-art", "coffin-art", "stone-wall-art"];
-          const structureType = structureTypes[Math.floor(infiniteHash(cx, cy, 702) * structureTypes.length)];
-          const sw = structureType === "stone-wall-art" ? 170 : 90;
-          const sh = structureType === "stone-wall-art" ? 65 : 88;
-          drawArtObstacle({
-            x: ox + 105 + infiniteHash(cx, cy, 703) * (chunk - 300),
-            y: oy + 115 + infiniteHash(cx, cy, 704) * (chunk - 300),
-            w: sw,
-            h: sh,
-            type: structureType,
-          });
-        }
-        const props = performanceMode === "mobile" ? 5 : 7;
-        const types = ["grave", "cross", "bones", "grass", "skull-pile", "snake", "spider", "thorn-plant", "obelisk", "soul-well"];
-        for (let i = 0; i < props; i += 1) {
-          const x = ox + 55 + infiniteHash(cx, cy, i * 5 + 11) * (chunk - 110);
-          const y = oy + 55 + infiniteHash(cx, cy, i * 5 + 12) * (chunk - 110);
-          const type = types[Math.floor(infiniteHash(cx, cy, i * 5 + 13) * types.length)];
-          drawDecor({ x, y, type, size: .7 + infiniteHash(cx, cy, i * 5 + 14) * .5, rot: infiniteHash(cx, cy, i * 5 + 15) * TAU, variant: .82, phase: i }, map, t);
-        }
+        const cell = proceduralChunk(cx, cy);
+        cell.structures.forEach(drawArtObstacle);
+        cell.props.forEach((item) => drawDecor(item, map, t));
         if (isPyramidChunk(cx, cy)) { const pyramid = pyramidAt(cx, cy); drawGoldPyramid(pyramid.x, pyramid.y, t); }
       }
     }
@@ -1840,6 +1979,23 @@
         ctx.globalAlpha = .88; ctx.fillStyle = "#3b4144"; roundedRectPath(ctx, -20, 12, 42, 9, 3); ctx.fill();
         break;
       }
+      case "pit": {
+        ctx.fillStyle = "rgba(2,2,5,.72)"; ctx.beginPath(); ctx.ellipse(0, 4, 37, 25, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = "#54575a"; ctx.lineWidth = 8; ctx.beginPath(); ctx.ellipse(0, 1, 35, 23, 0, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = "rgba(173,181,173,.24)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(-3, -3, 28, 17, 0, 0, TAU); ctx.stroke();
+        ctx.fillStyle = "#050309"; ctx.beginPath(); ctx.ellipse(-2, 0, 27, 16, 0, 0, TAU); ctx.fill();
+        break;
+      }
+      case "river": {
+        const width = item.w || 400;
+        const height = item.h || 52;
+        ctx.strokeStyle = "rgba(6,12,14,.8)"; ctx.lineWidth = height + 18; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(-width / 2, 0); ctx.bezierCurveTo(-width / 6, -18, width / 6, 18, width / 2, 0); ctx.stroke();
+        ctx.strokeStyle = game.selectedMap === "cemetery" ? "#397b72" : game.selectedMap === "catacombs" ? "#6b2025" : "#315f55";
+        ctx.lineWidth = height; ctx.stroke();
+        ctx.strokeStyle = "rgba(178,238,208,.28)"; ctx.lineWidth = 5; ctx.setLineDash([22, 18]); ctx.lineDashOffset = -t * 42; ctx.stroke(); ctx.setLineDash([]);
+        break;
+      }
       case "soul-well": {
         ctx.fillStyle = "rgba(1,2,5,.65)"; ctx.beginPath(); ctx.ellipse(5, 15, 31, 13, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = "#4c5357"; ctx.beginPath(); ctx.ellipse(0, 4, 27, 15, 0, 0, TAU); ctx.fill();
@@ -1938,6 +2094,8 @@
   function drawArtObstacle(obstacle) {
     const art = {
       "mausoleum-art": { index: 0, width: 176, height: 235 },
+      "church-art": { index: 0, width: 214, height: 286 },
+      "castle-art": { index: 1, width: Math.max(230, obstacle.w * 1.3), height: 190 },
       "stone-wall-art": { index: 1, width: Math.max(190, obstacle.w * 1.25), height: 154 },
       "gate-art": { index: 2, width: 178, height: 238 },
       "coffin-art": { index: 3, width: 158, height: 188 },
@@ -2043,8 +2201,8 @@
   function drawFighter(fighter, t) {
     if (!fighter.alive || !visible(fighter.x, fighter.y, 120)) return;
     const hero = fighter.hero;
-    const blink = fighter.invuln > 0 && Math.sin(t * 25) > .45;
     const isPlayer = fighter === game.player;
+    const blink = !isPlayer && fighter.invuln > 0 && Math.sin(t * 25) > .45;
     const directionSheet = fighter.bot ? enemyDirections : playerDirections;
     const fallbackSprite = fighter.bot ? enemySprite : playerSprite;
     const spriteWidth = fighter.isBoss ? 205 : isPlayer ? 112 : 100;
@@ -2094,8 +2252,8 @@
     ctx.scale(strideScale + fighter.recoil * .025, 1 - Math.abs(step) * .012 * fighter.moveAmount);
     if (directionSheet.complete && directionSheet.naturalWidth) {
       const heroTone = fighter.isBoss ? "hue-rotate(285deg) saturate(2.4) brightness(.8)"
-        : hero.id === "vela" ? "hue-rotate(75deg) saturate(1.9) brightness(1.08)"
-          : hero.id === "becchino" ? "grayscale(1) brightness(1.5) contrast(1.08)"
+        : hero.id === "vela" ? "sepia(1) saturate(7) hue-rotate(5deg) brightness(1.25)"
+          : hero.id === "becchino" ? "sepia(1) saturate(8) hue-rotate(315deg) brightness(.95)"
             : "hue-rotate(315deg) saturate(1.55) brightness(1.1)";
       const coloredSheet = tintedSheet(directionSheet, `${fighter.bot ? "enemy" : "player"}-${fighter.isBoss ? "boss" : hero.id}`, heroTone);
       if (fighter.flash > 0) ctx.filter = "brightness(2.4) saturate(.35)";
@@ -2114,6 +2272,13 @@
       ctx.fillStyle = "#d6cfbd"; ctx.beginPath(); ctx.ellipse(0, -23, 19, 23, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = "#08070b"; ctx.beginPath(); ctx.arc(-7, -26, 6, 0, TAU); ctx.fill();
       ctx.shadowBlur = 10; ctx.shadowColor = fighter.bot ? "#ff304d" : "#76ff35"; ctx.fillStyle = fighter.bot ? "#ff304d" : "#76ff35"; ctx.beginPath(); ctx.arc(7, -26, 5, 0, TAU); ctx.fill();
+    }
+    if (isPlayer && economy.armor) {
+      ctx.filter = "none";
+      ctx.fillStyle = "rgba(220,231,231,.78)";
+      ctx.strokeStyle = "#59666b"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(-31, -36, 14, 9, -.35, 0, TAU); ctx.ellipse(31, -36, 14, 9, .35, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = hero.color; ctx.beginPath(); ctx.arc(0, -31, 5, 0, TAU); ctx.fill();
     }
     ctx.restore();
 

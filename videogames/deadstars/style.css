@@ -894,6 +894,12 @@ kbd {
 .roster-panel .hero-card strong { font-size: 11px; }
 .roster-panel .hero-card small { display: none; }
 .roster-panel .hero-card em { margin-top: 4px; font-size: 7px; }
+.hero-card.locked, .map-card.locked { filter: grayscale(.7) brightness(.72); }
+.hero-card em .price, .map-card .price { color: #ffd85c; }
+.upgrade-shop { display: flex; gap: 5px; margin-top: 5px; }
+.upgrade-shop button { flex: 1; padding: 5px 4px; border: 1px solid rgba(255,216,92,.28); border-radius: 5px; background: rgba(17,12,23,.88); color: #ffd85c; font-size: 7px; font-weight: 900; cursor: pointer; }
+.upgrade-shop button.owned { border-color: rgba(188,255,60,.55); color: var(--acid); }
+.shop-notice { min-height: 11px; margin-top: 3px; color: #aaa1b4; font-size: 7px; text-align: center; }
 
 .event-panel { display: grid; grid-template-columns: 150px 1fr; grid-template-rows: 1fr auto; gap: 5px 10px; background: linear-gradient(155deg, #332a43, #17131f); }
 .event-heading { align-self: center; padding: 7px; }
@@ -960,12 +966,13 @@ kbd {
   .brand-lockup .eyebrow { display: block; font-size: 7px; }
   .brand-lockup .tagline { display: block; font-size: 9px; }
   .hero-stage { top: 43%; width: 86vw; height: 55vh; }
-  .lobby-bottom { left: 8px; right: 8px; bottom: 8px; grid-template-columns: 1fr 130px; }
+  .lobby-bottom { left: 8px; right: 8px; bottom: 8px; grid-template-columns: 1fr 130px; grid-template-rows: auto auto; }
   .roster-panel { display: block; min-height: 86px; padding: 6px; }
   .roster-panel h2 { display: none; }
   .roster-panel .hero-card { min-height: 67px; padding-left: 42px; }
   .roster-panel .hero-avatar { width: 32px; height: 43px; font-size: 17px; }
-  .event-panel { display: none; }
+  .event-panel { display: grid; min-height: 50px; grid-column: 1; grid-row: 2; }
+  .play-panel { grid-column: 2; grid-row: 1 / 3; align-self: end; }
   .event-panel { min-height: 94px; grid-template-columns: 1fr; padding: 6px; }
   .event-heading { display: none; }
   .event-panel .map-card { min-height: 52px; }

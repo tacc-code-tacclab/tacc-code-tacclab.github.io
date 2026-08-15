@@ -10,7 +10,7 @@
     />
     <title>DeadStars — Horror Arena</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect rx=%2214%22 width=%2264%22 height=%2264%22 fill=%22%2309070f%22/><path d=%22M32 8l6.4 14.7L54 24.2 42.2 34.5 45.7 50 32 41.8 18.3 50l3.5-15.5L10 24.2l15.6-1.5z%22 fill=%22%23bbff3c%22/><circle cx=%2226%22 cy=%2230%22 r=%223%22 fill=%22%2309070f%22/><circle cx=%2238%22 cy=%2230%22 r=%223%22 fill=%22%2309070f%22/></svg>" />
-    <link rel="stylesheet" href="style.css?v=5" />
+    <link rel="stylesheet" href="style.css?v=6" />
   </head>
   <body>
     <main id="app">
@@ -29,7 +29,7 @@
           </div>
           <div class="currency-row">
             <span class="currency"><i>✦</i><b>5 682</b></span>
-            <span class="currency"><i>◉</i><b>25 930</b></span>
+            <span class="currency"><i>◉</i><b id="wallet-coins">0</b></span>
             <span class="currency"><i>◆</i><b>71</b></span>
           </div>
           <div class="top-actions">
@@ -61,12 +61,17 @@
           <section class="roster-panel chunky-panel">
             <h2>SCEGLI IL DANNATO</h2>
             <div id="hero-list" class="hero-list" role="radiogroup" aria-label="Personaggio"></div>
+            <div class="upgrade-shop">
+              <button data-upgrade="armor">🛡 ARMATURA · 35</button>
+              <button data-upgrade="weapon">⚔ ARMA · 50</button>
+            </div>
+            <div id="shop-notice" class="shop-notice">Guadagna dobloni eliminando i nemici</div>
           </section>
 
           <section class="event-panel chunky-panel">
             <div class="event-heading"><span>EVENTO DELLA NOTTE</span><b>MIETITURA</b></div>
             <div id="map-list" class="map-list" role="radiogroup" aria-label="Mappa"></div>
-            <div class="event-rules"><span>✦ 12 anime</span><span>◷ 2:30</span><span>6 dannati</span></div>
+            <div class="event-rules"><span>∞ mondo</span><span>◉ dobloni</span><span>▲ boss finale</span></div>
           </section>
 
           <section class="play-panel">
@@ -90,7 +95,7 @@
             <article>
               <div class="key-wide"><kbd>SPAZIO</kbd></div>
               <h3>Salta</h3>
-              <p>Supera tombe e siepi. Atterra vicino a un rivale per fargli perdere un'anima.</p>
+              <p>Supera tombe, cancelli, buche e fiumi. Serpenti e ragni feriscono chi non salta.</p>
             </article>
             <article>
               <div class="key-wide fire-keys"><kbd>V</kbd><kbd>X</kbd></div>
@@ -99,8 +104,8 @@
             </article>
             <article>
               <div class="soul-demo">✦</div>
-              <h3>Ruba le anime</h3>
-              <p>Raccogli 12 stelle spettrali, evita i fiumi di lava e sopravvivi alla Mietitura.</p>
+              <h3>Guadagna dobloni</h3>
+              <p>Elimina i nemici, compra personaggi, ambienti ed equipaggiamento e cerca la piramide d'oro.</p>
             </article>
           </div>
           <p class="objective"><strong>Sopravvivi:</strong> i tuoi colpi sono verdi, quelli dei nemici sono rossi.</p>
@@ -181,6 +186,6 @@
         <div class="mobile-landscape-hint">Ruota il telefono in orizzontale</div>
       </div>
     </main>
-    <script src="game.js?v=5"></script>
+    <script src="game.js?v=6"></script>
   </body>
 </html>
