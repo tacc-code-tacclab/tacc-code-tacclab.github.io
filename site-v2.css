@@ -2079,8 +2079,180 @@ h3 {
   background: #b0894a;
 }
 
+.deadstars-showcase {
+  border-color: #496d25;
+  background: #07100a;
+}
+
+.deadstars-showcase .game-copy {
+  background:
+    radial-gradient(circle at 10% 12%, rgba(188, 255, 60, 0.13), transparent 34%),
+    radial-gradient(circle at 92% 88%, rgba(255, 80, 24, 0.12), transparent 36%),
+    #07100a;
+}
+
+.game-copy h3.deadstars-title {
+  width: 100%;
+  max-width: 100%;
+  color: #f0eadb;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(2.7rem, 5.2vw, 5rem);
+  font-weight: 900;
+  letter-spacing: 0.025em;
+  line-height: 0.82;
+}
+
+.deadstars-title span {
+  display: block;
+  color: #bcff3c;
+  text-shadow: 0 0 28px rgba(188, 255, 60, 0.28);
+}
+
+.deadstars-title small {
+  display: block;
+  margin-top: 1.15rem;
+  color: #ff7a32;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.15em;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+}
+
+.game-showcase .deadstars-button {
+  border-color: #bcff3c;
+  background: linear-gradient(135deg, #bcff3c, #6aa91d);
+  color: #0a1608;
+}
+
+.game-showcase .deadstars-button:hover {
+  background: #ff7a32;
+  color: #170a04;
+}
+
+.deadstars-preview {
+  overflow: hidden;
+  background: linear-gradient(155deg, #122718, #07100a 72%);
+  color: #eaffd2;
+}
+
+.deadstars-preview::before {
+  background:
+    radial-gradient(circle at 68% 24%, rgba(188,255,60,.1), transparent 22%),
+    repeating-linear-gradient(0deg, rgba(207,255,190,.025) 0 1px, transparent 1px 4px);
+}
+
+.deadstars-preview .game-preview-label,
+.deadstars-preview .game-route {
+  color: #a8c99b;
+}
+
+.deadstars-preview .game-preview-label::after {
+  background: #bcff3c;
+  color: #0a1608;
+}
+
+.deadstars-arena {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  margin-block: clamp(2rem, 6vw, 5rem) 2rem;
+  border: 1px solid #527634;
+  border-radius: 0.9rem;
+  background: url("videogames/deadstars/assets/haunted-grass-v4.webp") center / cover;
+  box-shadow: 0 25px 58px rgba(0,0,0,.52), inset 0 0 55px rgba(0,0,0,.32);
+}
+
+.deadstars-arena::after {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%, transparent 40%, rgba(3,8,4,.48));
+  content: "";
+  pointer-events: none;
+}
+
+.ds-lava {
+  position: absolute;
+  z-index: 1;
+  width: 58%;
+  height: 12%;
+  border: 8px solid #56150c;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #ff3b10, #ffc13b 47%, #e73b0d);
+  box-shadow: 0 0 17px rgba(255,76,20,.75), inset 0 0 0 4px rgba(255,221,91,.48);
+}
+
+.ds-lava-one { left: -13%; top: 21%; transform: rotate(-14deg); }
+.ds-lava-two { right: -17%; bottom: 13%; transform: rotate(12deg); }
+
+.ds-grave {
+  position: absolute;
+  z-index: 2;
+  width: 9%;
+  aspect-ratio: .72;
+  border: 3px solid #838b83;
+  border-radius: 50% 50% 12% 12%;
+  background: linear-gradient(135deg, #777f78, #303b35);
+  box-shadow: 8px 9px 0 rgba(0,0,0,.35);
+}
+
+.ds-grave::after {
+  position: absolute;
+  top: 34%;
+  left: 23%;
+  width: 54%;
+  height: 8%;
+  background: #bec5b7;
+  box-shadow: 0 -0.5rem 0 -0.15rem #bec5b7;
+  content: "";
+}
+
+.ds-grave-one { left: 16%; bottom: 15%; transform: rotate(-7deg); }
+.ds-grave-two { right: 15%; top: 15%; transform: rotate(8deg) scale(.78); }
+
+.ds-spider {
+  position: absolute;
+  z-index: 3;
+  right: 26%;
+  bottom: 18%;
+  color: #be83ff;
+  font-size: clamp(1.6rem, 4vw, 3.4rem);
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,.7));
+  transform: rotate(18deg);
+}
+
+.ds-hero {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: -8%;
+  width: 34%;
+  height: 104%;
+  background: url("videogames/deadstars/assets/nox-lobby.webp") center bottom / contain no-repeat;
+  filter: drop-shadow(0 12px 8px rgba(0,0,0,.62));
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  transition: transform .28s ease;
+}
+
+.deadstars-preview:hover .ds-hero {
+  transform: translateX(-50%) translateY(-4px) rotate(1.5deg) scale(1.025);
+}
+
+.deadstars-preview .game-route i {
+  background: #597b48;
+}
+
+.deadstars-preview .game-route i::after {
+  background: #bcff3c;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .crystal-preview:hover .crystal-porthole {
     transform: none;
+  }
+  .deadstars-preview:hover .ds-hero {
+    transform: translateX(-50%);
   }
 }
