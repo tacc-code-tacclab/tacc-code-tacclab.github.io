@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+    <meta name="theme-color" content="#05051b">
+    <meta name="description" content="LIFEBEARER — Einstein's Drift. Cross curved spacetime and seed life across the Solar System.">
+    <title>LIFEBEARER — Einstein's Drift</title>
+    <link rel="stylesheet" href="style.css?v=1">
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Lifebearer spacetime mission"></canvas>
+
+      <section id="menu" class="screen active">
+        <a class="back-link" href="../../#videogames">← Games</a>
+        <div class="menu-panel">
+          <div class="menu-copy">
+            <p class="eyebrow">A SPACETIME ODYSSEY</p>
+            <h1>LIFE<span>BEARER</span></h1>
+            <p class="subtitle">EINSTEIN'S DRIFT</p>
+            <p class="intro">Released alone from the mothership, you must cross curved spacetime and carry the seeds of life to the worlds of the Solar System.</p>
+            <div class="rules">
+              <span><b>◎</b>Avoid gravity wells</span>
+              <span><b>☄</b>Dodge cosmic debris</span>
+              <span><b>γ</b>Brake before inertia grows</span>
+              <span><b>✦</b>Land and seed life</span>
+            </div>
+            <button id="play-btn" class="primary">BEGIN THE MISSION</button>
+            <p class="hint">Arrow keys / WASD · Analogue thumb stick on mobile</p>
+          </div>
+          <div class="hero" aria-hidden="true">
+            <img class="ship-art" src="assets/mothership.webp" alt="">
+            <img class="astronaut-art" src="assets/astronaut.webp" alt="">
+            <i class="orbit one"></i><i class="orbit two"></i>
+          </div>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="brand">LIFE<span>BEARER</span></div>
+        <div class="stat mission"><small>TARGET</small><b id="target-name">MARS</b></div>
+        <div class="stat"><small>VELOCITY</small><b id="speed">0.18 c</b></div>
+        <div class="stat"><small>LORENTZ γ</small><b id="gamma">1.02</b></div>
+        <div class="stat"><small>SEEDS</small><b id="seeds">0 / 6</b></div>
+        <div class="distance"><span><i id="distance-fill"></i></span><small id="distance-label">MARS · 0%</small></div>
+        <button id="pause-btn" class="round-btn" aria-label="Pause">Ⅱ</button>
+      </section>
+
+      <div id="alert" class="alert" aria-live="polite"></div>
+      <div id="speed-warning" class="speed-warning">RELATIVISTIC INERTIA HIGH · BRAKE</div>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card danger">
+          <p class="eyebrow">MISSION LOST</p>
+          <h2 id="death-title">COLLISION</h2>
+          <p id="death-copy">The seeds of life were lost in the dark.</p>
+          <button id="retry-btn" class="primary">RETRY PLANET</button>
+          <button id="home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="landed" class="screen modal">
+        <div class="modal-card success">
+          <p class="eyebrow">PANSPERMIA SUCCESS</p>
+          <div class="seed-icon" aria-hidden="true">✦</div>
+          <h2><span id="landed-name">MARS</span> SEEDED</h2>
+          <p id="landed-copy">The first cells awaken beneath an alien sky.</p>
+          <button id="next-btn" class="primary">NEXT WORLD</button>
+        </div>
+      </section>
+
+      <section id="complete" class="screen modal">
+        <div class="modal-card success finale">
+          <p class="eyebrow">LIFE CROSSES THE VOID</p>
+          <h2>SOLAR SYSTEM SEEDED</h2>
+          <p>Your journey bent time, crossed gravity and carried life farther than Earth ever dreamed.</p>
+          <button id="again-btn" class="primary">FLY AGAIN</button>
+          <button id="complete-home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">MISSION PAUSED</p>
+          <h2>HOLD YOUR VECTOR</h2>
+          <button id="resume-btn" class="primary">CONTINUE</button>
+          <button id="quit-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <div id="rotate-device" aria-hidden="true">
+        <div class="phone">↻</div>
+        <strong>ROTATE YOUR PHONE</strong>
+        <span>LIFEBEARER is played in landscape.</span>
+      </div>
+
+      <div id="mobile-controls" aria-hidden="true">
+        <div class="dpad" aria-label="Movement controls">
+          <button class="up" data-dir="up" aria-label="Thrust up">▲</button>
+          <button class="left" data-dir="left" aria-label="Brake">◀</button>
+          <button id="joystick" class="dpad-core" aria-label="Analogue flight stick"><span></span></button>
+          <button class="right" data-dir="right" aria-label="Accelerate">▶</button>
+          <button class="down" data-dir="down" aria-label="Thrust down">▼</button>
+        </div>
+        <div class="touch-labels"><span>BRAKE</span><span>THRUST</span></div>
+      </div>
+    </main>
+    <script src="game.js?v=1"></script>
+  </body>
+</html>
