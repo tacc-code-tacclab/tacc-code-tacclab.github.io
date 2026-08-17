@@ -2273,6 +2273,26 @@ h3 {
   background: #bcff3c;
 }
 
+/* Totem Balance — original physics ritual */
+.totem-showcase { border-color: #4abec3; background: #061423; }
+.totem-showcase .game-copy { background: radial-gradient(circle at 14% 18%, rgba(48,218,219,.15), transparent 35%), radial-gradient(circle at 92% 84%, rgba(255,175,62,.11), transparent 34%), #061423; }
+.game-copy h3.totem-title { width: 100%; color: #f1fbff; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.8rem, 5.4vw, 5rem); font-weight: 800; letter-spacing: -.04em; line-height: .82; }
+.totem-title span { display: block; color: #ffb74f; letter-spacing: .04em; text-shadow: 0 0 28px rgba(255,183,79,.2); }
+.totem-title small { display: block; margin-top: 1.1rem; color: #4de3e1; font: 850 .15em/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .2em; }
+.game-showcase .totem-button { border-color: #ffd07a; background: linear-gradient(135deg, #ffc75c, #bb6324); color: #1c1009; }
+.game-showcase .totem-button:hover { background: #4de3e1; color: #05232c; }
+.totem-preview { overflow: hidden; background: #071629 url("videogames/totem-balance/assets/totem-hero.webp") center / cover; color: #d8ffff; }
+.totem-preview::before { background: linear-gradient(180deg, rgba(2,10,22,.15), rgba(1,6,14,.52)), radial-gradient(circle at 50% 35%, rgba(57,224,222,.1), transparent 32%); }
+.totem-preview .game-preview-label, .totem-preview .game-route { color: #9ed7db; }
+.totem-preview .game-preview-label::after { background: #ffbc52; color: #201207; }
+.totem-scene { position: relative; display: block; overflow: hidden; aspect-ratio: 16 / 9; margin-block: clamp(2rem,6vw,5rem) 2rem; border: 1px solid rgba(81,210,211,.45); border-radius: .9rem; box-shadow: 0 25px 58px rgba(0,0,0,.52), inset 0 0 55px rgba(0,5,15,.35); }
+.totem-pole { position: absolute; left: 49%; top: 17%; width: 2%; height: 66%; border-radius: 4px; background: linear-gradient(90deg,#101822,#a27c4d 48%,#172330); box-shadow: 0 0 12px rgba(66,224,220,.3); }
+.totem-rod { position: absolute; left: 29%; width: 43%; height: 2.3%; border-radius: 99px; background: linear-gradient(180deg,#f0c070,#6f331d); box-shadow: 0 2px 0 #130b08,0 0 8px rgba(255,174,61,.35); transform-origin:center; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.tr-one { top: 34%; transform: rotate(8deg); }.tr-two { top: 50%; background: linear-gradient(180deg,#73e2df,#126a75); transform: rotate(-13deg); }.tr-three { top: 64%; transform:rotate(18deg) scale(.86); }
+.totem-glow { position:absolute; left:45%; bottom:10%; width:10%; aspect-ratio:1; border-radius:50%; background:rgba(49,230,226,.24); filter:blur(12px); }
+.totem-preview:hover .tr-one { transform:rotate(-5deg) translateY(-4px); }.totem-preview:hover .tr-two { transform:rotate(9deg); }.totem-preview:hover .tr-three { transform:rotate(-11deg) scale(.9); }
+.totem-preview .game-route i { background:#326d73; }.totem-preview .game-route i::after { background:#ffbc52; }
+
 @media (prefers-reduced-motion: reduce) {
   .crystal-preview:hover .crystal-porthole {
     transform: none;
@@ -2280,4 +2300,7 @@ h3 {
   .deadstars-preview:hover .ds-hero {
     transform: translateX(-50%);
   }
+  .totem-preview:hover .tr-one { transform:rotate(8deg); }
+  .totem-preview:hover .tr-two { transform:rotate(-13deg); }
+  .totem-preview:hover .tr-three { transform:rotate(18deg) scale(.86); }
 }

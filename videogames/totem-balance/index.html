@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+    <meta name="theme-color" content="#071426">
+    <meta name="description" content="Totem Balance — an original physics duel of metal, gravity and nerve.">
+    <title>Totem Balance</title>
+    <link rel="stylesheet" href="style.css?v=20260817-1">
+  </head>
+  <body>
+    <main id="app">
+      <section class="screen title-screen active" id="titleScreen" aria-labelledby="gameTitle">
+        <div class="title-shade"></div>
+        <a class="back-link" href="../../#videogames" aria-label="Back to videogames">← Games</a>
+        <div class="title-panel">
+          <p class="eyebrow">AN ORIGINAL PHYSICS DUEL</p>
+          <h1 id="gameTitle"><span>TOTEM</span> BALANCE</h1>
+          <p class="tagline">Forge the impossible. Trust gravity. Never be the one who breaks the ritual.</p>
+          <div class="menu-actions">
+            <button class="main-button" id="duelButton"><span>DUEL THE ORACLE</span><small>Best of three · alternating turns</small></button>
+            <button class="secondary-button" id="endlessButton"><span>ENDLESS RITUAL</span><small>Build alone · chase your record</small></button>
+          </div>
+          <div class="difficulty" role="group" aria-label="Difficulty">
+            <button data-difficulty="novice">NOVICE</button>
+            <button class="selected" data-difficulty="oracle">ORACLE</button>
+            <button data-difficulty="titan">TITAN</button>
+          </div>
+          <p class="control-hint"><b>Drag</b> a rod by its glowing hook · <b>rotate</b> with the buttons, wheel or two fingers · release near a golden joint.</p>
+        </div>
+        <p class="art-credit">Original world and game design · TACC Lab Arcade</p>
+      </section>
+
+      <section class="screen game-screen" id="gameScreen" aria-label="Totem Balance game">
+        <div class="game-background"></div>
+        <header class="hud">
+          <button class="icon-button" id="homeButton" aria-label="Return to menu">⌂</button>
+          <div class="score-panel" id="scorePanel">
+            <span><small>YOU</small><b id="playerScore">0</b></span>
+            <i>◆</i>
+            <span><small id="opponentLabel">ORACLE</small><b id="cpuScore">0</b></span>
+          </div>
+          <div class="turn-panel"><small id="turnLabel">YOUR TURN</small><strong id="pieceCount">PIECE 1</strong></div>
+          <button class="icon-button" id="soundButton" aria-label="Toggle sound">♪</button>
+        </header>
+
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="gameCanvas" width="1000" height="650" aria-label="Physics balancing arena"></canvas>
+          <div class="message-banner" id="messageBanner" aria-live="polite"></div>
+          <div class="stability-card">
+            <span>STABILITY</span>
+            <div><i id="stabilityFill"></i></div>
+            <b id="stabilityText">CALM</b>
+          </div>
+        </div>
+
+        <div class="controls" id="controls">
+          <button id="rotateLeft" aria-label="Rotate counter-clockwise"><span>↶</span><small>ROTATE</small></button>
+          <button id="hookButton" aria-label="Change active hook"><span>⌁</span><small>HOOK</small></button>
+          <div class="piece-name"><small>NEXT RELIC</small><strong id="pieceName">MOON SPEAR</strong></div>
+          <button id="rotateRight" aria-label="Rotate clockwise"><span>↷</span><small>ROTATE</small></button>
+          <button id="dropButton" class="drop" aria-label="Place the rod"><span>◆</span><small>PLACE</small></button>
+        </div>
+      </section>
+
+      <section class="modal" id="resultModal" aria-hidden="true">
+        <div class="modal-card">
+          <p class="eyebrow" id="resultEyebrow">THE RITUAL ENDS</p>
+          <h2 id="resultTitle">VICTORY</h2>
+          <p id="resultText"></p>
+          <div class="final-score"><span>BEST STRUCTURE</span><strong id="bestScore">0 PIECES</strong></div>
+          <button class="main-button" id="againButton"><span>PLAY AGAIN</span></button>
+          <button class="text-button" id="menuButton">RETURN TO TEMPLE</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js?v=20260817-1"></script>
+  </body>
+</html>
