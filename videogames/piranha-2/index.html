@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+    <meta name="theme-color" content="#021a42">
+    <meta name="description" content="Piranha 2 — eat, grow and conquer an endless ocean.">
+    <title>Piranha 2 — Ocean Evolution</title>
+    <link rel="stylesheet" href="style.css?v=1">
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Piranha 2 ocean"></canvas>
+
+      <section id="menu" class="screen active">
+        <a class="back-link" href="../../#videogames">← Games</a>
+        <div class="bubble-field" aria-hidden="true"></div>
+        <div class="menu-card">
+          <p class="eyebrow">OCEAN EVOLUTION</p>
+          <h1>PIRANHA <span>2</span></h1>
+          <p class="tagline">EAT · GROW · CONQUER</p>
+          <div class="hero-fish" aria-hidden="true"><i></i></div>
+          <p class="intro">You are Nemo. Eat anything smaller than you, avoid anything bigger, and grow until you rule the entire screen.</p>
+          <div class="rules">
+            <span><b>🐟</b> Smaller fish are food</span>
+            <span><b>🦈</b> Grow bigger, then eat them</span>
+            <span><b>🪼</b> Jellyfish stay poisonous</span>
+          </div>
+          <button id="play-btn" class="primary">DIVE IN</button>
+          <p class="controls-hint">Arrow keys / WASD · Responsive touch pad on mobile</p>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="brand">PIRANHA <span>2</span></div>
+        <div class="stat"><small>SCORE</small><b id="score">0</b></div>
+        <div class="stat"><small>SIZE</small><b id="size">1.0×</b></div>
+        <div class="stat level"><small>OCEAN</small><b id="level">1</b></div>
+        <div class="growth"><span><i id="growth-fill"></i></span><small id="growth-label">0% TO DOMINANCE</small></div>
+        <button id="pause-btn" class="round-btn" aria-label="Pause">Ⅱ</button>
+      </section>
+
+      <div id="message" class="message" aria-live="polite"></div>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card">
+          <p class="eyebrow">THE OCEAN BITES BACK</p>
+          <h2 id="end-title">YOU WERE EATEN</h2>
+          <div class="final-score"><small>SCORE</small><strong id="final-score">0</strong></div>
+          <p id="final-size">Final size: 1.0×</p>
+          <button id="again-btn" class="primary">TRY AGAIN</button>
+          <button id="home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="level-clear" class="screen modal victory">
+        <div class="modal-card">
+          <p class="eyebrow">APEX OF THE OCEAN</p>
+          <h2>OCEAN <span id="cleared-level">1</span> CONQUERED!</h2>
+          <div class="giant-fish" aria-hidden="true"></div>
+          <p>You grew large enough to fill the sea. The next ocean is brighter, faster and more dangerous.</p>
+          <button id="next-btn" class="primary">ENTER OCEAN 2</button>
+        </div>
+      </section>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">PAUSED</p>
+          <h2>STAY HUNGRY?</h2>
+          <button id="resume-btn" class="primary">CONTINUE</button>
+          <button id="quit-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <div id="mobile-controls" aria-hidden="true">
+        <div class="dpad" aria-label="Movement controls">
+          <button class="up" data-dir="up" aria-label="Swim up">▲</button>
+          <button class="left" data-dir="left" aria-label="Swim left">◀</button>
+          <div class="dpad-core">N</div>
+          <button class="right" data-dir="right" aria-label="Swim right">▶</button>
+          <button class="down" data-dir="down" aria-label="Swim down">▼</button>
+        </div>
+      </div>
+    </main>
+    <script src="game.js?v=1"></script>
+  </body>
+</html>
