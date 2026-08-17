@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#05051b">
     <meta name="description" content="LIFEBEARER — Einstein's Drift. Cross curved spacetime and seed life across the Solar System.">
     <title>LIFEBEARER — Einstein's Drift</title>
-    <link rel="stylesheet" href="style.css?v=1">
+    <link rel="stylesheet" href="style.css?v=2">
   </head>
   <body>
     <main id="app">
@@ -22,12 +22,12 @@
             <p class="intro">Released alone from the mothership, you must cross curved spacetime and carry the seeds of life to the worlds of the Solar System.</p>
             <div class="rules">
               <span><b>◎</b>Avoid gravity wells</span>
-              <span><b>☄</b>Dodge cosmic debris</span>
+              <span><b>✺</b>Shoot cosmic debris</span>
               <span><b>γ</b>Brake before inertia grows</span>
-              <span><b>✦</b>Land and seed life</span>
+              <span><b>✦</b>Slow down and touch the planet</span>
             </div>
             <button id="play-btn" class="primary">BEGIN THE MISSION</button>
-            <p class="hint">Arrow keys / WASD · Analogue thumb stick on mobile</p>
+            <p class="hint">Move: arrows / WASD · Fire: Space, X or V · Mobile: stick + FIRE</p>
           </div>
           <div class="hero" aria-hidden="true">
             <img class="ship-art" src="assets/mothership.webp" alt="">
@@ -104,8 +104,9 @@
           <button class="down" data-dir="down" aria-label="Thrust down">▼</button>
         </div>
         <div class="touch-labels"><span>BRAKE</span><span>THRUST</span></div>
+        <button id="fire-btn" class="fire-btn" aria-label="Fire at cosmic debris"><span>✦</span><b>FIRE</b></button>
       </div>
     </main>
-    <script src="game.js?v=1"></script>
+    <script src="game.js?v=2"></script>
   </body>
 </html>
