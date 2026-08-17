@@ -29,6 +29,7 @@
     {name:'TITAN BONE',len:238,bend:-7,weight:1.3,hooks:[-.3,.04,.36],tip:'hammer'},
     {name:'EMBER WAND',len:176,bend:20,weight:.9,hooks:[-.42,.03,.42],tip:'orb'}
   ];
+  const PIECE_HOOK_ORDER=[1,0,2,1,0,2,1];
   const DIFFICULTY = {
     novice:{limit:38,cpuError:.23,settle:1450}, oracle:{limit:31,cpuError:.11,settle:1650}, titan:{limit:25,cpuError:.035,settle:1850}
   };
@@ -37,15 +38,15 @@
   let mode='duel', difficulty='oracle', state='menu', turn='player';
   let pieces=[], current=null, playerScore=0, cpuScore=0, pieceNumber=0, best=0;
   let pointer=null, rotateHold=0, lastTime=0, stress=0, soundOn=true, bannerTimer=0;
-  let audio=null, aiTimer=0, collapseStart=0, dangerTime=0, physicsToken=0, loopRunning=false;
+  let audio=null, aiTimer=0, collapseStart=0, dangerTime=0, physicsToken=0, loopRunning=false, selectedAnchor=0;
 
   function makePiece(index=pieceNumber){
     const shape=SHAPES[index%SHAPES.length];
     return {
       shape, palette:COLORS[index%COLORS.length], x:500, y:150,
-      angle:(index%2?-.14:.12), hookIndex:1, owner:turn,
+      angle:(index%2?-.14:.12), hookIndex:PIECE_HOOK_ORDER[index%PIECE_HOOK_ORDER.length], owner:turn,
       placed:false, parent:null, anchor:null, baseAngle:0, wobble:0, angleV:0, slipTime:0,
-      fall:false, vx:0, vy:0, spin:0, opacity:1
+      locked:false,fall:false, vx:0, vy:0, spin:0, opacity:1
     };
   }
 
@@ -82,36 +83,31 @@
     if(!loopRunning){loopRunning=true;lastTime=0;requestAnimationFrame(loop);}
   }
   function resetRound(first=false){
-    physicsToken++;pieces=[];pieceNumber=0;turn='player';state='playing';stress=0;dangerTime=0;collapseStart=0;current=makePiece();
+    physicsToken++;pieces=[];pieceNumber=0;turn='player';state='playing';stress=0;dangerTime=0;collapseStart=0;selectedAnchor=0;current=makePiece();
     current.x=500;current.y=155;updateHUD();
-    if(!first) showBanner('A NEW RITUAL BEGINS'); else showBanner(mode==='duel'?'YOUR MOVE — CHOOSE A GOLDEN JOINT':'BUILD BEYOND THE POSSIBLE');
+    if(!first) showBanner('A NEW RITUAL BEGINS'); else showBanner('ROTATE → HOOK → PLACE');
   }
   function updateHUD(){
     ui.pScore.textContent=mode==='duel'?playerScore:pieces.length;
     ui.cScore.textContent=mode==='duel'?cpuScore:best;
     ui.turn.textContent=turn==='player'?'YOUR TURN':'ORACLE THINKS';
     ui.count.textContent='PIECE '+(pieceNumber+1);ui.piece.textContent=current?current.shape.name:'—';
+    const anchors=availableAnchors();selectedAnchor=anchors.length?selectedAnchor%anchors.length:0;
+    $('#hookLabel').textContent=anchors.length?'HOOK '+(selectedAnchor+1)+'/'+anchors.length:'NO HOOK';
     ui.controls.classList.toggle('disabled',turn!=='player'||state!=='playing');
   }
 
-  function nearestAnchor(piece){
-    const hp=hookPoint(piece);let bestA=null,bestD=Infinity;
-    for(const a of availableAnchors()){
-      const d=Math.hypot(hp.x-a.x,hp.y-a.y);if(d<bestD){bestD=d;bestA=a;}
-    }
-    return bestD<54?{...bestA,d:bestD}:null;
-  }
-  function placeCurrent(force=false){
+  function chosenAnchor(){const a=availableAnchors();return a.length?a[selectedAnchor%a.length]:null;}
+  function placeCurrent(){
     if(!current||turn!=='player'||state!=='playing')return;
-    const a=nearestAnchor(current);
-    if(!a&&!force){showBanner('MOVE THE GLOWING HOOK CLOSER');tone(105,.1,'sawtooth',.025);return;}
+    const a=chosenAnchor();
     if(!a){failTurn('THE RELIC MISSED THE TOTEM');return;}
     attach(current,a);
   }
   function attach(p,a){
     const hp=hookPoint(p);p.x+=a.x-hp.x;p.y+=a.y-hp.y;p.anchor={x:a.x,y:a.y};p.anchorRef=a.ref;p.anchorKey=a.key;p.parent=a.parent;p.placed=true;
-    p.baseAngle=p.angle;p.wobble=0;p.angleV=(Math.random()-.5)*.18;p.slipTime=0;
-    nudgeAncestors(p.parent,(p.x-a.x)*p.shape.weight*.00075);pieces.push(p);current=null;state='settling';
+    p.baseAngle=p.angle;p.wobble=0;p.angleV=(Math.random()-.5)*.18;p.slipTime=0;p.locked=false;
+    pieces.push(p);current=null;state='settling';dangerTime=0;
     tone(460,.06,'triangle',.06);setTimeout(()=>tone(690,.08,'sine',.035),70);
     updateHUD();
     const token=physicsToken;setTimeout(()=>{if(token===physicsToken)resolvePlacement();},DIFFICULTY[difficulty].settle);
@@ -119,12 +115,14 @@
   function resolvePlacement(){
     if(state!=='settling')return;
     calculateStress();
-    const reckless=Math.random()<.018+pieces.length*.002;
-    if(stress>1||(turn==='cpu'&&reckless&&stress>.72)){collapse(turn);return;}
+    const latest=pieces[pieces.length-1];
+    if(stress>1||latest?.slipTime>120){collapse(turn);return;}
+    if(latest){latest.locked=true;latest.angleV=0;latest.wobble=0;latest.slipTime=0;}
     best=Math.max(best,pieces.length);localStorage.setItem('totemBalanceBest',String(best));
-    showBanner(stress>.72?'THE TOTEM TREMBLES…':'THE RELIC HOLDS');tone(stress>.72?165:620,.12,'sine',.035);
+    showBanner('LOCKED — THE RELIC HOLDS');tone(620,.12,'sine',.035);
     pieceNumber++;
-    if(mode==='endless'){turn='player';current=makePiece();current.x=500;current.y=145;state='playing';updateHUD();return;}
+    selectedAnchor=0;
+    if(mode==='endless'){turn='player';current=makePiece();current.x=500;current.y=145;state='playing';updateHUD();showBanner('ROTATE → HOOK → PLACE');return;}
     turn=turn==='player'?'cpu':'player';current=makePiece();current.x=500;current.y=145;state='playing';updateHUD();
     if(turn==='cpu')beginAI();
   }
@@ -135,10 +133,6 @@
     pieces.forEach(p=>{const m=p.shape.weight;total+=m;moment+=(p.x-root.x)*m;});
     const drift=Math.abs(moment/(total+STAND_BALLAST));const height=Math.max(...pieces.map(p=>root.y-p.y));
     stress=Math.min(1.4,drift/DIFFICULTY[difficulty].limit + Math.max(0,height-430)/700 + pieces.length*.012);
-  }
-  function nudgeAncestors(parent,impulse){
-    let p=parent,attenuation=1;
-    while(p){p.angleV+=(impulse+(Math.random()-.5)*.08)*attenuation;attenuation*=.62;p=p.parent;}
   }
   function isDescendant(piece,ancestor){
     let p=piece;
@@ -197,16 +191,14 @@
     state='ai';updateHUD();const anchors=availableAnchors();
     let bestChoice=null,bestValue=Infinity;
     for(const a of anchors){
-      for(let k=0;k<current.shape.hooks.length;k++){
-        for(let n=0;n<18;n++){
-          const angle=-1.2+n*.14;const test={...current,angle,hookIndex:k};
+      for(let n=0;n<18;n++){
+          const angle=-1.2+n*.14;const test={...current,angle};
           const hp=hookPoint(test);test.x+=a.x-hp.x;test.y+=a.y-hp.y;
           const projected=(pieces.reduce((s,p)=>s+(p.x-root.x)*p.shape.weight,0)+(test.x-root.x)*test.shape.weight)/(pieces.reduce((s,p)=>s+p.shape.weight,0)+test.shape.weight+STAND_BALLAST);
           const edgePenalty=Math.max(0,Math.abs(test.x-root.x)-350)*2;
           let v=Math.abs(projected)+edgePenalty+Math.random()*DIFFICULTY[difficulty].cpuError*95;
-          if(v<bestValue){bestValue=v;bestChoice={a,k,angle,x:test.x,y:test.y};}
+          if(v<bestValue){bestValue=v;bestChoice={a,angle,x:test.x,y:test.y};}
         }
-      }
     }
     if(!bestChoice){collapse('cpu',true);return;}
     if(Math.random()<DIFFICULTY[difficulty].cpuError*.35)bestChoice.angle+=(Math.random()-.5)*1.1;
@@ -216,14 +208,17 @@
   function updateAI(now){
     if(!aiTimer||!current)return;
     const t=Math.min(1,(now-aiTimer.began)/1100),e=1-Math.pow(1-t,3),c=aiTimer.choice;
-    current.hookIndex=c.k;current.x=lerp(aiTimer.start.x,c.x,e);current.y=lerp(aiTimer.start.y,c.y,e);current.angle=lerp(aiTimer.start.angle,c.angle,e);
+    current.x=lerp(aiTimer.start.x,c.x,e);current.y=lerp(aiTimer.start.y,c.y,e);current.angle=lerp(aiTimer.start.angle,c.angle,e);
     if(t>=1){aiTimer=0;state='playing';attach(current,c.a);}
   }
 
   function draw(now){
     ctx.clearRect(0,0,W,H);drawAtmosphere(now);drawTotem();
     const anchors=availableAnchors();
-    if(turn==='player'&&state==='playing')anchors.forEach(a=>drawAnchor(a.x,a.y,nearestAnchor(current)?.key===a.key));
+    if(turn==='player'&&state==='playing'){
+      anchors.forEach((a,i)=>drawAnchor(a.x,a.y,i===selectedAnchor,i+1));
+      const target=anchors[selectedAnchor%Math.max(1,anchors.length)];if(current&&target)drawPlacementGuide(current,target,now);
+    }
     pieces.forEach(p=>drawPiece(p,false));if(current)drawPiece(current,true);
     if(state==='collapse')drawFragments(now);
   }
@@ -239,8 +234,11 @@
     ctx.globalAlpha=1;ctx.strokeStyle='#d79a49';ctx.lineWidth=7;ctx.beginPath();ctx.arc(root.x,109,19,.3,Math.PI-.3);ctx.stroke();ctx.beginPath();ctx.arc(root.x,109,19,Math.PI+.3,-.3);ctx.stroke();
     ctx.fillStyle='#0b111d';ctx.beginPath();ctx.arc(root.x,109,8,0,Math.PI*2);ctx.fill();ctx.restore();
   }
-  function drawAnchor(x,y,hot=false){
+  function drawAnchor(x,y,hot=false,number=0){
     ctx.save();ctx.shadowColor=hot?'#fff1a0':'#ffb33e';ctx.shadowBlur=hot?22:10;ctx.strokeStyle=hot?'#fff4a8':'rgba(255,184,66,.72)';ctx.lineWidth=hot?4:2;ctx.beginPath();ctx.arc(x,y,hot?9:6,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+  function drawPlacementGuide(piece,target,now){
+    const hp=hookPoint(piece);ctx.save();ctx.setLineDash([7,8]);ctx.lineDashOffset=-now*.02;ctx.strokeStyle='rgba(255,225,129,.62)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hp.x,hp.y);ctx.lineTo(target.x,target.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff2a8';ctx.font='700 12px Inter, sans-serif';ctx.textAlign='center';ctx.fillText('SELECTED HOOK',target.x,target.y-17);ctx.restore();
   }
   function drawPiece(p,ghost){
     if(p.opacity<=0)return;const L=p.shape.len;ctx.save();ctx.globalAlpha=p.opacity*(ghost?.94:1);ctx.translate(p.x,p.y);ctx.rotate(p.angle+p.wobble);
@@ -270,6 +268,7 @@
       if(p.fall){if(now-collapseStart<p.delay)return;p.vy+=.018*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.spin*dt;p.opacity=Math.max(0,1-(now-collapseStart-650)/900);return;}
       const live=liveAnchor(p);p.anchor.x=live.x;p.anchor.y=live.y;
       let hp=hookPoint(p);p.x+=p.anchor.x-hp.x;p.y+=p.anchor.y-hp.y;
+      if(p.locked){p.angleV=0;p.wobble=0;return;}
       const dyn=subtreeDynamics(p);
       const gravityTorque=dyn.moment*245;
       const breeze=Math.sin(now*.00125+i*2.17)*(4+pieces.length*.55);
@@ -283,7 +282,7 @@
       p.slipTime=Math.max(0,p.slipTime+(unsafe?dt:-dt*1.8));
     });
     if(current&&turn==='player'&&state==='playing'&&!pointer)current.wobble=Math.sin(now*.003)*.018;
-    if((state==='settling'||state==='playing'||state==='ai')&&pieces.length){
+    if(state==='settling'&&pieces.length){
       const slipping=pieces.some(p=>p.slipTime>150);
       dangerTime=Math.max(0,dangerTime+(stress>1?dt:-dt*1.5));
       if(slipping||dangerTime>260){showBanner(slipping?'A HOOK HAS SLIPPED':'THE WEIGHT PULLS THE TOTEM OVER');collapse(turn);}
@@ -291,17 +290,17 @@
   }
 
   function canvasPoint(ev){const r=canvas.getBoundingClientRect();return{x:(ev.clientX-r.left)/r.width*W,y:(ev.clientY-r.top)/r.height*H};}
-  canvas.addEventListener('pointerdown',ev=>{if(turn!=='player'||state!=='playing'||!current)return;ev.preventDefault();canvas.setPointerCapture(ev.pointerId);pointer={id:ev.pointerId,...canvasPoint(ev)};current.x=pointer.x;current.y=pointer.y;tone(310,.025,'sine',.018);});
-  canvas.addEventListener('pointermove',ev=>{if(!pointer||pointer.id!==ev.pointerId||!current)return;const p=canvasPoint(ev);current.x=p.x;current.y=p.y;pointer=p;});
-  canvas.addEventListener('pointerup',ev=>{if(!pointer||pointer.id!==ev.pointerId)return;pointer=null;placeCurrent(false);});
+  canvas.addEventListener('pointerdown',ev=>{if(turn!=='player'||state!=='playing'||!current)return;ev.preventDefault();canvas.setPointerCapture(ev.pointerId);pointer={id:ev.pointerId,...canvasPoint(ev)};});
+  canvas.addEventListener('pointermove',()=>{});
+  canvas.addEventListener('pointerup',ev=>{if(!pointer||pointer.id!==ev.pointerId)return;const point=canvasPoint(ev),anchors=availableAnchors();let best=-1,bestD=Infinity;anchors.forEach((a,i)=>{const d=Math.hypot(point.x-a.x,point.y-a.y);if(d<bestD){bestD=d;best=i;}});pointer=null;if(best>=0&&bestD<70){selectedAnchor=best;updateHUD();showBanner('HOOK '+(best+1)+' SELECTED');tone(510,.035,'triangle',.02);}});
   canvas.addEventListener('pointercancel',()=>pointer=null);
   canvas.addEventListener('wheel',ev=>{if(!current||turn!=='player')return;ev.preventDefault();current.angle+=Math.sign(ev.deltaY)*.12;},{passive:false});
-  window.addEventListener('keydown',ev=>{if(!current||turn!=='player')return;if(ev.key==='ArrowLeft'||ev.key==='a')current.angle-=.1;if(ev.key==='ArrowRight'||ev.key==='d')current.angle+=.1;if(ev.key===' '||ev.key==='Enter'){ev.preventDefault();placeCurrent(false);}if(ev.key==='Tab'){ev.preventDefault();cycleHook();}});
+  window.addEventListener('keydown',ev=>{if(!current||turn!=='player')return;if(ev.key==='ArrowLeft'||ev.key==='a')current.angle-=.1;if(ev.key==='ArrowRight'||ev.key==='d')current.angle+=.1;if(ev.key===' '||ev.key==='Enter'){ev.preventDefault();placeCurrent();}if(ev.key==='Tab'){ev.preventDefault();cycleHook();}});
 
   function rotate(dir){if(current&&turn==='player'&&state==='playing'){current.angle+=dir*.14;tone(280+dir*35,.025,'sine',.015);}}
-  function cycleHook(){if(!current||turn!=='player')return;current.hookIndex=(current.hookIndex+1)%current.shape.hooks.length;tone(510,.035,'triangle',.02);}
+  function cycleHook(){if(!current||turn!=='player'||state!=='playing')return;const anchors=availableAnchors();if(!anchors.length)return;selectedAnchor=(selectedAnchor+1)%anchors.length;updateHUD();showBanner('HOOK '+(selectedAnchor+1)+' SELECTED');tone(510,.035,'triangle',.02);}
   function bindHold(el,dir){el.addEventListener('pointerdown',ev=>{ev.preventDefault();rotate(dir);rotateHold=setInterval(()=>rotate(dir),80);});['pointerup','pointercancel','pointerleave'].forEach(e=>el.addEventListener(e,()=>{clearInterval(rotateHold);rotateHold=0;}));}
-  bindHold($('#rotateLeft'),-1);bindHold($('#rotateRight'),1);$('#hookButton').addEventListener('click',cycleHook);$('#dropButton').addEventListener('click',()=>placeCurrent(false));
+  bindHold($('#rotateLeft'),-1);bindHold($('#rotateRight'),1);$('#hookButton').addEventListener('click',cycleHook);$('#dropButton').addEventListener('click',placeCurrent);
 
   function loop(now){if(!ui.game.classList.contains('active')){loopRunning=false;return;}const dt=Math.min(32,now-(lastTime||now));lastTime=now;if(state==='ai')updateAI(now);updatePhysics(dt,now);calculateStress();updateStability();draw(now);requestAnimationFrame(loop);}
   function updateStability(){const safe=Math.max(0,1-stress);ui.fill.style.width=(safe*100)+'%';ui.stability.textContent=stress<.38?'CALM':stress<.72?'WAVERING':'CRITICAL';ui.stability.style.color=stress<.38?'#65f4d3':stress<.72?'#ffc65b':'#ff685b';}

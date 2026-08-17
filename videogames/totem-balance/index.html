@@ -26,7 +26,7 @@
             <button class="selected" data-difficulty="oracle">ORACLE</button>
             <button data-difficulty="titan">TITAN</button>
           </div>
-          <p class="control-hint"><b>Drag</b> a rod by its glowing hook · <b>rotate</b> with the buttons, wheel or two fingers · release near a golden joint.</p>
+          <p class="control-hint"><b>Rotate</b> the next relic · press <b>Hook</b> to choose a golden joint · press <b>Place</b>. If it survives two seconds, it locks forever.</p>
         </div>
         <p class="art-credit">Original world and game design · TACC Lab Arcade</p>
       </section>
@@ -56,7 +56,7 @@
 
         <div class="controls" id="controls">
           <button id="rotateLeft" aria-label="Rotate counter-clockwise"><span>↶</span><small>ROTATE</small></button>
-          <button id="hookButton" aria-label="Change active hook"><span>⌁</span><small>HOOK</small></button>
+          <button id="hookButton" aria-label="Choose a golden hook"><span>⌁</span><small id="hookLabel">HOOK 1/5</small></button>
           <div class="piece-name"><small>NEXT RELIC</small><strong id="pieceName">MOON SPEAR</strong></div>
           <button id="rotateRight" aria-label="Rotate clockwise"><span>↷</span><small>ROTATE</small></button>
           <button id="dropButton" class="drop" aria-label="Place the rod"><span>◆</span><small>PLACE</small></button>
@@ -74,6 +74,6 @@
         </div>
       </section>
     </main>
-    <script src="game.js?v=20260817-2"></script>
+    <script src="game.js?v=20260817-3"></script>
   </body>
 </html>
