@@ -9,4 +9,4 @@ An original touch-first browser physics game. Players alternate with the Oracle,
 - Change the active attachment point with **Hook** or `Tab`.
 - Release near a golden joint or press **Place**.
 
-The game is dependency-free and designed for desktop and mobile browsers.
+Each attached relic is a free hinge rather than a fixed decoration: gravity acts on the full supported subtree, impulses travel through parent rods, and overloaded or inverted hooks can slip. The game is dependency-free and designed for desktop and mobile browsers.

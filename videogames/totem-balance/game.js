@@ -30,20 +30,21 @@
     {name:'EMBER WAND',len:176,bend:20,weight:.9,hooks:[-.42,.03,.42],tip:'orb'}
   ];
   const DIFFICULTY = {
-    novice:{limit:118,cpuError:.23,settle:1150}, oracle:{limit:91,cpuError:.11,settle:1300}, titan:{limit:72,cpuError:.035,settle:1450}
+    novice:{limit:38,cpuError:.23,settle:1450}, oracle:{limit:31,cpuError:.11,settle:1650}, titan:{limit:25,cpuError:.035,settle:1850}
   };
+  const STAND_BALLAST=2.8;
 
   let mode='duel', difficulty='oracle', state='menu', turn='player';
   let pieces=[], current=null, playerScore=0, cpuScore=0, pieceNumber=0, best=0;
   let pointer=null, rotateHold=0, lastTime=0, stress=0, soundOn=true, bannerTimer=0;
-  let audio=null, aiTimer=0, collapseStart=0;
+  let audio=null, aiTimer=0, collapseStart=0, dangerTime=0, physicsToken=0, loopRunning=false;
 
   function makePiece(index=pieceNumber){
     const shape=SHAPES[index%SHAPES.length];
     return {
       shape, palette:COLORS[index%COLORS.length], x:500, y:150,
       angle:(index%2?-.14:.12), hookIndex:1, owner:turn,
-      placed:false, parent:null, anchor:null, baseAngle:0, wobble:0, wobbleV:0,
+      placed:false, parent:null, anchor:null, baseAngle:0, wobble:0, angleV:0, slipTime:0,
       fall:false, vx:0, vy:0, spin:0, opacity:1
     };
   }
@@ -77,10 +78,11 @@
     mode=which;playerScore=0;cpuScore=0;best=Number(localStorage.getItem('totemBalanceBest')||0);
     ui.opponent.textContent=mode==='duel'?'ORACLE':'BEST'; resetRound(true);
     ui.title.classList.remove('active');ui.game.classList.add('active');ui.modal.classList.remove('open');
-    ui.modal.setAttribute('aria-hidden','true');initAudio();tone(220,.05,'sine',.04);requestAnimationFrame(loop);
+    ui.modal.setAttribute('aria-hidden','true');initAudio();tone(220,.05,'sine',.04);
+    if(!loopRunning){loopRunning=true;lastTime=0;requestAnimationFrame(loop);}
   }
   function resetRound(first=false){
-    pieces=[];pieceNumber=0;turn='player';state='playing';stress=0;collapseStart=0;current=makePiece();
+    physicsToken++;pieces=[];pieceNumber=0;turn='player';state='playing';stress=0;dangerTime=0;collapseStart=0;current=makePiece();
     current.x=500;current.y=155;updateHUD();
     if(!first) showBanner('A NEW RITUAL BEGINS'); else showBanner(mode==='duel'?'YOUR MOVE — CHOOSE A GOLDEN JOINT':'BUILD BEYOND THE POSSIBLE');
   }
@@ -108,10 +110,11 @@
   }
   function attach(p,a){
     const hp=hookPoint(p);p.x+=a.x-hp.x;p.y+=a.y-hp.y;p.anchor={x:a.x,y:a.y};p.anchorRef=a.ref;p.anchorKey=a.key;p.parent=a.parent;p.placed=true;
-    p.baseAngle=p.angle;p.wobble=(Math.random()-.5)*.22;p.wobbleV=(Math.random()-.5)*.012;pieces.push(p);current=null;state='settling';
+    p.baseAngle=p.angle;p.wobble=0;p.angleV=(Math.random()-.5)*.18;p.slipTime=0;
+    nudgeAncestors(p.parent,(p.x-a.x)*p.shape.weight*.00075);pieces.push(p);current=null;state='settling';
     tone(460,.06,'triangle',.06);setTimeout(()=>tone(690,.08,'sine',.035),70);
     updateHUD();
-    setTimeout(resolvePlacement,DIFFICULTY[difficulty].settle);
+    const token=physicsToken;setTimeout(()=>{if(token===physicsToken)resolvePlacement();},DIFFICULTY[difficulty].settle);
   }
   function resolvePlacement(){
     if(state!=='settling')return;
@@ -130,15 +133,46 @@
     if(!pieces.length){stress=0;return;}
     let total=0,moment=0;
     pieces.forEach(p=>{const m=p.shape.weight;total+=m;moment+=(p.x-root.x)*m;});
-    const drift=Math.abs(moment/total);const height=Math.max(...pieces.map(p=>root.y-p.y));
-    stress=Math.min(1.4,drift/DIFFICULTY[difficulty].limit + Math.max(0,height-430)/700 + pieces.length*.008);
+    const drift=Math.abs(moment/(total+STAND_BALLAST));const height=Math.max(...pieces.map(p=>root.y-p.y));
+    stress=Math.min(1.4,drift/DIFFICULTY[difficulty].limit + Math.max(0,height-430)/700 + pieces.length*.012);
+  }
+  function nudgeAncestors(parent,impulse){
+    let p=parent,attenuation=1;
+    while(p){p.angleV+=(impulse+(Math.random()-.5)*.08)*attenuation;attenuation*=.62;p=p.parent;}
+  }
+  function isDescendant(piece,ancestor){
+    let p=piece;
+    while(p){if(p===ancestor)return true;p=p.parent;}
+    return false;
+  }
+  function subtreeDynamics(p){
+    let mass=0,moment=0,inertia=0;
+    for(const q of pieces){
+      if(q.fall||!isDescendant(q,p))continue;
+      const m=q.shape.weight,dx=q.x-p.anchor.x,dy=q.y-p.anchor.y;
+      mass+=m;moment+=dx*m;inertia+=m*(dx*dx+dy*dy)+m*q.shape.len*q.shape.len/12;
+    }
+    return {mass,moment,inertia:Math.max(1800,inertia)};
+  }
+  function liveAnchor(p){
+    if(!p.anchorRef)return p.anchor;
+    const ref=p.anchorRef;
+    return ref.kind==='hook'
+      ? hookPoint(ref.parent,ref.parent.shape.hooks.indexOf(ref.t))
+      : worldPoint(ref.parent,ref.t*ref.parent.shape.len,curveY(ref.parent,ref.t));
+  }
+  function endpointDanger(p){
+    const left=worldPoint(p,-p.shape.len*.56,curveY(p,-.5));
+    const right=worldPoint(p,p.shape.len*.56,curveY(p,.5));
+    return left.y>505||right.y>505||left.x<28||right.x<28||left.x>972||right.x>972;
   }
   function collapse(loser,miss=false){
-    state='collapse';collapseStart=performance.now();current=null;
+    if(state==='collapse'||state==='over')return;
+    physicsToken++;state='collapse';collapseStart=performance.now();current=null;
     pieces.forEach((p,i)=>{p.fall=true;p.vx=(p.x-root.x)*.003+(Math.random()-.5)*1.2;p.vy=-1-Math.random()*2;p.spin=(Math.random()-.5)*.025;p.delay=i*24;});
     tone(90,.38,'sawtooth',.08);setTimeout(()=>tone(54,.55,'square',.045),120);
     showBanner(miss?'MISSED — THE RITUAL BREAKS':'THE TOTEM HAS FALLEN');
-    setTimeout(()=>roundOver(loser),1650);
+    const token=physicsToken;setTimeout(()=>{if(token===physicsToken)roundOver(loser);},1650);
   }
   function roundOver(loser){
     if(mode==='endless'){return finishGame(false);}
@@ -167,7 +201,7 @@
         for(let n=0;n<18;n++){
           const angle=-1.2+n*.14;const test={...current,angle,hookIndex:k};
           const hp=hookPoint(test);test.x+=a.x-hp.x;test.y+=a.y-hp.y;
-          const projected=(pieces.reduce((s,p)=>s+(p.x-root.x)*p.shape.weight,0)+(test.x-root.x)*test.shape.weight)/(pieces.reduce((s,p)=>s+p.shape.weight,0)+test.shape.weight);
+          const projected=(pieces.reduce((s,p)=>s+(p.x-root.x)*p.shape.weight,0)+(test.x-root.x)*test.shape.weight)/(pieces.reduce((s,p)=>s+p.shape.weight,0)+test.shape.weight+STAND_BALLAST);
           const edgePenalty=Math.max(0,Math.abs(test.x-root.x)-350)*2;
           let v=Math.abs(projected)+edgePenalty+Math.random()*DIFFICULTY[difficulty].cpuError*95;
           if(v<bestValue){bestValue=v;bestChoice={a,k,angle,x:test.x,y:test.y};}
@@ -231,13 +265,29 @@
   }
   function drawFragments(){/* Falling rods are updated in physics; sparks provide the break effect. */}
   function updatePhysics(dt,now){
+    const seconds=dt/1000;
     pieces.forEach((p,i)=>{
       if(p.fall){if(now-collapseStart<p.delay)return;p.vy+=.018*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.spin*dt;p.opacity=Math.max(0,1-(now-collapseStart-650)/900);return;}
-      const drive=Math.sin(now*.0017+i*1.8)*(.00022+stress*.00055);p.wobbleV+=(-p.wobble*.00009+drive)*dt;p.wobbleV*=Math.pow(.988,dt);p.wobble+=p.wobbleV*dt;
-      if(p.anchorRef){const ref=p.anchorRef,live=ref.kind==='hook'?hookPoint(ref.parent,ref.parent.shape.hooks.indexOf(ref.t)):worldPoint(ref.parent,ref.t*ref.parent.shape.len,curveY(ref.parent,ref.t));p.anchor.x=live.x;p.anchor.y=live.y;}
-      if(p.anchor){const hp=hookPoint(p);p.x+=p.anchor.x-hp.x;p.y+=p.anchor.y-hp.y;}
+      const live=liveAnchor(p);p.anchor.x=live.x;p.anchor.y=live.y;
+      let hp=hookPoint(p);p.x+=p.anchor.x-hp.x;p.y+=p.anchor.y-hp.y;
+      const dyn=subtreeDynamics(p);
+      const gravityTorque=dyn.moment*245;
+      const breeze=Math.sin(now*.00125+i*2.17)*(4+pieces.length*.55);
+      const angularA=gravityTorque/dyn.inertia+breeze/dyn.inertia*60-p.angleV*1.75;
+      p.angleV+=angularA*seconds;p.angleV*=Math.exp(-.34*seconds);p.angle+=p.angleV*seconds;
+      hp=hookPoint(p);p.x+=p.anchor.x-hp.x;p.y+=p.anchor.y-hp.y;
+      const relativeSpeed=Math.abs(p.angleV-(p.parent?.angleV||0));
+      const a=Math.atan2(Math.sin(p.angle),Math.cos(p.angle));
+      const overloaded=dyn.mass>4.4+p.shape.weight*1.4;
+      const unsafe=Math.abs(a)>1.88||relativeSpeed>3.25||endpointDanger(p)||overloaded;
+      p.slipTime=Math.max(0,p.slipTime+(unsafe?dt:-dt*1.8));
     });
-    if(current&&turn==='player'&&state==='playing'&&!pointer){current.wobble=Math.sin(now*.003)*.018;}
+    if(current&&turn==='player'&&state==='playing'&&!pointer)current.wobble=Math.sin(now*.003)*.018;
+    if((state==='settling'||state==='playing'||state==='ai')&&pieces.length){
+      const slipping=pieces.some(p=>p.slipTime>150);
+      dangerTime=Math.max(0,dangerTime+(stress>1?dt:-dt*1.5));
+      if(slipping||dangerTime>260){showBanner(slipping?'A HOOK HAS SLIPPED':'THE WEIGHT PULLS THE TOTEM OVER');collapse(turn);}
+    }
   }
 
   function canvasPoint(ev){const r=canvas.getBoundingClientRect();return{x:(ev.clientX-r.left)/r.width*W,y:(ev.clientY-r.top)/r.height*H};}
@@ -253,7 +303,7 @@
   function bindHold(el,dir){el.addEventListener('pointerdown',ev=>{ev.preventDefault();rotate(dir);rotateHold=setInterval(()=>rotate(dir),80);});['pointerup','pointercancel','pointerleave'].forEach(e=>el.addEventListener(e,()=>{clearInterval(rotateHold);rotateHold=0;}));}
   bindHold($('#rotateLeft'),-1);bindHold($('#rotateRight'),1);$('#hookButton').addEventListener('click',cycleHook);$('#dropButton').addEventListener('click',()=>placeCurrent(false));
 
-  function loop(now){if(!ui.game.classList.contains('active'))return;const dt=Math.min(32,now-(lastTime||now));lastTime=now;if(state==='ai')updateAI(now);updatePhysics(dt,now);calculateStress();updateStability();draw(now);requestAnimationFrame(loop);}
+  function loop(now){if(!ui.game.classList.contains('active')){loopRunning=false;return;}const dt=Math.min(32,now-(lastTime||now));lastTime=now;if(state==='ai')updateAI(now);updatePhysics(dt,now);calculateStress();updateStability();draw(now);requestAnimationFrame(loop);}
   function updateStability(){const safe=Math.max(0,1-stress);ui.fill.style.width=(safe*100)+'%';ui.stability.textContent=stress<.38?'CALM':stress<.72?'WAVERING':'CRITICAL';ui.stability.style.color=stress<.38?'#65f4d3':stress<.72?'#ffc65b':'#ff685b';}
   function showBanner(text){ui.banner.textContent=text;ui.banner.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>ui.banner.classList.remove('show'),1500);}
   function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
