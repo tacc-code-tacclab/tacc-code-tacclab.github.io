@@ -2,8 +2,9 @@
 
 A separate English-language evolution of DeepBite, built for immediate keyboard and touch response.
 
-- Direct four-direction movement with no acceleration lag.
-- Nemo opens his mouth when eating.
+- Direct four-direction movement with no acceleration lag, plus an analogue thumb stick on mobile.
+- Nemo uses separate closed-mouth and open-mouth animation sprites when eating.
+- Sharks use a complete standalone sprite, avoiding atlas cropping.
 - Any non-jellyfish creature becomes edible once Nemo is larger.
 - Reaching near-screen-filling size clears the ocean.
 - Each new ocean increases colour intensity, enemy speed and difficulty.

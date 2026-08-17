@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#021a42">
     <meta name="description" content="Piranha 2 — eat, grow and conquer an endless ocean.">
     <title>Piranha 2 — Ocean Evolution</title>
-    <link rel="stylesheet" href="style.css?v=1">
+    <link rel="stylesheet" href="style.css?v=2">
   </head>
   <body>
     <main id="app">
@@ -19,7 +19,7 @@
           <p class="eyebrow">OCEAN EVOLUTION</p>
           <h1>PIRANHA <span>2</span></h1>
           <p class="tagline">EAT · GROW · CONQUER</p>
-          <div class="hero-fish" aria-hidden="true"><i></i></div>
+          <div class="hero-fish" aria-hidden="true"></div>
           <p class="intro">You are Nemo. Eat anything smaller than you, avoid anything bigger, and grow until you rule the entire screen.</p>
           <div class="rules">
             <span><b>🐟</b> Smaller fish are food</span>
@@ -27,7 +27,7 @@
             <span><b>🪼</b> Jellyfish stay poisonous</span>
           </div>
           <button id="play-btn" class="primary">DIVE IN</button>
-          <p class="controls-hint">Arrow keys / WASD · Responsive touch pad on mobile</p>
+          <p class="controls-hint">Arrow keys / WASD · Arrows + analogue thumb stick on mobile</p>
         </div>
       </section>
 
@@ -76,12 +76,12 @@
         <div class="dpad" aria-label="Movement controls">
           <button class="up" data-dir="up" aria-label="Swim up">▲</button>
           <button class="left" data-dir="left" aria-label="Swim left">◀</button>
-          <div class="dpad-core">N</div>
+          <button id="joystick" class="dpad-core" aria-label="Analogue movement stick"><span></span></button>
           <button class="right" data-dir="right" aria-label="Swim right">▶</button>
           <button class="down" data-dir="down" aria-label="Swim down">▼</button>
         </div>
       </div>
     </main>
-    <script src="game.js?v=1"></script>
+    <script src="game.js?v=2"></script>
   </body>
 </html>
