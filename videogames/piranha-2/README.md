@@ -13,4 +13,4 @@ A separate English-language evolution of DeepBite, built for immediate keyboard 
 
 The game shares the lightweight ocean artwork with DeepBite but does not replace or modify the original game.
 
-Canvas vector fallbacks keep creatures and obstacles visible in Chrome, Firefox and Safari even if a WebP image is delayed or cannot be decoded. Mobile pinch, double-tap zoom, page dragging and overscroll are suppressed while playing.
+PNG assets and always-painted Canvas vector underlays keep creatures and obstacles visible in Chrome, Firefox and Safari, including when a browser reports a decoded image but fails to paint it. GPU-sensitive Canvas filters and the desynchronised context are intentionally avoided. Mobile pinch, double-tap zoom, page dragging and overscroll are suppressed while playing.
