@@ -9,5 +9,6 @@ A lightweight landscape HTML5 game about special relativity, curved spacetime an
 - Brake below `0.50 c`, touch the glowing target world and seed life to unlock the next Solar System mission.
 - Responsive keyboard movement, touch arrows, an analogue mobile thumb stick and a separate mobile fire button are supported.
 - Missions are extended, with a denser softly faded grid and stronger close-range curvature around massive gravity wells.
+- Every route is at least three times longer; debris density, debris speed, gravity-well frequency and capture strength rise progressively from planet to planet.
 
 The generated transparent astronaut and mothership assets are stored in `assets/`; planets and spacetime effects are rendered procedurally.
