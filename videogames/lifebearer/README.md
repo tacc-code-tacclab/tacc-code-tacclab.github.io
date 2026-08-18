@@ -11,5 +11,6 @@ A lightweight landscape HTML5 game about special relativity, curved spacetime an
 - Missions are extended, with a denser softly faded grid and stronger close-range curvature around massive gravity wells.
 - Every route is at least three times longer; debris density, debris speed, gravity-well frequency and capture strength rise progressively from planet to planet.
 - Gravity now accumulates as persistent drift instead of being cancelled by steering damping. Local free-fall raises effective velocity and Lorentz gamma, gravitational time dilation slows the suit clock, and close tidal fields visibly stretch the astronaut along the radial axis.
+- The full-screen game surface suppresses browser pinch, double-tap zoom, page drag and overscroll so rapid mobile controls cannot resize the HTML viewport.
 
 The generated transparent astronaut and mothership assets are stored in `assets/`; planets and spacetime effects are rendered procedurally.
