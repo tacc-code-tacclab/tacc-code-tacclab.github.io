@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#090521">
+    <meta name="description" content="Rift Rush: Neon Hunters — a fast one-thumb survivor roguelite for desktop and mobile.">
+    <title>Rift Rush — Neon Hunters</title>
+    <link rel="stylesheet" href="style.css?v=1">
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Rift Rush neon arena"></canvas>
+
+      <section id="menu" class="screen active">
+        <a class="back-link" href="../../#videogames">← Games</a>
+        <div class="menu-card">
+          <p class="eyebrow">A TWO-MINUTE SURVIVOR ROGUELITE</p>
+          <h1>RIFT <span>RUSH</span></h1>
+          <p class="sublogo">NEON HUNTERS</p>
+          <div class="hunter-display" aria-hidden="true"><i></i><b></b><em></em></div>
+          <p class="intro">Move. Dash. Let your hunter auto-fire. Build a broken combo, survive the swarm and erase the Rift Titan.</p>
+
+          <div class="hunter-picker" role="group" aria-label="Choose your hunter colour">
+            <button class="hunter active" data-hunter="ion"><i></i><span>ION</span><small>BALANCED</small></button>
+            <button class="hunter" data-hunter="pulse"><i></i><span>PULSE</span><small>FAST</small></button>
+            <button class="hunter" data-hunter="nova"><i></i><span>NOVA</span><small>POWER</small></button>
+          </div>
+
+          <div class="rules">
+            <span><b>◎</b> Auto-aim</span><span><b>✦</b> Pick upgrades</span><span><b>⚡</b> Dash through danger</span>
+          </div>
+          <button id="play-btn" class="primary">OPEN THE RIFT</button>
+          <p class="controls-hint">WASD / arrows to move · Space to dash · Mobile: thumb stick + DASH</p>
+          <p class="best">BEST RUN <strong id="best-score">0</strong></p>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="hud-brand">RIFT <span>RUSH</span></div>
+        <div class="health"><small>CORE</small><span><i id="hp-fill"></i></span><b id="hp">100</b></div>
+        <div class="stat"><small>TIME</small><b id="time">02:00</b></div>
+        <div class="stat"><small>LEVEL</small><b id="level">1</b></div>
+        <div class="xp"><span><i id="xp-fill"></i></span><small id="xp-label">0 / 8 SHARDS</small></div>
+        <div id="combo" class="combo">x1</div>
+        <button id="pause-btn" class="round" aria-label="Pause">Ⅱ</button>
+      </section>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+      <div id="boss-bar" class="boss-bar"><small>RIFT TITAN</small><span><i></i></span></div>
+
+      <section id="upgrade" class="screen modal">
+        <div class="upgrade-card">
+          <p class="eyebrow">RIFT LEVEL UP</p>
+          <h2>CHOOSE YOUR MUTATION</h2>
+          <div id="upgrade-options" class="upgrade-options"></div>
+        </div>
+      </section>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">TIME FROZEN</p>
+          <h2>HOLD THE RIFT</h2>
+          <button id="resume-btn" class="primary">CONTINUE</button>
+          <button id="quit-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card">
+          <p class="eyebrow">SIGNAL LOST</p>
+          <h2>THE RIFT TOOK YOU</h2>
+          <div class="results"><span><small>SCORE</small><strong id="final-score">0</strong></span><span><small>ELIMINATED</small><strong id="final-kills">0</strong></span></div>
+          <button id="again-btn" class="primary">RUN IT BACK</button>
+          <button id="home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="victory" class="screen modal victory">
+        <div class="modal-card">
+          <p class="eyebrow">TITAN ERASED</p>
+          <h2>YOU BROKE THE RIFT</h2>
+          <div class="victory-mark" aria-hidden="true">✦</div>
+          <div class="results"><span><small>SCORE</small><strong id="win-score">0</strong></span><span><small>MAX COMBO</small><strong id="win-combo">x1</strong></span></div>
+          <button id="victory-again" class="primary">HUNT AGAIN</button>
+          <button id="victory-home" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <div id="mobile-controls" aria-hidden="true">
+        <button id="stick" aria-label="Move"><span></span></button>
+        <button id="dash" aria-label="Dash"><b>⚡</b><span>DASH</span><i></i></button>
+      </div>
+    </main>
+    <script src="game.js?v=1"></script>
+  </body>
+</html>
