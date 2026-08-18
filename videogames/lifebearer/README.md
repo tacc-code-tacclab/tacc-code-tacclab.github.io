@@ -8,5 +8,6 @@ A lightweight landscape HTML5 game about special relativity, curved spacetime an
 - Velocity is expressed as a fraction of `c`; the Lorentz factor controls time dilation, length contraction and the growing high-energy collision field.
 - Brake below `0.50 c`, touch the glowing target world and seed life to unlock the next Solar System mission.
 - Responsive keyboard movement, touch arrows, an analogue mobile thumb stick and a separate mobile fire button are supported.
+- Missions are extended, with a denser softly faded grid and stronger close-range curvature around massive gravity wells.
 
 The generated transparent astronaut and mothership assets are stored in `assets/`; planets and spacetime effects are rendered procedurally.
