@@ -1,8 +1,8 @@
 :root{--ink:#f5fdff;--cyan:#50f3ff;--deep:#02152f;--gold:#ffe04d;--orange:#ff7a19;--pink:#ff4faa}
 *{box-sizing:border-box}
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--deep);color:var(--ink);font-family:Inter,ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-text-size-adjust:100%;background:var(--deep);color:var(--ink);font-family:Inter,ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif}
 button{font:inherit;touch-action:none;-webkit-tap-highlight-color:transparent}
-#app,#game{position:fixed;inset:0;width:100%;height:100%}#game{display:block;background:#074c83}
+#app,#game{position:fixed;inset:0;width:100%;height:100%;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#game{display:block;background:#074c83}
 .screen{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}.screen.active{display:grid}
 #menu{background:radial-gradient(circle at 50% 42%,rgba(19,218,244,.25),transparent 36%),linear-gradient(180deg,rgba(1,20,53,.24),rgba(1,10,29,.86))}
 .back-link{position:absolute;z-index:3;left:max(16px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));color:#b8f5fb;text-decoration:none;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
