@@ -20,7 +20,9 @@
   if(!RUNNERS[runner])runner="ion";
 
   let vw=innerWidth,vh=innerHeight,dpr=1,tile=24,originX=0,originY=64,mapW=0,mapH=0,ambient=0,last=performance.now(),lastDraw=0,state=null,mazeLayer=null;
-  let audioCtx=null,master=null,soundOn=safeStorage.get("neonMazeSound",true)!==false,humTimer=0;
+  let audioCtx=null,master=null,soundOn=safeStorage.get("neonMazeSound",true)!==false,musicTimer=0,musicStep=0,simAccumulator=0;
+  const heldDirections=[];
+  const MUSIC_NOTES=[220,277.18,329.63,415.3,329.63,277.18,246.94,329.63,220,293.66,369.99,440,369.99,293.66,246.94,277.18];
   const backgroundStars=Array.from({length:90},(_,i)=>({x:(i*137.2)%1000,y:(i*73.7)%800,r:.5+(i%4)*.32,p:i*.83}));
 
   function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
@@ -44,8 +46,11 @@
     const cfg={shard:[620,880,.045,"sine"],core:[180,920,.3,"sawtooth"],echo:[160,80,.26,"square"],hurt:[120,48,.38,"sawtooth"],level:[330,990,.55,"triangle"],start:[180,620,.34,"triangle"],overdrive:[290,1180,.5,"sawtooth"],bonus:[520,1320,.28,"sine"]}[kind]||[260,420,.12,"sine"];
     o.type=cfg[3];o.frequency.setValueAtTime(cfg[0],now);o.frequency.exponentialRampToValueAtTime(Math.max(30,cfg[1]),now+cfg[2]);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(kind==="hurt"?0.2:0.1,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+cfg[2]);o.start(now);o.stop(now+cfg[2]+.02);
   }
-  function ambientTone(dt){
-    if(!audioCtx||!soundOn||!state||state.mode!=="playing")return;humTimer-=dt;if(humTimer>0)return;humTimer=state.overdrive>0?0.24:0.48;const now=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=state.overdrive>0?110+Math.random()*70:62+state.level*3;g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(.025,now+.025);g.gain.exponentialRampToValueAtTime(.001,now+.2);o.connect(g);g.connect(master);o.start(now);o.stop(now+.22)
+  function musicNote(frequency,duration,volume,type="triangle"){
+    if(!audioCtx||!master)return;const now=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(frequency,now);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(volume,now+.018);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(master);o.start(now);o.stop(now+duration+.02)
+  }
+  function backgroundMusic(dt){
+    if(!audioCtx||!soundOn||!state||state.mode!=="playing")return;musicTimer-=dt;if(musicTimer>0)return;const fast=state.overdrive>0;musicTimer=fast?0.13:0.23;const note=MUSIC_NOTES[musicStep%MUSIC_NOTES.length];musicNote(note*(fast?2:1),musicTimer*.82,fast?0.038:0.028,"triangle");if(musicStep%4===0)musicNote(note/4,musicTimer*2.8,.02,"sine");musicStep++
   }
 
   function setRunner(name,announce=true){
@@ -68,6 +73,9 @@
     for(let x=0;x<COLS;x++)if(x<4||x>COLS-5)grid[MID_Y][x]=0;
     for(let y=MID_Y-1;y<=MID_Y+1;y++)for(let x=11;x<=13;x++)grid[y][x]=0;
     if(grid[MID_Y][10])grid[MID_Y][10]=0;if(grid[MID_Y][14])grid[MID_Y][14]=0;
+    // A clear four-way launch area: every held arrow starts the runner immediately.
+    for(let x=9;x<=15;x++)grid[ROWS-3][x]=0;
+    for(let y=ROWS-6;y<=ROWS-2;y++)grid[y][12]=0;
     return {grid,rng};
   }
   function isOpen(maze,x,y){if(y===MID_Y&&(x<0||x>=COLS))return true;if(x<0||x>=COLS||y<0||y>=ROWS)return false;return maze.grid[y][x]===0}
@@ -79,26 +87,34 @@
   function prepareLevel(level,preserve=true){
     const made=makeMaze(level),maze={grid:made.grid};state.maze=maze;state.level=level;const used=new Set(),start=nearestOpen(maze,Math.floor(COLS/2),ROWS-3,used);used.add(key(start.x,start.y));
     const homes=[[12,MID_Y],[11,MID_Y],[13,MID_Y],[12,MID_Y-1]].map(([x,y])=>{const p=nearestOpen(maze,x,y,used);used.add(key(p.x,p.y));return p});
-    state.player={...entityAt(start),dir:"left",wanted:"left",angle:Math.PI,invuln:3.2,trail:[],color:RUNNERS[runner].color,accent:RUNNERS[runner].accent};state.playerStart=start;
-    state.echoes=homes.map((home,i)=>({...entityAt(home),home,index:i,color:ECHO_COLORS[i],spawnDelay:3.5+i*.75,phase:i*1.7,dir:i%2?"left":"right"}));
+    state.player={...entityAt(start),dir:"none",wanted:"none",angle:0,invuln:3.2,trail:[],color:RUNNERS[runner].color,accent:RUNNERS[runner].accent};state.playerStart=start;
+    state.echoes=homes.map((home,i)=>({...entityAt(home),home,index:i,color:ECHO_COLORS[i],spawnDelay:.55+i*.45,phase:i*1.7,dir:i%2?"left":"right"}));
     state.shards=new Set();state.cores=new Set();state.relic=null;state.relicTriggered=false;state.totalItems=0;state.collected=0;state.surge=0;state.echoChain=0;state.overdrive=0;state.flowEnergy=preserve?state.flowEnergy*.35:0;state.chain=0;state.chainTimer=0;state.multiplier=1;
     for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){if(!isOpen(maze,x,y))continue;const away=Math.abs(x-start.x)+Math.abs(y-start.y)>3,fromHome=Math.abs(x-12)+Math.abs(y-MID_Y)>3;if(away&&fromHome)state.shards.add(key(x,y))}
     const corners=[[1,1],[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]];for(const [x,y] of corners){const p=nearestOpen(maze,x,y);const k=key(p.x,p.y);state.shards.delete(k);state.cores.add(k)}state.totalItems=state.shards.size+state.cores.size;
     state.particles=[];state.shake=0;state.flash=0;state.mode="playing";state.lastTick=performance.now();buildMazeLayer();show(ui.clear,false);show(ui.pause,false);show(ui.gameover,false);updateHud();toast("DAILY MAZE "+String(dailyNumber).padStart(3,"0")+" · LEVEL "+level)
   }
   function createRun(){
-    state={mode:"playing",score:0,level:1,lives:3,maxFlow:1,flowEnergy:0,particles:[],shake:0,flash:0,statusTimer:0,lastTick:performance.now()};prepareLevel(1,false);show(ui.menu,false);show(ui.hud,true);ui.hud.setAttribute("aria-hidden","false");ui.mobile.classList.toggle("active",coarse);initAudio();audioCtx?.resume();tone("start")
+    heldDirections.length=0;musicStep=0;musicTimer=.1;simAccumulator=0;state={mode:"playing",score:0,level:1,lives:3,maxFlow:1,flowEnergy:0,particles:[],shake:0,flash:0,statusTimer:0,lastTick:performance.now()};prepareLevel(1,false);show(ui.menu,false);show(ui.hud,true);ui.hud.setAttribute("aria-hidden","false");ui.mobile.classList.toggle("active",coarse);initAudio();audioCtx?.resume();tone("start")
   }
 
   function cellOf(e){return{x:Math.floor(e.x),y:Math.floor(e.y)}}
   function canMove(e,name){const d=DIR[name],c=cellOf(e);return isOpen(state.maze,c.x+d.x,c.y+d.y)}
-  function centered(e,step){const cx=Math.floor(e.x)+.5,cy=Math.floor(e.y)+.5;return Math.abs(e.x-cx)<=step+.018&&Math.abs(e.y-cy)<=step+.018}
+  function atCenter(e){return Math.abs(e.x-(Math.floor(e.x)+.5))<.0001&&Math.abs(e.y-(Math.floor(e.y)+.5))<.0001}
+  function walkGrid(e,distance,chooseDirection){
+    for(let guard=0;guard<3&&distance>.00001;guard++){
+      if(atCenter(e)){e.x=Math.floor(e.x)+.5;e.y=Math.floor(e.y)+.5;chooseDirection();if(e.dir==="none")break}
+      const d=DIR[e.dir],cx=Math.floor(e.x)+.5,cy=Math.floor(e.y)+.5;let targetX=e.x,targetY=e.y;
+      if(d.x>0)targetX=e.x<cx-.0001?cx:cx+1;else if(d.x<0)targetX=e.x>cx+.0001?cx:cx-1;else if(d.y>0)targetY=e.y<cy-.0001?cy:cy+1;else if(d.y<0)targetY=e.y>cy+.0001?cy:cy-1;
+      const toCenter=Math.abs(targetX-e.x)+Math.abs(targetY-e.y);
+      const travel=Math.min(distance,toCenter);e.x+=d.x*travel;e.y+=d.y*travel;distance-=travel;
+      if(travel+1e-6>=toCenter){e.x=targetX;e.y=targetY;if(e.x<=-.5+1e-6)e.x=COLS-.5;else if(e.x>=COLS+.5-1e-6)e.x=.5}else break
+    }
+  }
   function movePlayer(dt){
-    const p=state.player,speed=(6.05+Math.min(1.05,(state.level-1)*.12))*(state.overdrive>0?1.18:1),step=speed*dt,cx=Math.floor(p.x)+.5,cy=Math.floor(p.y)+.5;
-    if(centered(p,step)){p.x=cx;p.y=cy;if(canMove(p,p.wanted))p.dir=p.wanted;else if(!canMove(p,p.dir))p.dir="none"}
-    const oldX=p.x,oldY=p.y,d=DIR[p.dir];p.x+=d.x*step;p.y+=d.y*step;
-    if(p.y>=MID_Y&&p.y<MID_Y+1){if(p.x<-.25)p.x=COLS-.25;if(p.x>COLS+.25)p.x=.25}
-    const c=cellOf(p);if(c.y<0||c.y>=ROWS||(c.x>=0&&c.x<COLS&&!isOpen(state.maze,c.x,c.y))){p.x=oldX;p.y=oldY;p.dir="none"}
+    const p=state.player,speed=(6.05+Math.min(1.05,(state.level-1)*.12))*(state.overdrive>0?1.18:1),step=speed*dt;
+    if(heldDirections.length)p.wanted=heldDirections[heldDirections.length-1];
+    walkGrid(p,step,()=>{if(canMove(p,p.wanted))p.dir=p.wanted;else if(!canMove(p,p.dir))p.dir="none"});
     if(p.dir!=="none")p.angle=DIR[p.dir].a;p.trail.unshift({x:p.x,y:p.y,a:1});if(p.trail.length>12)p.trail.pop();for(const t of p.trail)t.a*=.9
   }
   function ghostTarget(e){
@@ -112,8 +128,8 @@
     choices.sort((a,b)=>{const da=DIR[a],db=DIR[b],aa=Math.abs(e.x+da.x-(target.x+.5))+Math.abs(e.y+da.y-(target.y+.5)),bb=Math.abs(e.x+db.x-(target.x+.5))+Math.abs(e.y+db.y-(target.y+.5));return fear?bb-aa:aa-bb});return choices[0]
   }
   function moveEcho(e,dt){
-    e.phase+=dt*(2.4+e.index*.17);if(e.spawnDelay>0){e.spawnDelay-=dt;return}const vulnerable=state.surge>0||state.overdrive>0,speed=(3.85+state.level*.15+e.index*.05)*(vulnerable?0.77:1),step=speed*dt,cx=Math.floor(e.x)+.5,cy=Math.floor(e.y)+.5;
-    if(centered(e,step)){e.x=cx;e.y=cy;e.dir=chooseEchoDirection(e)}const oldX=e.x,oldY=e.y,d=DIR[e.dir];e.x+=d.x*step;e.y+=d.y*step;if(e.y>=MID_Y&&e.y<MID_Y+1){if(e.x<-.25)e.x=COLS-.25;if(e.x>COLS+.25)e.x=.25}const c=cellOf(e);if(c.y<0||c.y>=ROWS||(c.x>=0&&c.x<COLS&&!isOpen(state.maze,c.x,c.y))){e.x=oldX;e.y=oldY;e.dir=OPP[e.dir]}
+    e.phase+=dt*(2.4+e.index*.17);if(e.spawnDelay>0){e.spawnDelay-=dt;return}const vulnerable=state.surge>0||state.overdrive>0,speed=(3.85+state.level*.15+e.index*.05)*(vulnerable?0.77:1),step=speed*dt;
+    walkGrid(e,step,()=>{e.dir=chooseEchoDirection(e)})
   }
   function setDirection(name){if(!state||!["playing","ready"].includes(state.mode))return;state.player.wanted=name;document.querySelectorAll(".move").forEach(b=>b.classList.toggle("pressed",b.dataset.direction===name))}
 
@@ -129,7 +145,7 @@
   }
   function loseCore(){
     state.lives--;state.chain=0;state.chainTimer=0;state.multiplier=1;state.flowEnergy=Math.max(0,state.flowEnergy-35);state.surge=0;state.overdrive=0;state.shake=15;state.flash=.8;tone("hurt");burst(state.player.x,state.player.y,"#ff416c",40,2.4);
-    if(state.lives<=0){finish();return}const s=state.playerStart;Object.assign(state.player,{x:s.x+.5,y:s.y+.5,dir:"none",wanted:"left",invuln:2.8,trail:[]});state.echoes.forEach((e,i)=>Object.assign(e,{x:e.home.x+.5,y:e.home.y+.5,dir:"none",spawnDelay:2.6+i*.6}));toast("CORE LOST · "+state.lives+" REMAIN")
+    if(state.lives<=0){finish();return}const s=state.playerStart;Object.assign(state.player,{x:s.x+.5,y:s.y+.5,dir:"none",wanted:"none",invuln:2.8,trail:[]});state.echoes.forEach((e,i)=>Object.assign(e,{x:e.home.x+.5,y:e.home.y+.5,dir:"none",spawnDelay:.55+i*.4}));toast("CORE LOST · "+state.lives+" REMAIN")
   }
   function completeLevel(){
     if(state.mode!=="playing")return;state.mode="clear";const bonus=1000*state.level*state.lives;state.score+=bonus;ui.bonus.textContent="Level bonus +"+bonus.toLocaleString();updateRecords();updateHud();show(ui.clear,true);ui.mobile.classList.remove("active");tone("level")
@@ -151,7 +167,7 @@
     state.player.invuln=Math.max(0,state.player.invuln-dt);state.surge=Math.max(0,state.surge-dt);state.overdrive=Math.max(0,state.overdrive-dt);state.shake=Math.max(0,state.shake-dt*24);state.flash=Math.max(0,state.flash-dt*2.6);
     if(state.chainTimer>0){state.chainTimer-=dt;if(state.chainTimer<=0){state.chain=0;state.multiplier=1}}state.flowEnergy=Math.max(0,state.flowEnergy-dt*(state.chainTimer>0?1.5:6.8));
     movePlayer(dt);for(const e of state.echoes)moveEcho(e,dt);collect();collideEchoes();for(const p of state.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.06,dt);p.vy*=Math.pow(.06,dt);p.life-=dt}state.particles=state.particles.filter(p=>p.life>0);
-    if(state.statusTimer>0&&(state.statusTimer-=dt)<=0)ui.status.classList.remove("show");ambientTone(dt);updateHud()
+    if(state.statusTimer>0&&(state.statusTimer-=dt)<=0)ui.status.classList.remove("show");backgroundMusic(dt);updateHud()
   }
 
   function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
@@ -186,16 +202,17 @@
     drawBackdrop(ambient);ctx.save();if(state.shake>0)ctx.translate((Math.random()-.5)*state.shake,(Math.random()-.5)*state.shake);drawMaze();drawShards();for(const k of state.cores)drawCore(k);if(state.relic)drawRelic(state.relic);for(const e of state.echoes)drawEcho(e);drawRunner(state.player);drawParticles();ctx.restore();if(state.flash>0){ctx.globalAlpha=state.flash*.28;ctx.fillStyle=state.lives>0?state.player.color:"#ff315e";ctx.fillRect(0,0,vw,vh);ctx.globalAlpha=1}
   }
   function drawMenu(t){drawBackdrop(t);const cx=vw*.5,cy=vh*.51;ctx.save();ctx.globalAlpha=.14;ctx.strokeStyle="#5ff8ff";ctx.lineWidth=2;for(let i=0;i<5;i++){ctx.beginPath();ctx.roundRect(cx-230-i*18,cy-150-i*13,460+i*36,300+i*26,22);ctx.stroke()}for(let i=0;i<4;i++){const a=t*(.32+i*.05)+i*TAU/4,x=cx+Math.cos(a)*Math.min(vw*.37,390),y=cy+Math.sin(a)*Math.min(vh*.34,230);ctx.fillStyle=ECHO_COLORS[i];ctx.shadowColor=ECHO_COLORS[i];ctx.shadowBlur=18;polygon(x,y,9+i,6,a);ctx.fill()}ctx.restore()}
-  function frame(now){const dt=Math.min(.034,Math.max(.001,(now-last)/1000));last=now;ambient+=dt;if(state&&state.mode==="playing")update(dt);const drawInterval=1000/(coarse?30:45);if(now-lastDraw>=drawInterval){lastDraw=now;if(state)drawGame();else drawMenu(ambient)}requestAnimationFrame(frame)}
+  function frame(now){const dt=Math.min(.1,Math.max(.001,(now-last)/1000));last=now;ambient+=dt;if(state&&state.mode==="playing"){simAccumulator=Math.min(.12,simAccumulator+dt);while(simAccumulator>=1/60&&state?.mode==="playing"){update(1/60);simAccumulator-=1/60}}else simAccumulator=0;const drawInterval=1000/(coarse?30:45);if(now-lastDraw>=drawInterval){lastDraw=now;if(state)drawGame();else drawMenu(ambient)}requestAnimationFrame(frame)}
 
-  addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();setDirection(e.key.slice(5).toLowerCase())}if(e.key==="Escape"){if(state?.mode==="playing")pause();else if(state?.mode==="paused")resume()}},{passive:false});
+  addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();const dir=e.key.slice(5).toLowerCase();if(!heldDirections.includes(dir))heldDirections.push(dir);if(!e.repeat)setDirection(dir)}if(e.key==="Escape"){if(state?.mode==="playing")pause();else if(state?.mode==="paused")resume()}},{passive:false});
+  addEventListener("keyup",e=>{if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key))return;e.preventDefault();const dir=e.key.slice(5).toLowerCase(),at=heldDirections.indexOf(dir);if(at>=0)heldDirections.splice(at,1);document.querySelectorAll(".move").forEach(b=>b.classList.toggle("pressed",heldDirections.includes(b.dataset.direction)))},{passive:false});
   document.querySelectorAll(".move").forEach(b=>{const dir=b.dataset.direction;b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);setDirection(dir)});b.addEventListener("pointerup",()=>b.classList.remove("pressed"));b.addEventListener("pointercancel",()=>b.classList.remove("pressed"))});
   let swipe=null;canvas.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse")swipe={x:e.clientX,y:e.clientY,id:e.pointerId}});canvas.addEventListener("pointerup",e=>{if(!swipe||swipe.id!==e.pointerId)return;const dx=e.clientX-swipe.x,dy=e.clientY-swipe.y;swipe=null;if(Math.hypot(dx,dy)<18)return;setDirection(Math.abs(dx)>Math.abs(dy)?dx>0?"right":"left":dy>0?"down":"up")});canvas.addEventListener("pointercancel",()=>swipe=null);
   const stopGesture=e=>{if(e.cancelable)e.preventDefault()};["gesturestart","gesturechange","gestureend"].forEach(type=>document.addEventListener(type,stopGesture,{passive:false}));document.addEventListener("touchmove",stopGesture,{passive:false});document.addEventListener("dblclick",stopGesture,{passive:false});let lastTouch=0;document.addEventListener("touchend",e=>{const n=Date.now();if(n-lastTouch<360&&e.cancelable)e.preventDefault();lastTouch=n},{passive:false});
-  addEventListener("blur",()=>{if(state?.mode==="playing")pause()});document.addEventListener("visibilitychange",()=>{if(document.hidden&&state?.mode==="playing")pause()});addEventListener("resize",resize,{passive:true});
+  addEventListener("blur",()=>{heldDirections.length=0;if(state?.mode==="playing")pause()});document.addEventListener("visibilitychange",()=>{if(document.hidden&&state?.mode==="playing")pause()});addEventListener("resize",resize,{passive:true});
   document.querySelectorAll(".runner-choice").forEach(b=>b.addEventListener("click",()=>setRunner(b.dataset.runner)));
   ui.play.addEventListener("click",createRun);ui.pauseButton.addEventListener("click",pause);ui.resume.addEventListener("click",resume);ui.quit.addEventListener("click",menu);ui.next.addEventListener("click",nextLevel);ui.again.addEventListener("click",createRun);ui.home.addEventListener("click",menu);ui.sound.addEventListener("click",()=>{soundOn=!soundOn;safeStorage.set("neonMazeSound",soundOn);if(master)master.gain.value=soundOn?0.22:0;if(soundOn){initAudio();audioCtx?.resume();tone("shard")}updateHud()});
 
-  window.__NEON_MAZE_DIAGNOSTICS__=()=>state?{mode:state.mode,score:state.score,level:state.level,lives:state.lives,shards:state.shards.size,cores:state.cores.size,player:{x:state.player.x,y:state.player.y,dir:state.player.dir,wanted:state.player.wanted},echoes:state.echoes.map(e=>({x:e.x,y:e.y,spawnDelay:e.spawnDelay})),surge:state.surge,overdrive:state.overdrive,multiplier:state.multiplier}: {mode:"menu",best,dailyBest,runner};
+  window.__NEON_MAZE_DIAGNOSTICS__=()=>state?{mode:state.mode,score:state.score,level:state.level,lives:state.lives,shards:state.shards.size,cores:state.cores.size,player:{x:state.player.x,y:state.player.y,dir:state.player.dir,wanted:state.player.wanted,open:["left","right","up","down"].filter(name=>canMove(state.player,name))},echoes:state.echoes.map(e=>({x:e.x,y:e.y,dir:e.dir,spawnDelay:e.spawnDelay})),held:[...heldDirections],musicStep,surge:state.surge,overdrive:state.overdrive,multiplier:state.multiplier}: {mode:"menu",best,dailyBest,runner};
   updateUnlocks();resize();requestAnimationFrame(frame);
 })();
