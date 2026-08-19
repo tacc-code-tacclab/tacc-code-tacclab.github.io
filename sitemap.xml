@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://tacc-code-tacclab.github.io/</loc>
-    <lastmod>2026-08-18</lastmod>
+    <lastmod>2026-08-19</lastmod>
   </url>
   <url>
     <loc>https://tacc-code-tacclab.github.io/videogames/ulisse/</loc>
@@ -51,5 +51,9 @@
   <url>
     <loc>https://tacc-code-tacclab.github.io/videogames/rift-rush/</loc>
     <lastmod>2026-08-18</lastmod>
+  </url>
+  <url>
+    <loc>https://tacc-code-tacclab.github.io/videogames/neon-maze/</loc>
+    <lastmod>2026-08-19</lastmod>
   </url>
 </urlset>

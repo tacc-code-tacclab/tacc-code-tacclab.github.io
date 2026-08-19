@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#070419">
+    <meta name="description" content="Neon Maze: Rift Runner — a fast modern maze chase for desktop and mobile, controlled with four directions.">
+    <title>Neon Maze — Rift Runner</title>
+    <link rel="stylesheet" href="style.css?v=20260819-1">
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Neon Maze arcade game"></canvas>
+
+      <section id="menu" class="screen active">
+        <a class="back-link" href="../../#videogames">← All games</a>
+        <div class="menu-card">
+          <p class="eyebrow">A FOUR-DIRECTION RIFT ARCADE</p>
+          <h1>NEON <span>MAZE</span></h1>
+          <p class="sublogo">RIFT RUNNER</p>
+
+          <div class="runner-display" aria-hidden="true">
+            <i class="runner-trail"></i><i class="runner-body"></i><i class="runner-visor"></i><i class="runner-scarf"></i>
+          </div>
+
+          <p class="intro">Clear the living maze, chain Rift Shards and turn the four Echoes against themselves. Old-school rules, modern speed.</p>
+
+          <div class="feature-strip" aria-label="Game features">
+            <span><b>◇</b> Chain shards</span>
+            <span><b>⚡</b> Auto Overdrive</span>
+            <span><b>◌</b> Daily maze</span>
+          </div>
+
+          <div class="runner-picker" role="group" aria-label="Choose runner colour">
+            <button class="runner-choice active" data-runner="ion" aria-pressed="true"><i></i><span>ION</span><small>READY</small></button>
+            <button class="runner-choice" data-runner="pulse" aria-pressed="false"><i></i><span>PULSE</span><small id="pulse-lock">2,500 BEST</small></button>
+            <button class="runner-choice" data-runner="nova" aria-pressed="false"><i></i><span>NOVA</span><small id="nova-lock">6,000 BEST</small></button>
+          </div>
+
+          <button id="play-btn" class="primary">ENTER THE MAZE</button>
+          <p class="controls-hint">Arrow keys only · Swipe or use the four arrows on mobile</p>
+          <div class="menu-stats"><span>BEST <b id="best-score">0</b></span><span>DAILY <b id="daily-best">0</b></span><span>MAZE <b id="daily-id">000</b></span></div>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="hud-brand">NEON <span>MAZE</span></div>
+        <div class="hud-stat"><small>SCORE</small><b id="score">0</b></div>
+        <div class="hud-stat"><small>LEVEL</small><b id="level">1</b></div>
+        <div class="hud-stat lives"><small>CORES</small><b id="lives">◆ ◆ ◆</b></div>
+        <div class="flow"><small>FLOW <b id="multiplier">×1</b></small><span><i id="flow-fill"></i></span></div>
+        <button id="sound-btn" class="round" aria-label="Toggle sound">♪</button>
+        <button id="pause-btn" class="round" aria-label="Pause game">Ⅱ</button>
+      </section>
+
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="surge" class="surge"><small>POWER SURGE</small><span><i id="surge-fill"></i></span></div>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">RIFT SUSPENDED</p>
+          <h2>MAZE PAUSED</h2>
+          <button id="resume-btn" class="primary">CONTINUE</button>
+          <button id="quit-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="level-clear" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">SECTOR CLEAN</p>
+          <h2>RIFT CLEARED</h2>
+          <div class="level-mark" aria-hidden="true">◇</div>
+          <p id="level-bonus" class="modal-copy">Level bonus +1000</p>
+          <button id="next-btn" class="primary">NEXT MAZE</button>
+        </div>
+      </section>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card">
+          <p class="eyebrow">SIGNAL LOST</p>
+          <h2>THE ECHOES FOUND YOU</h2>
+          <div class="results"><span><small>SCORE</small><strong id="final-score">0</strong></span><span><small>LEVEL</small><strong id="final-level">1</strong></span><span><small>BEST FLOW</small><strong id="final-flow">×1</strong></span></div>
+          <p id="unlock-message" class="unlock-message"></p>
+          <button id="again-btn" class="primary">RUN IT BACK</button>
+          <button id="home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <nav id="mobile-controls" aria-label="Movement controls">
+        <button class="move up" data-direction="up" aria-label="Move up">▲</button>
+        <button class="move left" data-direction="left" aria-label="Move left">◀</button>
+        <span class="dpad-core" aria-hidden="true">◇</span>
+        <button class="move right" data-direction="right" aria-label="Move right">▶</button>
+        <button class="move down" data-direction="down" aria-label="Move down">▼</button>
+      </nav>
+    </main>
+    <script src="game.js?v=20260819-1"></script>
+  </body>
+</html>
