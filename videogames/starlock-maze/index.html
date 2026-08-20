@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#050319">
+    <meta name="description" content="Starlock Maze — a neon red-light, green-light maze chase for desktop and mobile.">
+    <title>Starlock Maze — One, Two, Three, Freeze!</title>
+    <link rel="stylesheet" href="style.css?v=20260820-1">
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="Starlock Maze arcade game"></canvas>
+
+      <section id="menu" class="screen active">
+        <a class="back-link" href="../../#videogames">← All games</a>
+        <div class="menu-card">
+          <p class="eyebrow">A RED LIGHT · GREEN LIGHT MAZE</p>
+          <h1>STARLOCK <span>MAZE</span></h1>
+          <p class="sublogo">ONE · TWO · THREE · FREEZE!</p>
+
+          <div class="sentinel-display" aria-hidden="true">
+            <i class="star-body"></i><i class="star-eye eye-left"></i><i class="star-eye eye-right"></i><b>Z Z Z</b>
+          </div>
+
+          <p class="intro">Collect every neon dot while the Star Sentinel sleeps. The instant it turns to watch, release the controls and freeze.</p>
+
+          <div class="rules" aria-label="Game rules">
+            <span><b>MOVE</b><small>while it sleeps</small></span>
+            <span><b>FREEZE</b><small>when it watches</small></span>
+            <span><b>POWER</b><small>eat hunters + blast walls</small></span>
+          </div>
+
+          <button id="play-btn" class="primary">ENTER STARLOCK</button>
+          <p class="controls-hint">Hold arrow keys to move · Release to freeze · SPACE or X to fire when powered</p>
+          <div class="menu-stats"><span>BEST <b id="best-score">0</b></span><span>TOP LEVEL <b id="best-level">1</b></span></div>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-hidden="true">
+        <div class="hud-brand">STAR<span>LOCK</span></div>
+        <div class="hud-stat"><small>SCORE</small><b id="score">0</b></div>
+        <div class="hud-stat"><small>LEVEL</small><b id="level">1</b></div>
+        <div class="hud-stat lives"><small>LIVES</small><b id="lives">◆ ◆ ◆</b></div>
+        <div class="power"><small>POWER <b id="ammo">0 SHOTS</b></small><span><i id="power-fill"></i></span></div>
+        <button id="sound-btn" class="round" aria-label="Toggle sound">♪</button>
+        <button id="pause-btn" class="round" aria-label="Pause game">Ⅱ</button>
+      </section>
+
+      <div id="watch-state" class="watch-state sleep" aria-live="assertive"><i></i><span>SAFE TO MOVE</span></div>
+      <div id="status" class="status" aria-live="polite"></div>
+
+      <section id="pause" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">SENTINEL SUSPENDED</p>
+          <h2>MAZE PAUSED</h2>
+          <button id="resume-btn" class="primary">CONTINUE</button>
+          <button id="quit-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <section id="level-clear" class="screen modal">
+        <div class="modal-card compact">
+          <p class="eyebrow">PERFECTLY STILL</p>
+          <h2>SECTOR CLEARED</h2>
+          <div class="level-star" aria-hidden="true">★</div>
+          <p id="level-bonus" class="modal-copy">Level bonus +1000</p>
+          <button id="next-btn" class="primary">NEXT MAZE</button>
+        </div>
+      </section>
+
+      <section id="gameover" class="screen modal">
+        <div class="modal-card">
+          <p class="eyebrow">THE SENTINEL SAW YOU</p>
+          <h2>STARLOCKED</h2>
+          <div class="results"><span><small>SCORE</small><strong id="final-score">0</strong></span><span><small>LEVEL</small><strong id="final-level">1</strong></span><span><small>WALLS BLASTED</small><strong id="final-walls">0</strong></span></div>
+          <button id="again-btn" class="primary">TRY AGAIN</button>
+          <button id="home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
+      <nav id="mobile-controls" aria-label="Movement controls">
+        <button class="move up" data-direction="up" aria-label="Move up">▲</button>
+        <button class="move left" data-direction="left" aria-label="Move left">◀</button>
+        <span class="dpad-core" aria-hidden="true">★</span>
+        <button class="move right" data-direction="right" aria-label="Move right">▶</button>
+        <button class="move down" data-direction="down" aria-label="Move down">▼</button>
+      </nav>
+      <button id="fire-btn" class="fire-btn" aria-label="Fire power shot"><span>✦</span> FIRE</button>
+    </main>
+    <script src="game.js?v=20260820-1"></script>
+  </body>
+</html>
