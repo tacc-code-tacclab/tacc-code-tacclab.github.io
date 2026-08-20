@@ -22,6 +22,7 @@
   let vw=innerWidth,vh=innerHeight,dpr=1,tile=24,originX=0,originY=64,mapW=0,mapH=0,ambient=0,last=performance.now(),lastDraw=0,state=null,mazeLayer=null;
   let audioCtx=null,master=null,soundOn=safeStorage.get("neonMazeSound",true)!==false,musicTimer=0,musicStep=0,simAccumulator=0;
   const heldDirections=[];
+  const PLAYER_BASE_SPEED=7.35,TURN_ASSIST=.42,SIM_STEP=1/120;
   const MUSIC_NOTES=[220,277.18,329.63,415.3,329.63,277.18,246.94,329.63,220,293.66,369.99,440,369.99,293.66,246.94,277.18];
   const backgroundStars=Array.from({length:90},(_,i)=>({x:(i*137.2)%1000,y:(i*73.7)%800,r:.5+(i%4)*.32,p:i*.83}));
 
@@ -99,8 +100,27 @@
   }
 
   function cellOf(e){return{x:Math.floor(e.x),y:Math.floor(e.y)}}
+  function canMoveFrom(x,y,name){const d=DIR[name];return isOpen(state.maze,x+d.x,y+d.y)}
   function canMove(e,name){const d=DIR[name],c=cellOf(e);return isOpen(state.maze,c.x+d.x,c.y+d.y)}
   function atCenter(e){return Math.abs(e.x-(Math.floor(e.x)+.5))<.0001&&Math.abs(e.y-(Math.floor(e.y)+.5))<.0001}
+  function applyResponsiveTurn(p){
+    const wanted=p.wanted;if(!wanted||wanted==="none"||wanted===p.dir)return;
+    if(p.dir==="none"){if(canMove(p,wanted))p.dir=wanted;return}
+    // Reversals never wait for a tile centre.
+    if(wanted===OPP[p.dir]){p.dir=wanted;return}
+    if(atCenter(p)){if(canMove(p,wanted))p.dir=wanted;return}
+    // Capture a perpendicular turn shortly before the junction. This removes the
+    // sluggish one-tile wait while keeping the runner inside the maze corridors.
+    const d=DIR[p.dir];
+    const turnAt=(tx,ty)=>{const gap=Math.abs(tx-p.x)+Math.abs(ty-p.y),cx=Math.floor(tx),cy=Math.floor(ty);if(gap>TURN_ASSIST||!canMoveFrom(cx,cy,wanted))return false;p.x=tx;p.y=ty;p.dir=wanted;return true};
+    // Also forgive a direction pressed just after crossing a junction.
+    const nearX=d.x?Math.floor(p.x)+.5:p.x,nearY=d.y?Math.floor(p.y)+.5:p.y;
+    if(turnAt(nearX,nearY))return;
+    let tx=p.x,ty=p.y;
+    if(d.x>0)tx=Math.floor(p.x+.5)+.5;else if(d.x<0)tx=Math.ceil(p.x-.5)-.5;
+    else if(d.y>0)ty=Math.floor(p.y+.5)+.5;else if(d.y<0)ty=Math.ceil(p.y-.5)-.5;
+    turnAt(tx,ty)
+  }
   function walkGrid(e,distance,chooseDirection){
     for(let guard=0;guard<3&&distance>.00001;guard++){
       if(atCenter(e)){e.x=Math.floor(e.x)+.5;e.y=Math.floor(e.y)+.5;chooseDirection();if(e.dir==="none")break}
@@ -112,8 +132,9 @@
     }
   }
   function movePlayer(dt){
-    const p=state.player,speed=(6.05+Math.min(1.05,(state.level-1)*.12))*(state.overdrive>0?1.18:1),step=speed*dt;
+    const p=state.player,speed=(PLAYER_BASE_SPEED+Math.min(1.05,(state.level-1)*.12))*(state.overdrive>0?1.18:1),step=speed*dt;
     if(heldDirections.length)p.wanted=heldDirections[heldDirections.length-1];
+    applyResponsiveTurn(p);
     walkGrid(p,step,()=>{if(canMove(p,p.wanted))p.dir=p.wanted;else if(!canMove(p,p.dir))p.dir="none"});
     if(p.dir!=="none")p.angle=DIR[p.dir].a;p.trail.unshift({x:p.x,y:p.y,a:1});if(p.trail.length>12)p.trail.pop();for(const t of p.trail)t.a*=.9
   }
@@ -131,7 +152,7 @@
     e.phase+=dt*(2.4+e.index*.17);if(e.spawnDelay>0){e.spawnDelay-=dt;return}const vulnerable=state.surge>0||state.overdrive>0,speed=(3.85+state.level*.15+e.index*.05)*(vulnerable?0.77:1),step=speed*dt;
     walkGrid(e,step,()=>{e.dir=chooseEchoDirection(e)})
   }
-  function setDirection(name){if(!state||!["playing","ready"].includes(state.mode))return;state.player.wanted=name;document.querySelectorAll(".move").forEach(b=>b.classList.toggle("pressed",b.dataset.direction===name))}
+  function setDirection(name){if(!state||!["playing","ready"].includes(state.mode))return;state.player.wanted=name;applyResponsiveTurn(state.player);document.querySelectorAll(".move").forEach(b=>b.classList.toggle("pressed",b.dataset.direction===name))}
 
   function collect(){
     const p=state.player,c=cellOf(p),k=key(c.x,c.y);if(state.shards.delete(k)){state.collected++;state.chainTimer=1.18;state.chain++;state.multiplier=Math.min(5,1+Math.floor(state.chain/8));state.maxFlow=Math.max(state.maxFlow,state.multiplier);const boosted=state.overdrive>0?2:1;state.score+=10*state.multiplier*boosted;state.flowEnergy=clamp(state.flowEnergy+3.4+state.multiplier*.9,0,100);burst(c.x+.5,c.y+.5,p.color,3,.55);if(state.chain%3===0)tone("shard");if(state.flowEnergy>=100&&state.overdrive<=0){state.overdrive=6.5;state.flowEnergy=0;state.surge=Math.max(state.surge,6.5);state.echoChain=0;tone("overdrive");toast("⚡ OVERDRIVE · SCORE ×2 ⚡");state.flash=.55}}
@@ -202,7 +223,7 @@
     drawBackdrop(ambient);ctx.save();if(state.shake>0)ctx.translate((Math.random()-.5)*state.shake,(Math.random()-.5)*state.shake);drawMaze();drawShards();for(const k of state.cores)drawCore(k);if(state.relic)drawRelic(state.relic);for(const e of state.echoes)drawEcho(e);drawRunner(state.player);drawParticles();ctx.restore();if(state.flash>0){ctx.globalAlpha=state.flash*.28;ctx.fillStyle=state.lives>0?state.player.color:"#ff315e";ctx.fillRect(0,0,vw,vh);ctx.globalAlpha=1}
   }
   function drawMenu(t){drawBackdrop(t);const cx=vw*.5,cy=vh*.51;ctx.save();ctx.globalAlpha=.14;ctx.strokeStyle="#5ff8ff";ctx.lineWidth=2;for(let i=0;i<5;i++){ctx.beginPath();ctx.roundRect(cx-230-i*18,cy-150-i*13,460+i*36,300+i*26,22);ctx.stroke()}for(let i=0;i<4;i++){const a=t*(.32+i*.05)+i*TAU/4,x=cx+Math.cos(a)*Math.min(vw*.37,390),y=cy+Math.sin(a)*Math.min(vh*.34,230);ctx.fillStyle=ECHO_COLORS[i];ctx.shadowColor=ECHO_COLORS[i];ctx.shadowBlur=18;polygon(x,y,9+i,6,a);ctx.fill()}ctx.restore()}
-  function frame(now){const dt=Math.min(.1,Math.max(.001,(now-last)/1000));last=now;ambient+=dt;if(state&&state.mode==="playing"){simAccumulator=Math.min(.12,simAccumulator+dt);while(simAccumulator>=1/60&&state?.mode==="playing"){update(1/60);simAccumulator-=1/60}}else simAccumulator=0;const drawInterval=1000/(coarse?30:45);if(now-lastDraw>=drawInterval){lastDraw=now;if(state)drawGame();else drawMenu(ambient)}requestAnimationFrame(frame)}
+  function frame(now){const dt=Math.min(.1,Math.max(.001,(now-last)/1000));last=now;ambient+=dt;if(state&&state.mode==="playing"){simAccumulator=Math.min(.12,simAccumulator+dt);while(simAccumulator>=SIM_STEP&&state?.mode==="playing"){update(SIM_STEP);simAccumulator-=SIM_STEP}}else simAccumulator=0;const drawInterval=1000/(coarse?30:60);if(now-lastDraw>=drawInterval){lastDraw=now;if(state)drawGame();else drawMenu(ambient)}requestAnimationFrame(frame)}
 
   addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();const dir=e.key.slice(5).toLowerCase();if(!heldDirections.includes(dir))heldDirections.push(dir);if(!e.repeat)setDirection(dir)}if(e.key==="Escape"){if(state?.mode==="playing")pause();else if(state?.mode==="paused")resume()}},{passive:false});
   addEventListener("keyup",e=>{if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key))return;e.preventDefault();const dir=e.key.slice(5).toLowerCase(),at=heldDirections.indexOf(dir);if(at>=0)heldDirections.splice(at,1);document.querySelectorAll(".move").forEach(b=>b.classList.toggle("pressed",heldDirections.includes(b.dataset.direction)))},{passive:false});
@@ -213,6 +234,6 @@
   document.querySelectorAll(".runner-choice").forEach(b=>b.addEventListener("click",()=>setRunner(b.dataset.runner)));
   ui.play.addEventListener("click",createRun);ui.pauseButton.addEventListener("click",pause);ui.resume.addEventListener("click",resume);ui.quit.addEventListener("click",menu);ui.next.addEventListener("click",nextLevel);ui.again.addEventListener("click",createRun);ui.home.addEventListener("click",menu);ui.sound.addEventListener("click",()=>{soundOn=!soundOn;safeStorage.set("neonMazeSound",soundOn);if(master)master.gain.value=soundOn?0.22:0;if(soundOn){initAudio();audioCtx?.resume();tone("shard")}updateHud()});
 
-  window.__NEON_MAZE_DIAGNOSTICS__=()=>state?{mode:state.mode,score:state.score,level:state.level,lives:state.lives,shards:state.shards.size,cores:state.cores.size,player:{x:state.player.x,y:state.player.y,dir:state.player.dir,wanted:state.player.wanted,open:["left","right","up","down"].filter(name=>canMove(state.player,name))},echoes:state.echoes.map(e=>({x:e.x,y:e.y,dir:e.dir,spawnDelay:e.spawnDelay})),held:[...heldDirections],musicStep,surge:state.surge,overdrive:state.overdrive,multiplier:state.multiplier}: {mode:"menu",best,dailyBest,runner};
+  window.__NEON_MAZE_DIAGNOSTICS__=()=>state?{mode:state.mode,score:state.score,level:state.level,lives:state.lives,shards:state.shards.size,cores:state.cores.size,player:{x:state.player.x,y:state.player.y,dir:state.player.dir,wanted:state.player.wanted,open:["left","right","up","down"].filter(name=>canMove(state.player,name))},echoes:state.echoes.map(e=>({x:e.x,y:e.y,dir:e.dir,spawnDelay:e.spawnDelay})),held:[...heldDirections],musicStep,simHz:Math.round(1/SIM_STEP),surge:state.surge,overdrive:state.overdrive,multiplier:state.multiplier}: {mode:"menu",best,dailyBest,runner};
   updateUnlocks();resize();requestAnimationFrame(frame);
 })();
