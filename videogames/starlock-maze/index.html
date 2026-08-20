@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#050319">
     <meta name="description" content="Starlock Maze — a neon red-light, green-light maze chase for desktop and mobile.">
     <title>Starlock Maze — One, Two, Three, Freeze!</title>
-    <link rel="stylesheet" href="style.css?v=20260820-2">
+    <link rel="stylesheet" href="style.css?v=20260820-3">
   </head>
   <body>
     <main id="app">
@@ -23,16 +23,18 @@
             <i class="star-body"></i><i class="star-eye eye-left"></i><i class="star-eye eye-right"></i><b>Z Z Z</b>
           </div>
 
-          <p class="intro">Collect every neon dot while the Star Sentinel sleeps. The instant it turns to watch, release the controls and freeze.</p>
+          <p class="intro">Clear all 12 neon sectors. Each new maze changes colour, glows brighter and adds more danger.</p>
 
+          <p class="rules-title">HOW TO PLAY</p>
           <div class="rules" aria-label="Game rules">
-            <span><b>MOVE</b><small>while it sleeps</small></span>
-            <span><b>FREEZE</b><small>when it watches</small></span>
-            <span><b>POWER</b><small>eat hunters + blast walls</small></span>
+            <span><b>1 · MOVE</b><small>Hold the arrows while the star sleeps.</small></span>
+            <span><b>2 · FREEZE</b><small>At the red flash, release every control.</small></span>
+            <span><b>3 · CLEAR</b><small>Collect every dot to open the next sector.</small></span>
+            <span><b>4 · POWER</b><small>Power Pearls let you eat hunters and blast walls.</small></span>
           </div>
 
           <button id="play-btn" class="primary">ENTER STARLOCK</button>
-          <p class="controls-hint">Hold arrow keys to move · Release to freeze · SPACE or X to fire when powered</p>
+          <p class="controls-hint">ARROWS / TOUCH PAD: move · RELEASE: freeze · SPACE / X / FIRE: shoot when powered</p>
           <div class="menu-stats"><span>BEST <b id="best-score">0</b></span><span>TOP LEVEL <b id="best-level">1</b></span></div>
         </div>
       </section>
@@ -40,7 +42,7 @@
       <section id="hud" class="hud" aria-hidden="true">
         <div class="hud-brand">STAR<span>LOCK</span></div>
         <div class="hud-stat"><small>SCORE</small><b id="score">0</b></div>
-        <div class="hud-stat"><small>LEVEL</small><b id="level">1</b></div>
+        <div class="hud-stat"><small>SECTOR</small><b id="level">1 / 12</b></div>
         <div class="hud-stat lives"><small>LIVES</small><b id="lives">◆ ◆ ◆</b></div>
         <div class="power"><small>POWER <b id="ammo">0 SHOTS</b></small><span><i id="power-fill"></i></span></div>
         <button id="sound-btn" class="round" aria-label="Toggle sound">♪</button>
@@ -79,6 +81,18 @@
         </div>
       </section>
 
+      <section id="game-complete" class="screen modal">
+        <div class="modal-card victory-card">
+          <p class="eyebrow">ALL 12 SECTORS CLEARED</p>
+          <h2>STARLOCK MASTER</h2>
+          <div class="victory-star" aria-hidden="true">✦</div>
+          <p class="modal-copy">You crossed every fluorescent maze and escaped the Star Sentinel.</p>
+          <div class="results"><span><small>FINAL SCORE</small><strong id="victory-score">0</strong></span><span><small>WALLS BLASTED</small><strong id="victory-walls">0</strong></span><span><small>LIVES LEFT</small><strong id="victory-lives">0</strong></span></div>
+          <button id="victory-again-btn" class="primary">PLAY AGAIN</button>
+          <button id="victory-home-btn" class="secondary">MAIN MENU</button>
+        </div>
+      </section>
+
       <nav id="mobile-controls" aria-label="Movement controls">
         <button class="move up" data-direction="up" aria-label="Move up">▲</button>
         <button class="move left" data-direction="left" aria-label="Move left">◀</button>
@@ -88,6 +102,6 @@
       </nav>
       <button id="fire-btn" class="fire-btn" aria-label="Fire power shot"><span>✦</span> FIRE</button>
     </main>
-    <script src="game.js?v=20260820-2"></script>
+    <script src="game.js?v=20260820-3"></script>
   </body>
 </html>
