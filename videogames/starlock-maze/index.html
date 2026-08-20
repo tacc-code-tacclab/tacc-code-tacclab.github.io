@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#050319">
     <meta name="description" content="Starlock Maze — a neon red-light, green-light maze chase for desktop and mobile.">
     <title>Starlock Maze — One, Two, Three, Freeze!</title>
-    <link rel="stylesheet" href="style.css?v=20260820-3">
+    <link rel="stylesheet" href="style.css?v=20260820-4">
   </head>
   <body>
     <main id="app">
@@ -27,14 +27,14 @@
 
           <p class="rules-title">HOW TO PLAY</p>
           <div class="rules" aria-label="Game rules">
-            <span><b>1 · MOVE</b><small>Hold the arrows while the star sleeps.</small></span>
+            <span><b>1 · MOVE</b><small>Drag the joystick or hold arrows while the star sleeps.</small></span>
             <span><b>2 · FREEZE</b><small>At the red flash, release every control.</small></span>
             <span><b>3 · CLEAR</b><small>Collect every dot to open the next sector.</small></span>
             <span><b>4 · POWER</b><small>Power Pearls let you eat hunters and blast walls.</small></span>
           </div>
 
           <button id="play-btn" class="primary">ENTER STARLOCK</button>
-          <p class="controls-hint">ARROWS / TOUCH PAD: move · RELEASE: freeze · SPACE / X / FIRE: shoot when powered</p>
+          <p class="controls-hint">ARROWS / DRAG JOYSTICK: move · RELEASE: freeze · SPACE / X / FIRE: shoot when powered</p>
           <div class="menu-stats"><span>BEST <b id="best-score">0</b></span><span>TOP LEVEL <b id="best-level">1</b></span></div>
         </div>
       </section>
@@ -96,12 +96,12 @@
       <nav id="mobile-controls" aria-label="Movement controls">
         <button class="move up" data-direction="up" aria-label="Move up">▲</button>
         <button class="move left" data-direction="left" aria-label="Move left">◀</button>
-        <span class="dpad-core" aria-hidden="true">★</span>
+        <button id="joystick" class="dpad-core" aria-label="Drag joystick to move"><span id="joystick-knob">★</span></button>
         <button class="move right" data-direction="right" aria-label="Move right">▶</button>
         <button class="move down" data-direction="down" aria-label="Move down">▼</button>
       </nav>
       <button id="fire-btn" class="fire-btn" aria-label="Fire power shot"><span>✦</span> FIRE</button>
     </main>
-    <script src="game.js?v=20260820-3"></script>
+    <script src="game.js?v=20260820-4"></script>
   </body>
 </html>
