@@ -6,6 +6,8 @@ A fluorescent English-language evolution of DeepBite, built for immediate keyboa
 - Finzo keeps his detailed closed-mouth artwork and adds a compact, friendly code-drawn bite animation when eating.
 - Sharks, piranhas and lionfish use complete species-specific vector drawings with proper snouts, jaws, teeth, fins, stripes and venomous spines.
 - A visible scrolling seabed anchors lethal coral and shell hazards; glowing treasure grants points and growth.
+- Finzo can now swim almost to the far-right edge, with a size-aware safety margin that keeps him visible.
+- From Ocean 3 onward, fluorescent Sky Hunters leap above the surface and dive steeply back into the water; their frequency rises with each level.
 - A much taller violet-orange sunset sky, drifting clouds, distant island silhouettes and a glowing sun are now unmistakably separate from the cyan sea.
 - Fish now have richer fins, animated split-tail silhouettes, species-specific scales, gills, highlights and fluorescent markings.
 - Finzo uses a smaller friendly bite animation, while faster direct movement, case-insensitive WASD input, raw pointer updates and a high-response analogue curve make keyboard and mobile controls react immediately.
