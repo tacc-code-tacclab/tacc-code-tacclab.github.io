@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090d23">
+  <meta name="description" content="Collect charges. Flip their signs. Hit exactly zero and unleash a nova. A 90-second mathematical arcade for keyboard and touch.">
+  <meta property="og:title" content="ZERO RIOT — Make nothing. Destroy everything.">
+  <meta property="og:description" content="A 90-second arcade of charge, risk and perfectly timed zeroes. Play the daily arena and challenge a friend.">
+  <title>ZERO RIOT · Mathematical arcade</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="core.js" defer></script>
+  <script src="game.js" defer></script>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <a href="../../#videogames" class="back" aria-label="Back to videogames">← ARCADE</a>
+    <span class="wordmark">ZERO<span>RIOT</span><sup>01</sup></span>
+    <div class="utilities"><button id="sound" aria-label="Enable sound" aria-pressed="false">SOUND OFF</button><button id="pause" aria-label="Pause game" disabled>Ⅱ</button></div>
+  </header>
+  <section class="hud" aria-label="Game status">
+    <div class="readout"><span>SCORE</span><strong id="score">0</strong></div>
+    <div class="charge-readout"><span>YOUR CHARGE</span><strong id="charge">0</strong></div>
+    <div class="readout"><span>TIME</span><strong id="time">90<span>s</span></strong></div>
+    <div class="readout lives"><span>SHIELDS</span><strong id="lives" aria-label="3 shields">●●●</strong></div>
+  </section>
+  <div class="play-layout">
+    <div class="board-wrap">
+      <canvas id="arena" width="720" height="720" tabindex="0" aria-label="ZERO RIOT arena. Use WASD or arrows to move. Space flips the signs of all charges. P pauses."></canvas>
+      <div class="phase" id="phase">01 / CHARGE UP</div>
+      <div class="board-bottom"><span id="chain">BUILD A CHAIN</span><span id="danger">LIMIT ±9</span></div>
+      <div class="overlay" id="menu">
+        <div class="menu-inner">
+          <p class="eyebrow">A LITTLE MATH. A LOT OF MAYHEM.</p>
+          <h1>MAKE<br><span>NOTHING.</span></h1>
+          <p class="hook">Hit zero. Unleash a nova.</p>
+          <div class="example" aria-label="Plus three, plus four, minus seven equals zero"><b>+3</b><b>+4</b><b>−7</b><i>=</i><em>0</em></div>
+          <p class="menu-rule">Collect signed numbers. <strong>FLIP</strong> changes every pickup’s sign, but keeps your charge. Return to zero to blast the hunters.</p>
+          <p class="menu-rule small">Stay between −9 and +9. Overload or touch a hunter: lose a shield. Survive 90 seconds; three hits end the run.</p>
+          <button class="primary" id="start">PLAY DAILY ARENA <span>↗</span></button>
+          <button class="secondary" id="random">NEW RANDOM ARENA</button>
+          <p class="seed-note" id="seed-label"></p>
+        </div>
+      </div>
+      <div class="overlay hidden" id="paused"><div class="menu-inner compact"><p class="eyebrow">TAKE A BREATH</p><h2>PAUSED.</h2><button class="primary" id="resume">KEEP GOING →</button><button class="secondary" id="restart">RESTART THIS ARENA</button></div></div>
+      <div class="overlay hidden" id="results" role="dialog" aria-modal="true" aria-label="Run results">
+        <div class="menu-inner compact"><p class="eyebrow" id="result-status">RUN COMPLETE</p><h2 id="result-score">0</h2><p class="hook" id="result-rank"></p><div class="result-stats" id="result-stats"></div><button class="primary" id="replay">ONE MORE RUN →</button><button class="secondary" id="share">COPY CHALLENGE LINK</button><button class="text-button" id="home">BACK TO START</button><p class="seed-note" id="share-note" aria-live="polite"></p><textarea class="hidden share-fallback" id="share-fallback" aria-label="Challenge text to copy" readonly></textarea></div>
+      </div>
+    </div>
+    <aside class="side">
+      <div class="goal"><span class="eyebrow">YOUR NEXT MOVE</span><p id="hint">Collect a charge<br>to get started.</p><span class="fine" id="hint-sub">Outlined pickups would take you to zero.</span></div>
+      <div class="controls">
+        <div class="joystick" id="joystick" aria-label="Touch joystick"><span class="stick-ring"></span><span class="stick-knob" id="knob"></span><small>MOVE</small></div>
+        <button id="flip" class="flip" disabled><span class="flip-symbol">±</span><strong id="flip-label">FLIP THE FIELD</strong><small>SPACE / TAP · 2s recharge</small><span class="recharge" id="recharge"></span></button>
+      </div>
+      <div class="instructions"><p><b class="cyan">+ / −</b><span>Add the number you touch.</span></p><p><b class="yellow">0</b><span>Hit zero. Blast nearby hunters.</span></p><p><b class="pink">±</b><span>Flip the field. Your charge stays.</span></p><p><b>◆</b><span>Avoid the coral-red hunters.</span></p></div>
+      <div class="risk"><span>RISK BUILDS POWER</span><p>Bigger chains make bigger novas. Crossing ±9 costs a shield.</p></div>
+      <p class="keyboard">WASD / ARROWS · MOVE<br>SPACE · FLIP &nbsp; P / ESC · PAUSE</p>
+      <p class="personal-best">LOCAL BEST <strong id="best">0</strong></p>
+    </aside>
+  </div>
+  <footer><span>90 SECONDS. HOW MUCH NOTHING CAN YOU MAKE?</span><span>SOLO · DAILY SEED <b id="footer-seed"></b></span></footer>
+</main>
+</body>
+</html>

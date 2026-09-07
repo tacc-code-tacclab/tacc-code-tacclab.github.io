@@ -1,0 +1,3 @@
+*.rbxlx
+tests/parity-actual.json
+tests/parity-expected.json
