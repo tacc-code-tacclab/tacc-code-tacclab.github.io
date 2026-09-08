@@ -1,109 +1,72 @@
-# ZERO RIOT — v2: Clear the board
+# Bubble Riot · V3
 
-Collect **every number on the board** to finish the level. Complete all five
-levels to win. Numbers disappear permanently when collected. There is no timer,
-no charge limit and no arithmetic penalty. Returning the running total to zero
-is an optional bonus, never a requirement to complete the board.
+A cheerful arithmetic bubble shooter for browsers and Roblox. This redesign replaces the moving-ring ZERO RIOT game at its existing `/videogames/zero-riot/` route, so previous links still work. Other games are untouched.
 
-Play: https://tacc-code-tacclab.github.io/videogames/zero-riot/?release=2
+## Play
 
-## What changed from v1
+Choose one of three numbered shots. Aim and fire at a hanging bubble. When **bubble + shot = target**, the connected group of that same bubble number pops. For example, target **5**, bubble **3**, shot **+2**: the connected 3s pop together. From garden 7, some gardens use multiplication instead: **3 × 4 = 12**.
 
-The survival timer and endlessly respawning numbers made the objective hard to
-understand and difficult to finish. V2 replaces that loop with finite levels:
+Bubbles with no remaining connection to the top row fall for bonus points. Clear **every bubble** to finish the garden; clear **all 12 gardens** to win the campaign. There is no timer, life counter or game-over for a mistake. A wrong shot explains the arithmetic and leaves the board intact. Every new ammo set includes a number for a reachable bubble. “Help me aim” selects a valid number and trajectory without firing.
 
-| Level | Numbers | Total hunters available |
-| --- | ---: | ---: |
-| 1 | 6 | 0 |
-| 2 | 8 | 0 |
-| 3 | 10 | 1 |
-| 4 | 12 | 2 |
-| 5 | 14 | 3 |
+Three correct shots in a row charge a rainbow shot: it pops any number and has a larger splash. Correct groups earn 100 points per bubble, dropped bubbles earn 150, each consecutive correct shot adds a 50-point combo increment. A clear earns three stars with no mistakes, two with up to two mistakes, or one otherwise; each star adds 200 points. Retrying starts the current garden from its original score bank, without duplicating points from that attempt.
 
-Hunters first appear after 12 seconds in levels 3–5, with a 1.4-second warning.
-Subsequent hunters appear at eight-second intervals, up to the level quota.
-Their speed is 40, 48 or 56 arena units per second versus the player's 190.
-A blasted hunter or one that hits the player is removed permanently. Three hits
-lose the current level. Retry preserves completed levels and their scores.
-Every new level refills all three shields and starts the bonus total at zero.
-There is no required final charge, so flipping signs or taking a hit cannot
-leave an otherwise cleared board mathematically impossible to complete.
+| Gardens | Mathematics | Arcade challenge |
+| --- | --- | --- |
+| 1–3 | Addition, targets 5, 6, 8 | Small groups, clear trajectories |
+| 4–6 | Addition, targets 10, 12, 15 | One then two reflecting bumpers |
+| 7–9 | Multiplication, targets 12, 18, 24 | New operation introduced on a smaller board |
+| 10 | Addition, target 30 | Larger sums, two bumpers |
+| 11–12 | Multiplication, targets 36, 48 | More bubbles and two bumpers |
 
 ## Controls
 
-- **Tap or click a number:** the ring travels to its centre and stops. A tap
-  within 52 logical units selects that number; you do not need to hold it.
-- Tap empty space to move there. Dragging updates the destination while held.
-- **WASD / arrows / joystick:** manual movement, immediate stop on release.
-  Manual input cancels the previous tap destination. Small stick noise is filtered
-  with a 10% radial dead zone; the remaining range maps linearly to speed.
-- **Space / FLIP:** reverse the signs of the remaining pickups for an optional
-  bonus combination. The player's total stays unchanged. One-second recharge.
-- **P / Escape / pause button:** pause. Window focus loss cancels movement and
-  pauses the browser game. Resuming requires a new movement command.
+- **Computer:** point and click to shoot. Left/right arrows aim; Space fires; 1/2/3 choose the shot. P pauses (Escape also pauses on the web).
+- **Touch:** choose a shot, drag on the board and release to fire. Releasing outside the board or a cancelled touch cancels the shot. The large FIRE button fires along the current guide.
+- **Help me aim:** selects a valid shot and a reachable target. Press FIRE to use it.
+- Same garden code gives the same campaign layouts and initial ammo on both platforms. The web results can copy a challenge link; Roblox displays a selectable challenge code.
+- Sound is optional on the web, synthesized locally; Roblox ships without external audio assets.
 
-Roblox additionally supports a gamepad stick and X to flip. Keyboard diagonals
-are normalised. Both platforms use the same 720 × 720 arena and fixed 1/60-second
-simulation steps. Target movement clamps travel to the exact remaining distance,
-preventing overshoot. A selected number is collected at its centre; unselected
-numbers crossed along the route use a tighter 26-unit collection radius. Pickups
-are at least 100 units apart. Web screen shake has been removed.
+## Files and local use
 
-## Bonuses and fair restarts
+Serve this directory with any static server, for example `python3 -m http.server 8000`, and open the localhost URL. No build, account or backend is required.
 
-Each pickup is worth 25 points. When the running sum returns to zero, with `n`
-collected numbers and total absolute value `M` in the current chain:
+- `core.js`, `roblox/Core.lua`: paired deterministic simulation, ray collisions, group connectivity, ammo and campaign progression.
+- `game.js`, `style.css`, `index.html`: browser controls, canvas bubbles, animation, local audio and screens.
+- `roblox/ZeroRiot.client.lua`: standalone native GUI rendering, immediate local controls, responsive portrait/landscape layout. The old source filename is retained for compatibility.
+- `roblox/build_place.py`: builds a `.rbxlx` containing both scripts. Native gradients and GUI scenery keep Roblox independent of image uploads or moderation. It does not embed the web background.
 
-```
-blast radius = min(310, 180 + 5*M)
-bonus = 100 + 8*M + 5*n*n + 100*(hunters caught in the blast)
-level completion bonus = 200 * level
-```
-
-Flip only changes remaining pickups. It is optional: collecting all numbers
-wins even when their final sum is not zero. Hits reset the current bonus chain
-and grant 2.5 seconds of protection; collected numbers stay collected.
-Restarting the current level restores its starting score, so replaying it cannot
-bank the same partial points repeatedly. Finishing level 5 shows final victory;
-playing again starts from level 1 with a fresh score.
-
-## Daily levels and sharing
-
-The UTC date is the default seed. The first level is a fixed easy introduction;
-levels 2–5 use seeded paired values and shuffled, well-spaced positions. Share
-links transfer the level seed. Scores remain local and unverified. Browser best
-scores persist on that device under a separate v2 key; Roblox best scores are
-session-only. There is no shared multiplayer arena or global leaderboard.
-
-## Roblox build
-
-Python 3, standard library only:
+Build Roblox:
 
 ```sh
-python3 roblox/build_place.py --output Zero_Riot_Roblox_V2.rbxlx
+python3 roblox/build_place.py --output Bubble_Riot_Roblox_V3.rbxlx
 ```
 
-Open the result in Roblox Studio, press **Play**, then **PLAY LEVEL 1**. The
-self-contained ScreenGui needs no external image, sound asset, RemoteEvent,
-DataStore or HTTP request. Publish it to the intended ZERO RIOT experience.
+Open the result in Roblox Studio and use Test → Play. The place launches through its own “LET’S POP!” button. Publishing the experience is separate from generating this file.
 
 ## Verification
 
-From this directory:
+Run from this directory:
 
 ```sh
 node tests/core.test.cjs
-node tests/web-smoke.cjs
 luatex --luaonly tests/core_test.lua
 node tests/compare-parity.cjs
+node tests/web-smoke.cjs
 ```
 
-The tests exercise permanent number removal, safe large sums, completion after
-flips, the first two levels without a timer or enemies, tap precision and stopping,
-keyboard/joystick control, all five level transitions, final victory, and score
-restoration on retry. Five simple automated tap routes complete the campaign.
-A full five-level JavaScript/Lua trace agrees within 1e-6 arena units. The web
-smoke uses a minimal DOM/canvas mock; it is not a visual browser playtest.
-The builder validates XML and embedded script round-trips. Real Roblox input
-and screen layout still need a Roblox Studio playtest, which is not available
-in the build environment.
+The simulation suite clears 240 generated boards across all 12 difficulties; checks wrong answers, connected groups, unsupported drops, rainbow power, replay and the campaign ending; and checks 165 reflected routes at three frame rates. The Lua campaign is compared against the JavaScript campaign, including every starting board and every shot result. The web smoke executes input and screen transitions against a mocked DOM/canvas, including a complete campaign. XML generation verifies exact script embedding. These checks are **not** a visual browser test or a Roblox Studio playtest.
+
+## Original artwork
+
+`assets/bubble-garden.webp` is a compressed derivative of an original background created with OpenAI image generation for this project. It is 1122 × 1402 pixels (about 116 KB). Bubbles, the toy launcher, highlights, stars and interactive effects are drawn as native game entities in canvas and Roblox GUI. No characters or assets from Bubble Bobble, Angry Birds or Tetris are used.
+
+Generation prompt:
+
+> Use case: stylized-concept
+> Asset type: original background illustration for a polished family arithmetic bubble-shooter mobile game called Bubble Riot. This is scenery only, for game UI to be layered over it.
+> Primary request: a vibrant whimsical floating bubble garden.
+> Scene/backdrop: soft turquoise sky fading into lavender; floating lush islands confined to the lower left and lower right edges, fantastical rounded plants, distant fluffy clouds, soft golden sunlight.
+> Style/medium: rich, appealing premium mobile-game illustration, gently dimensional painted shapes, lush inviting colors, charming fantasy scenery, beautifully polished.
+> Composition/framing: portrait 4:5 composition. The center and upper middle must be deliberately calm and open, with broad smooth sky gradients and very subtle distant clouds, so numbered game bubbles remain readable. Frame the lower edge corners with lush floating garden islands without blocking the broad central gameplay area. Balanced depth and soft atmosphere.
+> Lighting/mood: warm soft golden sunlight, joyful and serene.
+> Constraints: no text, no numbers, no UI, no cannon, no logos, no watermark, no existing game characters, no licensed references. Exactly one original background image.

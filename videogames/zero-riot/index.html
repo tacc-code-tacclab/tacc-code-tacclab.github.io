@@ -1,68 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#090d23">
-  <meta name="description" content="Collect every number to clear the level. Five relaxed mathematical levels, no timer, precise tap-to-move and optional zero bonuses.">
-  <meta property="og:title" content="ZERO RIOT — Clear every number.">
-  <meta property="og:description" content="Clear every number. Complete five levels. Take your time and collect zero bonuses along the way.">
-  <title>ZERO RIOT · Mathematical arcade</title>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=2">
-  <script src="core.js?v=2" defer></script>
-  <script src="game.js?v=2" defer></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d9faf3"><meta name="description" content="Aim, add, POP! A joyful bubble shooter with chain reactions, rainbow shots and twelve increasingly mathematical levels. Free on desktop and mobile.">
+<title>Bubble Riot · Aim. Add. POP!</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
-<main class="app">
-  <header class="topbar">
-    <a href="../../#videogames" class="back" aria-label="Back to videogames">← ARCADE</a>
-    <span class="wordmark">ZERO<span>RIOT</span><sup>02</sup></span>
-    <div class="utilities"><button id="sound" aria-label="Enable sound" aria-pressed="false">SOUND OFF</button><button id="pause" aria-label="Pause game" disabled>Ⅱ</button></div>
-  </header>
-  <section class="hud" aria-label="Game status">
-    <div class="readout"><span>SCORE</span><strong id="score">0</strong></div>
-    <div class="charge-readout"><span>YOUR CHARGE</span><strong id="charge">0</strong></div>
-    <div class="readout"><span>NUMBERS LEFT</span><strong id="time">6</strong></div>
-    <div class="readout lives"><span>SHIELDS</span><strong id="lives" aria-label="3 shields">●●●</strong></div>
-  </section>
-  <div class="level-progress"><span id="progress-label">Collect all 6 numbers to finish level 1.</span><div class="progress-track"><i id="progress-fill"></i></div></div>
-  <div class="play-layout">
-    <div class="board-wrap">
-      <canvas id="arena" width="720" height="720" tabindex="0" aria-label="Tap or click a number to move to it and stop. Collect every number to clear the level. WASD or arrows also move. Space flips signs for optional bonuses. P pauses."></canvas>
-      <div class="phase" id="phase">LEVEL 1 / 5 · NO ENEMIES</div>
-      <div class="board-bottom"><span id="chain">0 / 6 COLLECTED</span><span id="danger">NO TIME LIMIT</span></div>
-      <div class="overlay" id="menu">
-        <div class="menu-inner">
-          <p class="eyebrow">FIVE LEVELS. TAKE YOUR TIME.</p>
-          <h1>CLEAR<br><span>THE BOARD.</span></h1>
-          <p class="hook">Collect every number. Level complete!</p>
-          <div class="example" aria-label="Plus two and minus two make zero for a bonus"><b>+2</b><b>−2</b><i>=</i><em>0</em></div>
-          <p class="menu-rule"><strong>Tap or click a number.</strong> Your ring goes there and stops. Collect them all to finish the level. Complete five levels to win.</p>
-          <p class="menu-rule small">No timer. First two levels: no enemies. Making zero gives a bonus. Every number is safe to collect.</p>
-          <button class="primary" id="start">PLAY LEVEL 1 <span>→</span></button>
-          <button class="secondary" id="random">NEW RANDOM LEVELS</button>
-          <p class="seed-note" id="seed-label"></p>
-        </div>
-      </div>
-      <div class="overlay hidden" id="paused"><div class="menu-inner compact"><p class="eyebrow">TAKE A BREATH</p><h2>PAUSED.</h2><button class="primary" id="resume">KEEP GOING →</button><button class="secondary" id="restart">RESTART THIS LEVEL</button></div></div>
-      <div class="overlay hidden" id="results" role="dialog" aria-modal="true" aria-label="Run results">
-        <div class="menu-inner compact"><p class="eyebrow" id="result-status">RUN COMPLETE</p><h2 id="result-score">0</h2><p class="hook" id="result-rank"></p><div class="result-stats" id="result-stats"></div><button class="primary" id="replay">ONE MORE RUN →</button><button class="secondary" id="share">COPY CHALLENGE LINK</button><button class="text-button" id="home">BACK TO START</button><p class="seed-note" id="share-note" aria-live="polite"></p><textarea class="hidden share-fallback" id="share-fallback" aria-label="Challenge text to copy" readonly></textarea></div>
-      </div>
-    </div>
-    <aside class="side">
-      <div class="goal"><span class="eyebrow">OPTIONAL BONUS</span><p id="hint">Tap any number<br>to collect it.</p><span class="fine" id="hint-sub">Outlined numbers make zero for a bonus. You can collect any number.</span></div>
-      <div class="controls">
-        <div class="joystick" id="joystick" aria-label="Touch joystick"><span class="stick-ring"></span><span class="stick-knob" id="knob"></span><small>MOVE</small></div>
-        <button id="flip" class="flip" disabled><span class="flip-symbol">±</span><strong id="flip-label">FLIP SIGNS · OPTIONAL</strong><small>SPACE / TAP · 1s recharge</small><span class="recharge" id="recharge"></span></button>
-      </div>
-      <div class="instructions"><p><b class="cyan">✓</b><span>Collect every number to finish.</span></p><p><b class="yellow">0</b><span>Make zero for a bonus blast.</span></p><p><b class="pink">±</b><span>Flip signs if it helps. Optional.</span></p><p><b>◆</b><span>Slow hunters join from level 3.</span></p></div>
-      <div class="risk"><span>PLAY AT YOUR OWN PACE</span><p>No countdown and no charge limit. Shields refill at each new level.</p></div>
-      <p class="keyboard">TAP / CLICK A NUMBER · MOVE & STOP<br>WASD / ARROWS · MANUAL MOVE<br>SPACE · FLIP &nbsp; P / ESC · PAUSE</p>
-      <p class="personal-best">LOCAL BEST <strong id="best">0</strong></p>
-    </aside>
-  </div>
-  <footer><span>CLEAR ALL FIVE BOARDS TO WIN.</span><span>SOLO · DAILY SEED <b id="footer-seed"></b></span></footer>
-</main>
-</body>
-</html>
+<main class="shell">
+<header class="top"><a class="brand" href="../../#videogames" aria-label="Back to videogames"><span class="brand-orb">B</span><span>BUBBLE <b>RIOT</b><small>AIM. ADD. POP!</small></span></a><div class="top-actions"><button id="sound" class="quiet" aria-pressed="false">Sound off</button><button id="pause" class="quiet">Ⅱ Pause</button></div></header>
+<section class="game-layout" aria-label="Bubble Riot game">
+<div class="arena-column">
+<div class="hud"><div><span>GARDEN</span><strong id="level">1 <small>/ 12</small></strong></div><div class="goal"><span>MAKE</span><strong id="target">5</strong></div><div><span>BUBBLES LEFT</span><strong id="remaining">12</strong></div><div><span>SCORE</span><strong id="score">0</strong></div></div>
+<div class="board-wrap" id="board-wrap">
+<canvas id="game" width="720" height="900" tabindex="0" aria-label="Aim with the mouse or arrow keys. Click or press Space to shoot. Choose a shot with 1, 2 or 3."></canvas>
+<div class="board-tag"><span id="level-name">FIRST POPS</span><span>NO TIMER</span></div>
+<div class="overlay" id="overlay">
+<div class="modal" id="intro"><span class="eyebrow">12 GARDENS TO CLEAR</span><h1>Aim. Add.<br><em>POP!</em></h1><div class="example"><span class="orb lilac">3</span><b>+</b><span class="orb peach">2</span><b>=</b><span class="orb gold">5</span></div><p>Choose a shot. Hit a bubble to make the target number. Matching groups pop together!</p><p class="fine">Clear every bubble to finish. Nothing left holding a bubble up? It falls for bonus points. No timer. Unlimited tries.</p><button id="start" class="primary">LET’S POP! <span>→</span></button><div class="seed-row"><label for="seed">GARDEN CODE</label><input id="seed" maxlength="32" aria-label="Garden code"><button id="random" class="quiet" aria-label="Random garden">↻</button></div></div>
+<div class="modal" id="pause-panel" hidden><span class="eyebrow">TAKE YOUR TIME</span><h2>Little<br><em>breather?</em></h2><p>Your garden will be right here.</p><button id="resume" class="primary">KEEP POPPING →</button><button id="restart" class="secondary">Restart this garden</button></div>
+<div class="modal" id="results" hidden><span class="eyebrow" id="result-title">GARDEN CLEARED!</span><div class="stars" id="stars">★★★</div><h2 id="result-heading">Pop perfection!</h2><p id="result-stats"></p><button id="next" class="primary">NEXT GARDEN →</button><button id="retry" class="secondary">Try for more stars</button><button id="share" class="quiet">Copy challenge link</button><p class="fine" id="share-status" aria-live="polite"></p></div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+</div>
+<aside class="controls">
+<div class="control-heading"><span class="eyebrow">YOUR NEXT POP</span><h2>Pick your<br><em>magic number.</em></h2></div>
+<div class="equation-card"><span id="op-label">ADDITION GARDEN</span><strong id="equation">3 + 2 = ?</strong><small id="instruction">Aim at a bubble. Make 5.</small></div>
+<div class="ammo" role="group" aria-label="Choose the number to shoot"><button class="ammo-btn" id="ammo0" aria-pressed="true"><span>+2</span><small>1</small></button><button class="ammo-btn" id="ammo1" aria-pressed="false"><span>+1</span><small>2</small></button><button class="ammo-btn" id="ammo2" aria-pressed="false"><span>+3</span><small>3</small></button></div>
+<button id="fire" class="primary fire">FIRE! <span>↗</span></button>
+<div class="power-card"><div><b>RAINBOW RIOT</b><span id="power-label">0 / 3</span></div><div class="power-track"><i id="power-fill"></i></div><p>3 correct shots in a row unlock a rainbow blast. Any number. Bigger pops!</p></div>
+<div class="help"><p><b>Drag & release</b> to shoot on mobile.<br><b>Point & click</b> on a computer.<br><b>← →</b> aim · <b>Space</b> fire · <b>1 2 3</b> choose.</p><button id="hint" class="secondary">✦ Help me aim</button><p class="fine">Sums first. Multiplication from garden 7.<br>Every garden ends when all bubbles are gone.</p></div>
+</aside>
+</section>
+<footer><span>GROW YOUR SKILLS. POP YOUR WAY.</span><a href="https://github.com/tacc-code-tacclab/tacc-code-tacclab.github.io/tree/main/videogames/zero-riot">Source & Roblox</a></footer>
+</main><script src="core.js?v=3"></script><script src="game.js?v=3"></script>
+</body></html>

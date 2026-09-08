@@ -46,7 +46,7 @@ def build(output):
     item(starter, 'StarterCharacterScripts', 'StarterCharacterScripts')
     starter_gui, props = item(doc, 'StarterGui', 'StarterGui')
     prop(props, 'bool', 'ResetPlayerGuiOnSpawn', 'false')
-    screen, props = item(starter_gui, 'ScreenGui', 'ZeroRiot')
+    screen, props = item(starter_gui, 'ScreenGui', 'BubbleRiot')
     for name, value in [('Enabled', 'true'), ('IgnoreGuiInset', 'true'), ('ResetOnSpawn', 'false')]:
         prop(props, 'bool', name, value)
     prop(props, 'int', 'DisplayOrder', 100)
@@ -67,5 +67,5 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=ROOT / 'Zero_Riot_Roblox_V2.rbxlx')
+    parser.add_argument('--output', type=Path, default=ROOT / 'Bubble_Riot_Roblox_V3.rbxlx')
     build(parser.parse_args().output.resolve())
