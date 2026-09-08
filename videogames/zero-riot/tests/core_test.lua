@@ -1,22 +1,25 @@
--- Run from the game directory with Lua or luatex --luaonly tests/core_test.lua.
-math.atan2=math.atan2 or function(y,x) return math.atan(y,x) end
 local R=dofile('roblox/Core.lua')
 assert(loadfile('roblox/ZeroRiot.client.lua'))
-local g=R.create('nova')
-g.enemies={{x=g.x+20,y=g.y},{x=g.x+500,y=g.y}}
-for _,v in ipairs({3,4,-7}) do R.collect(g,{x=0,y=0,v=v}) end
-assert(g.charge==0 and g.novas==1 and g.score==563 and g.kills==1 and #g.enemies==1)
-local h=R.create('overload');h.invulnerable=0;R.collect(h,{v=7});R.collect(h,{v=3});assert(h.lives==2 and h.charge==0)
-local f=R.create('flip');f.charge=5;local v=f.pickups[1].v;assert(R.flip(f));assert(f.charge==5 and f.pickups[1].v==-v);assert(not R.flip(f))
-local e=R.create('end');e.pickups={};e.spawnAt=999;for i=1,5500 do R.step(e,1/60) end;assert(e.ended and e.won and e.score==900)
-local p=R.create('cross-platform')
-for i=0,4799 do
- if p.ended then break end
- if i%173==0 then R.flip(p) end
- local a=i*.013;R.step(p,1/60,{x=math.cos(a),y=math.sin(a)});p.events={}
+local g=R.create('tap');local p=g.pickups[1];R.setTarget(g,p.x+20,p.y-13)
+for i=1,200 do R.step(g,1/60) end
+assert(g.x==p.x and g.y==p.y and g.collected==1 and g.target==nil)
+local f=R.create('flip');R.collect(f,f.pickups[1]);R.flip(f)
+while #f.pickups>0 do R.collect(f,f.pickups[1]) end
+assert(f.won and f.charge~=0)
+local calm=R.create('calm',2);for i=1,6001 do R.step(calm,.1) end
+assert(not calm.ended and calm.spawned==0 and #calm.pickups==calm.total)
+local trace={};g=R.create('cross-platform')
+for level=1,5 do
+ local steps=0
+ while not g.ended and steps<15000 do
+  steps=steps+1
+  if not g.target and #g.pickups>0 then local q=g.pickups[1];R.setTarget(g,q.x,q.y) end
+  R.step(g,1/60);g.events={}
+ end
+ assert(g.won,'Simple tap route failed on level '..level)
+ table.insert(trace,string.format('{"level":%d,"time":%.15g,"totalTime":%.15g,"x":%.15g,"y":%.15g,"score":%d,"charge":%d,"lives":%d,"novas":%d,"collected":%d,"spawned":%d}',g.level,g.time,g.totalTime,g.x,g.y,g.score,g.charge,g.lives,g.novas,g.collected,g.spawned))
+ if level<5 then local score=g.score;g=R.nextLevel(g);assert(g.score==score and g.lives==3) end
 end
-local out=assert(io.open('tests/parity-actual.json','w'))
-out:write(string.format('{"time":%.15g,"x":%.15g,"y":%.15g,"charge":%d,"lives":%d,"score":%d,"novas":%d,"seed":%d,"pickups":[',p.time,p.x,p.y,p.charge,p.lives,p.score,p.novas,R.seedNumber('cross-platform')))
-for i,pick in ipairs(p.pickups) do if i>1 then out:write(',') end;out:write(string.format('{"x":%.15g,"y":%.15g,"v":%d}',pick.x,pick.y,pick.v)) end
-out:write(']}');out:close()
-print('PASS Lua arithmetic, flip, overload, endpoint, client syntax and trace.')
+assert(g.campaignComplete and R.nextLevel(g)==g)
+local out=assert(io.open('tests/parity-actual.json','w'));out:write('['..table.concat(trace,',')..']');out:close()
+print('PASS Lua tap precision, permanent collection, safe flips, calm levels, five-level victory and client syntax.')

@@ -1,73 +1,95 @@
-# ZERO RIOT — v1
+# ZERO RIOT — v2: Clear the board
 
-A solo mathematical arcade for browser and Roblox. Collect positive and negative
-charges, flip the signs of the pickups, and return your reactor to exactly zero
-to unleash a nova. Runs last 90 seconds or end when all three shields are lost.
+Collect **every number on the board** to finish the level. Complete all five
+levels to win. Numbers disappear permanently when collected. There is no timer,
+no charge limit and no arithmetic penalty. Returning the running total to zero
+is an optional bonus, never a requirement to complete the board.
 
-## Play
+Play: https://tacc-code-tacclab.github.io/videogames/zero-riot/?release=2
 
-Browser: https://tacc-code-tacclab.github.io/videogames/zero-riot/
+## What changed from v1
 
-- Move: WASD, arrows, drag on the arena, or the touch joystick.
-- Flip the signs of **all pickups**, including ones waiting to reappear: Space
-  or the FLIP button. Your own charge does not change. Recharge: 2 seconds.
-- Pause: P, Escape, or the pause button. Switching tabs pauses the browser game.
-- Positive and negative pickups add their signed values to your charge.
-- Return to zero to blast nearby hunters. A longer, heavier chain scores more
-  and produces a larger nova. The blast does not consume pickups.
-- Allowed charge range: −9 through +9 inclusive. Crossing the boundary loses a
-  shield and resets the chain and charge. Hits grant 1.8 seconds of protection
-  against further hits and overload; an unsafe pickup during protection is
-  consumed without changing charge. Initial protection lasts 1 second.
-- Hunters appear after 5 seconds. Charging darts join after 30 seconds, with a
-  visible warning before they move. Arrival rate increases throughout the run.
-- Survive 90 seconds to complete the run and bank 300 points per remaining shield.
-  Three hits end the run immediately. Replay always resets the timer and shields.
+The survival timer and endlessly respawning numbers made the objective hard to
+understand and difficult to finish. V2 replaces that loop with finite levels:
 
-The daily code uses UTC. Challenge links share a seed, providing the same initial
-arena and deterministic generation for identical input. Choices affect subsequent
-pickup placement. Scores are local and unverified, not a global leaderboard.
-The browser best persists on that device; Roblox best lasts for the session.
+| Level | Numbers | Total hunters available |
+| --- | ---: | ---: |
+| 1 | 6 | 0 |
+| 2 | 8 | 0 |
+| 3 | 10 | 1 |
+| 4 | 12 | 2 |
+| 5 | 14 | 3 |
 
-## Mathematical rules
+Hunters first appear after 12 seconds in levels 3–5, with a 1.4-second warning.
+Subsequent hunters appear at eight-second intervals, up to the level quota.
+Their speed is 40, 48 or 56 arena units per second versus the player's 190.
+A blasted hunter or one that hits the player is removed permanently. Three hits
+lose the current level. Retry preserves completed levels and their scores.
+Every new level refills all three shields and starts the bonus total at zero.
+There is no required final charge, so flipping signs or taking a hit cannot
+leave an otherwise cleared board mathematically impossible to complete.
 
-Collect value `v`: `charge := charge + v`, only if `abs(charge + v) <= 9`.
-Flip: `v := -v` for each pickup. The reactor charge remains unchanged.
+## Controls
 
-For each chain let `n` be its number of pickups, `M = sum(abs(v))` its total mass,
-and `P` its greatest absolute running charge. On returning to zero:
+- **Tap or click a number:** the ring travels to its centre and stops. A tap
+  within 52 logical units selects that number; you do not need to hold it.
+- Tap empty space to move there. Dragging updates the destination while held.
+- **WASD / arrows / joystick:** manual movement, immediate stop on release.
+  Manual input cancels the previous tap destination. Small stick noise is filtered
+  with a 10% radial dead zone; the remaining range maps linearly to speed.
+- **Space / FLIP:** reverse the signs of the remaining pickups for an optional
+  bonus combination. The player's total stays unchanged. One-second recharge.
+- **P / Escape / pause button:** pause. Window focus loss cancels movement and
+  pauses the browser game. Resuming requires a new movement command.
+
+Roblox additionally supports a gamepad stick and X to flip. Keyboard diagonals
+are normalised. Both platforms use the same 720 × 720 arena and fixed 1/60-second
+simulation steps. Target movement clamps travel to the exact remaining distance,
+preventing overshoot. A selected number is collected at its centre; unselected
+numbers crossed along the route use a tighter 26-unit collection radius. Pickups
+are at least 100 units apart. Web screen shake has been removed.
+
+## Bonuses and fair restarts
+
+Each pickup is worth 25 points. When the running sum returns to zero, with `n`
+collected numbers and total absolute value `M` in the current chain:
 
 ```
-nova radius = min(285, 120 + 5*M)
-points = 100 + 12*M + 10*n*n + 15*P + 100*(hunters caught in the blast)
+blast radius = min(310, 180 + 5*M)
+bonus = 100 + 8*M + 5*n*n + 100*(hunters caught in the blast)
+level completion bonus = 200 * level
 ```
 
-The radius is expressed in the shared 720 × 720 logical arena. Values normally
-range from ±1 to ±7; a far-away pickup is adjusted when necessary to preserve an
-exact cancellation option, including ±8 and ±9. Collisions use fixed 1/60 s steps.
-Keyboard diagonal movement is normalised. Rendering never drives random game state.
+Flip only changes remaining pickups. It is optional: collecting all numbers
+wins even when their final sum is not zero. Hits reset the current bonus chain
+and grant 2.5 seconds of protection; collected numbers stay collected.
+Restarting the current level restores its starting score, so replaying it cannot
+bank the same partial points repeatedly. Finishing level 5 shows final victory;
+playing again starts from level 1 with a fresh score.
 
-## Roblox
+## Daily levels and sharing
 
-The Roblox release is a self-contained 2D `ScreenGui` arcade. Each player has an
-independent solo run. There is no shared arena, networking, global leaderboard,
-monetisation, external image, sound asset, DataStore or HTTP requirement.
+The UTC date is the default seed. The first level is a fixed easy introduction;
+levels 2–5 use seeded paired values and shuffled, well-spaced positions. Share
+links transfer the level seed. Scores remain local and unverified. Browser best
+scores persist on that device under a separate v2 key; Roblox best scores are
+session-only. There is no shared multiplayer arena or global leaderboard.
 
-Build with Python 3:
+## Roblox build
+
+Python 3, standard library only:
 
 ```sh
-python3 roblox/build_place.py --output Zero_Riot_Roblox_V1.rbxlx
+python3 roblox/build_place.py --output Zero_Riot_Roblox_V2.rbxlx
 ```
 
-Open the `.rbxlx` in Roblox Studio and press **Play**, then **PLAY ARENA**.
-Roblox supports keyboard, touch joystick, and gamepad stick plus X to flip.
-The editable arena code can be copied between browser and Roblox. Open a new
-experience when publishing. Do not replace an existing Piranha place.
+Open the result in Roblox Studio, press **Play**, then **PLAY LEVEL 1**. The
+self-contained ScreenGui needs no external image, sound asset, RemoteEvent,
+DataStore or HTTP request. Publish it to the intended ZERO RIOT experience.
 
-## Development and verification
+## Verification
 
-No build, package install or external web dependency is needed. Serve this folder
-with any static server. Source files are plain JavaScript, CSS, HTML, Lua and Python.
+From this directory:
 
 ```sh
 node tests/core.test.cjs
@@ -76,21 +98,12 @@ luatex --luaonly tests/core_test.lua
 node tests/compare-parity.cjs
 ```
 
-The Lua test runner uses LuaTeX only as an available Lua interpreter. A normal Lua
-interpreter can also run the file. The tests cover charge conservation, flip,
-overload, blast radius, endpoint, movement, replay and seeded JS/Lua equivalence.
-The XML builder verifies script contents after XML round-trip. Roblox UI execution
-still requires a real Roblox Studio playtest; XML and Lua checks cannot replace it.
-
-## Design intent
-
-The proposed hook is the combination of signed arithmetic, a global polarity
-switch that leaves the reactor unchanged, risk-sensitive zero-triggered explosions,
-and short score challenges. Positive/negative-number games and polarity mechanics
-already exist. This is an original implementation, not proof of an unprecedented
-genre or a guarantee of commercial success.
-
-To evaluate the design, measure whether new testers understand the first nova,
-start a second run voluntarily and send a challenge to a friend. No analytics are
-embedded in this release. Multiplayer and server-verified scores would require a
-separate design and implementation before competitive prizes or rankings.
+The tests exercise permanent number removal, safe large sums, completion after
+flips, the first two levels without a timer or enemies, tap precision and stopping,
+keyboard/joystick control, all five level transitions, final victory, and score
+restoration on retry. Five simple automated tap routes complete the campaign.
+A full five-level JavaScript/Lua trace agrees within 1e-6 arena units. The web
+smoke uses a minimal DOM/canvas mock; it is not a visual browser playtest.
+The builder validates XML and embedded script round-trips. Real Roblox input
+and screen layout still need a Roblox Studio playtest, which is not available
+in the build environment.

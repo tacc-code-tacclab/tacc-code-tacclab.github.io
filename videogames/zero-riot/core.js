@@ -1,54 +1,53 @@
-/* ZERO RIOT simulation. Fixed 1/60 s steps; portable rules mirrored in Roblox. */
+/* ZERO RIOT v2: finite levels, optional zero bonuses, exact tap-to-move. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ZeroRiot=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const W=720,DURATION=90,LIMIT=9;
+  const W=720,LEVELS=5,SPEED=190,COUNTS=[6,8,10,12,14];
   function seedNumber(value){let n=0;for(const c of String(value))n=(n*31+c.charCodeAt(0))%2147483646;return n+1;}
   function rng(seed){let s=seed;return()=>{s=s*16807%2147483647;return(s-1)/2147483646;};}
-  function create(seed){
-    const g={seed:String(seed),random:rng(seedNumber(seed)),time:0,charge:0,lives:3,score:0,novas:0,bestChain:0,kills:0,chain:0,mass:0,peak:0,flipCooldown:0,invulnerable:1,collectCooldown:0,spawnAt:5,nextId:0,ended:false,won:false,x:360,y:390,pickups:[],enemies:[],events:[]};
-    // A readable first decision: +3, +4, -7; other charges form signed pairs.
-    for(const [x,y,v] of [[450,390,3],[520,460,4],[400,520,-7]])g.pickups.push({id:++g.nextId,x,y,v,wait:0});
-    for(let i=0;i<8;i++){const v=1+Math.floor(g.random()*7);addPickup(g,v);addPickup(g,-v);}return g;
+  function create(seed,level=1,carry={}){
+    level=Math.max(1,Math.min(LEVELS,level));
+    const bank={score:carry.score||0,novas:carry.novas||0,bestChain:carry.bestChain||0,kills:carry.kills||0,totalTime:carry.totalTime||0};
+    const g={seed:String(seed),level,bank,random:rng(seedNumber(String(seed)+'/L'+level)),time:0,totalTime:bank.totalTime,charge:0,lives:3,score:bank.score,novas:bank.novas,bestChain:bank.bestChain,kills:bank.kills,chain:0,mass:0,flipCooldown:0,invulnerable:1,spawnAt:12,spawned:0,enemyQuota:Math.max(0,level-2),nextId:0,ended:false,won:false,campaignComplete:false,x:360,y:660,target:null,total:COUNTS[level-1],collected:0,pickups:[],enemies:[],events:[]};
+    let slots=[];
+    if(level===1)slots=[[260,500],[460,500],[200,340],[520,340],[260,180],[460,180]];
+    else{for(let y=120;y<=570;y+=150)for(let x=120;x<=600;x+=160)slots.push([x,y]);for(let i=slots.length-1;i>0;i--){const j=Math.floor(g.random()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]];}}
+    for(let i=0;i<g.total/2;i++){const v=level===1?i+1:1+Math.floor(g.random()*Math.min(5,level+1));for(let j=0;j<2;j++){const s=slots[i*2+j];g.pickups.push({id:++g.nextId,x:s[0],y:s[1],v:j===0?v:-v,wait:0});}}
+    return g;
   }
-  function position(g){let x,y;for(let tries=0;tries<80;tries++){x=45+g.random()*630;y=65+g.random()*590;if(Math.hypot(x-g.x,y-g.y)<90)continue;if(g.pickups.some(p=>Math.hypot(p.x-x,p.y-y)<56))continue;return{x,y};}return{x,y};}
-  function addPickup(g,v){g.pickups.push({id:++g.nextId,...position(g),v,wait:.3});}
-  function hurt(g,reason){if(g.invulnerable>0||g.ended)return false;g.lives--;g.charge=0;g.chain=0;g.mass=0;g.peak=0;g.invulnerable=1.8;g.collectCooldown=.25;g.events.push({type:'hurt',x:g.x,y:g.y,reason});if(g.lives<=0){g.ended=true;g.events.push({type:'end'});}return true;}
+  function nextLevel(g){return g.won&&!g.campaignComplete?create(g.seed,g.level+1,g):g;}
+  function retryLevel(g){return create(g.seed,g.level,g.bank);}
+  function setTarget(g,x,y){if(g.ended)return;let near=null,distance=52;for(const p of g.pickups){const d=Math.hypot(p.x-x,p.y-y);if(d<distance){near=p;distance=d;}}g.target=near?{x:near.x,y:near.y,id:near.id}:{x:Math.max(26,Math.min(694,x)),y:Math.max(50,Math.min(670,y)),id:null};}
+  function cancelTarget(g){g.target=null;}
+  function stickVector(x,y){const d=Math.hypot(x,y);if(d<=.1)return{x:0,y:0};const scale=Math.min(1,(d-.1)/.9)/d;return{x:x*scale,y:y*scale};}
+  function hurt(g,reason){if(g.invulnerable>0||g.ended)return false;g.lives--;g.charge=0;g.chain=0;g.mass=0;g.invulnerable=2.5;g.events.push({type:'hurt',x:g.x,y:g.y,reason});if(g.lives<=0){g.ended=true;g.target=null;g.events.push({type:'end'});}return true;}
   function collect(g,p){
-    if(g.ended)return;
-    const result=g.charge+p.v;
+    if(g.ended)return false;const index=g.pickups.indexOf(p);if(index<0)return false;
+    g.pickups.splice(index,1);g.collected++;g.charge+=p.v;g.chain++;g.mass+=Math.abs(p.v);g.score+=25;
     g.events.push({type:'collect',x:p.x,y:p.y,value:p.v});
-    if(Math.abs(result)>LIMIT){if(g.invulnerable>0){g.events.push({type:'blocked',x:g.x,y:g.y});}else hurt(g,'OVERLOAD');return;}
-    g.charge=result;g.chain++;g.mass+=Math.abs(p.v);g.peak=Math.max(g.peak,Math.abs(result));
-    if(result===0){
-      const radius=Math.min(285,120+g.mass*5);let destroyed=0;
-      g.enemies=g.enemies.filter(e=>{if(Math.hypot(e.x-g.x,e.y-g.y)<=radius){destroyed++;g.events.push({type:'destroy',x:e.x,y:e.y});return false;}return true;});
-      const points=100+g.mass*12+g.chain*g.chain*10+g.peak*15+destroyed*100;
-      g.score+=points;g.novas++;g.kills+=destroyed;g.bestChain=Math.max(g.bestChain,g.chain);
-      g.events.push({type:'nova',x:g.x,y:g.y,radius,points,chain:g.chain});g.chain=0;g.mass=0;g.peak=0;
+    if(g.target&&g.target.id===p.id)g.target=null;
+    if(g.charge===0){const radius=Math.min(310,180+g.mass*5);let destroyed=0;g.enemies=g.enemies.filter(e=>{if(Math.hypot(e.x-g.x,e.y-g.y)<=radius){destroyed++;g.events.push({type:'destroy',x:e.x,y:e.y});return false;}return true;});
+      const points=100+g.mass*8+g.chain*g.chain*5+destroyed*100;g.score+=points;g.novas++;g.kills+=destroyed;g.bestChain=Math.max(g.bestChain,g.chain);g.events.push({type:'nova',x:g.x,y:g.y,radius,points,chain:g.chain});g.chain=0;g.mass=0;
     }
+    // Clearing the board ALWAYS wins, regardless of charge, flips or prior hits.
+    if(g.pickups.length===0){g.ended=true;g.won=true;g.campaignComplete=g.level===LEVELS;g.score+=200*g.level;g.target=null;g.events.push({type:'end'});}return true;
   }
-  function flip(g){if(g.ended||g.flipCooldown>0)return false;for(const p of g.pickups)p.v=-p.v;g.flipCooldown=2;g.events.push({type:'flip',x:g.x,y:g.y});return true;}
+  function flip(g){if(g.ended||g.flipCooldown>0)return false;for(const p of g.pickups)p.v=-p.v;g.flipCooldown=1;g.events.push({type:'flip',x:g.x,y:g.y});return true;}
   function spawn(g){
-    const side=Math.floor(g.random()*4),t=60+g.random()*600;
-    const x=side===0?24:side===1?696:t,y=side===2?40:side===3?680:t;
-    const dart=g.time>=30&&g.random()<.4,angle=Math.atan2(g.y-y,g.x-x);
-    g.enemies.push({id:++g.nextId,x,y,type:dart?'dart':'hunter',warning:.9,age:0,dx:Math.cos(angle),dy:Math.sin(angle)});
+    const corners=[[34,65],[686,65],[34,650],[686,650]];let index=Math.floor(g.random()*4);let chosen=corners[index];
+    for(let i=0;i<4&&Math.hypot(chosen[0]-g.x,chosen[1]-g.y)<200;i++){index=(index+1)%4;chosen=corners[index];}
+    g.enemies.push({id:++g.nextId,x:chosen[0],y:chosen[1],type:'hunter',warning:1.4,age:0});g.spawned++;
   }
   function step(g,dt,input={}){
-    if(g.ended)return;g.time=Math.min(DURATION,g.time+dt);g.flipCooldown=Math.max(0,g.flipCooldown-dt);g.invulnerable=Math.max(0,g.invulnerable-dt);g.collectCooldown=Math.max(0,g.collectCooldown-dt);
-    let dx=input.x||0,dy=input.y||0,len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len;}
-    g.x=Math.max(24,Math.min(696,g.x+dx*235*dt));g.y=Math.max(45,Math.min(675,g.y+dy*235*dt));
-    for(const p of g.pickups){p.wait=Math.max(0,p.wait-dt);if(p.wait===0&&g.collectCooldown===0&&Math.hypot(p.x-g.x,p.y-g.y)<33){collect(g,p);Object.assign(p,position(g),{v:(g.random()<.5?-1:1)*(1+Math.floor(g.random()*7)),wait:.65});g.collectCooldown=.11;if(g.ended)return;}}
-    // Ensure a route out always exists, including at charge ±8/±9.
-    if(g.charge!==0&&!g.pickups.some(p=>p.v===-g.charge&&p.wait===0)){const p=g.pickups.reduce((a,b)=>Math.hypot(a.x-g.x,a.y-g.y)>Math.hypot(b.x-g.x,b.y-g.y)?a:b);p.v=-g.charge;}
-    if(g.time>=g.spawnAt){if(g.enemies.length<22)spawn(g);g.spawnAt=g.time+Math.max(.9,2.7-g.time*.021);}
-    for(let i=g.enemies.length-1;i>=0;i--){const e=g.enemies[i];e.age+=dt;if(e.warning>0){e.warning-=dt;continue;}let ex=e.dx,ey=e.dy;
-      if(e.type==='hunter'){const d=Math.hypot(g.x-e.x,g.y-e.y)||1;ex=(g.x-e.x)/d;ey=(g.y-e.y)/d;}
-      const speed=e.type==='dart'?235:62+g.time*.55;e.x+=ex*speed*dt;e.y+=ey*speed*dt;
-      if(e.x< -50||e.x>770||e.y< -50||e.y>770){g.enemies.splice(i,1);continue;}
-      if(Math.hypot(e.x-g.x,e.y-g.y)<30&&hurt(g,'HUNTER HIT')){g.enemies.splice(i,1);if(g.ended)return;}
+    if(g.ended)return;dt=Math.max(0,Math.min(.1,dt));g.time+=dt;g.totalTime+=dt;g.flipCooldown=Math.max(0,g.flipCooldown-dt);g.invulnerable=Math.max(0,g.invulnerable-dt);
+    let dx=input.x||0,dy=input.y||0,len=Math.hypot(dx,dy);const manual=len>0;if(manual)g.target=null;if(len>1){dx/=len;dy/=len;}
+    const targetId=g.target?g.target.id:null;
+    if(g.target){const tx=g.target.x-g.x,ty=g.target.y-g.y,d=Math.hypot(tx,ty),travel=SPEED*dt;if(d<=travel){g.x=g.target.x;g.y=g.target.y;g.target=null;}else{g.x+=tx/d*travel;g.y+=ty/d*travel;}}
+    else{g.x=Math.max(26,Math.min(694,g.x+dx*SPEED*dt));g.y=Math.max(50,Math.min(670,g.y+dy*SPEED*dt));}
+    for(const p of [...g.pickups]){const radius=p.id===targetId?.001:26;if(Math.hypot(p.x-g.x,p.y-g.y)<=radius){collect(g,p);if(g.ended)return;}}
+    if(g.spawned<g.enemyQuota&&g.time>=g.spawnAt){spawn(g);g.spawnAt=g.time+8;}
+    for(let i=g.enemies.length-1;i>=0;i--){const e=g.enemies[i];e.age+=dt;if(e.warning>0){e.warning=Math.max(0,e.warning-dt);continue;}const d=Math.hypot(g.x-e.x,g.y-e.y)||1,speed=40+(g.level-3)*8;e.x+=(g.x-e.x)/d*speed*dt;e.y+=(g.y-e.y)/d*speed*dt;
+      if(Math.hypot(e.x-g.x,e.y-g.y)<25&&hurt(g,'HUNTER HIT')){g.enemies.splice(i,1);if(g.ended)return;}
     }
-    if(g.time>=DURATION){g.ended=true;g.won=true;g.score+=g.lives*300;g.events.push({type:'end'});}
   }
-  return{W,DURATION,LIMIT,seedNumber,rng,create,step,flip,collect,hurt};
+  return{W,LEVELS,SPEED,COUNTS,seedNumber,rng,create,nextLevel,retryLevel,setTarget,cancelTarget,stickVector,step,flip,collect,hurt};
 });

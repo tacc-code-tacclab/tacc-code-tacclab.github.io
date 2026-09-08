@@ -67,5 +67,5 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=ROOT / 'Zero_Riot_Roblox_V1.rbxlx')
+    parser.add_argument('--output', type=Path, default=ROOT / 'Zero_Riot_Roblox_V2.rbxlx')
     build(parser.parse_args().output.resolve())

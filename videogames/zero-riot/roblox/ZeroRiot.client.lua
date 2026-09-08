@@ -1,4 +1,4 @@
--- ZERO RIOT v1: self-contained 2D arcade. No RemoteEvents, external assets or data APIs.
+-- ZERO RIOT v2: self-contained 2D arcade. No RemoteEvents, external assets or data APIs.
 local Players=game:GetService("Players")
 local UIS=game:GetService("UserInputService")
 local RunService=game:GetService("RunService")
@@ -31,14 +31,14 @@ local root=frame(gui,0,0,1080,910,C.bg,2);root.AnchorPoint=Vector2.new(.5,.5);ro
 local scale=make("UIScale",root,{Scale=1})
 local title=label(root,"ZERO",20,13,92,42,32,C.ink,Enum.TextXAlignment.Left)
 label(root,"RIOT",117,13,92,42,32,C.yellow,Enum.TextXAlignment.Left)
-local subtitle=label(root,"MAKE NOTHING. DESTROY EVERYTHING.",234,13,580,42,14,C.muted,Enum.TextXAlignment.Left)
+local subtitle=label(root,"COLLECT EVERY NUMBER. CLEAR ALL FIVE LEVELS.",234,13,580,42,14,C.muted,Enum.TextXAlignment.Left)
 local pauseButton=button(root,"PAUSE",940,17,115,36,C.panel,C.muted,14)
 local scoreCaption=label(root,"SCORE",25,75,160,22,13,C.muted,Enum.TextXAlignment.Left)
 local scoreLabel=label(root,"0",25,96,165,34,30,C.ink,Enum.TextXAlignment.Left)
 label(root,"YOUR CHARGE",228,75,180,22,13,C.muted,Enum.TextXAlignment.Left)
 local chargeLabel=label(root,"0",225,97,150,34,37,C.yellow,Enum.TextXAlignment.Left)
-label(root,"TIME",440,75,100,22,13,C.muted,Enum.TextXAlignment.Left)
-local timeLabel=label(root,"90s",440,96,110,34,30,C.ink,Enum.TextXAlignment.Left)
+label(root,"NUMBERS LEFT",440,75,100,22,13,C.muted,Enum.TextXAlignment.Left)
+local timeLabel=label(root,"6",440,96,110,34,30,C.ink,Enum.TextXAlignment.Left)
 label(root,"SHIELDS",590,75,120,22,13,C.muted,Enum.TextXAlignment.Left)
 local shieldsLabel=label(root,"●●●",590,96,130,34,26,C.yellow,Enum.TextXAlignment.Left)
 local board=frame(root,20,145,720,720,C.panel);board.ClipsDescendants=true;round(board,12);stroke(board,C.line,2)
@@ -47,23 +47,25 @@ for i=0,720,40 do local a=frame(board,i,0,1,720,C.line);a.BackgroundTransparency
 for _,diameter in ipairs({340,560}) do local ring=frame(board,360-diameter/2,360-diameter/2,diameter,diameter,C.panel);ring.BackgroundTransparency=1;round(ring,1000);local s=stroke(ring,C.line,1);s.Transparency=.35 end
 local items=frame(board,0,0,720,720,C.panel,3);items.BackgroundTransparency=1
 local effects=frame(board,0,0,720,720,C.panel,5);effects.BackgroundTransparency=1
-local phaseLabel=label(board,"01 / CHARGE UP",20,10,320,27,14,C.muted,Enum.TextXAlignment.Left,6)
-local chainLabel=label(board,"BUILD A CHAIN",20,681,440,26,14,C.muted,Enum.TextXAlignment.Left,6)
-local dangerLabel=label(board,"LIMIT ±9",540,681,160,26,14,C.muted,Enum.TextXAlignment.Right,6)
-local hero=frame(items,360,390,68,68,C.panel,5);hero.BackgroundTransparency=1;hero.AnchorPoint=Vector2.new(.5,.5)
+local phaseLabel=label(board,"LEVEL 1 / 5 · NO ENEMIES",20,10,320,27,14,C.muted,Enum.TextXAlignment.Left,6)
+local chainLabel=label(board,"0 / 6 COLLECTED",20,681,440,26,14,C.muted,Enum.TextXAlignment.Left,6)
+local dangerLabel=label(board,"NO TIME LIMIT",540,681,160,26,14,C.muted,Enum.TextXAlignment.Right,6)
+local progressTrack=frame(board,20,43,680,4,C.line,6)
+local progressFill=frame(progressTrack,0,0,0,4,C.yellow,7)
+local hero=frame(items,360,660,68,68,C.panel,5);hero.BackgroundTransparency=1;hero.AnchorPoint=Vector2.new(.5,.5)
 local aura=frame(hero,0,0,68,68,C.panel);aura.BackgroundTransparency=1;round(aura,100);local auraStroke=stroke(aura,C.yellow,1);auraStroke.Transparency=.35
 local core=frame(hero,9,9,50,50,C.bg);round(core,100);local coreStroke=stroke(core,C.yellow,4)
 local heroText=label(hero,"0",2,4,64,60,30,C.ink)
 local side=frame(root,773,148,275,710,C.bg);side.BackgroundTransparency=1
-label(side,"YOUR NEXT MOVE",0,0,275,25,13,C.muted,Enum.TextXAlignment.Left)
-local hint=label(side,"Collect a charge\nto get started.",0,38,270,95,27,C.ink,Enum.TextXAlignment.Left)
-local hintSub=label(side,"Outlined pickups would take you to zero.",0,135,270,46,15,C.muted,Enum.TextXAlignment.Left)
-local flipButton=button(side,"±\nFLIP THE FIELD",0,206,265,136,C.yellow,C.bg,27)
-local flipSmall=label(flipButton,"SPACE / TAP · 2s recharge",5,104,255,25,12,C.bg)
+label(side,"OPTIONAL BONUS",0,0,275,25,13,C.muted,Enum.TextXAlignment.Left)
+local hint=label(side,"Tap a number\nto collect it.",0,38,270,95,27,C.ink,Enum.TextXAlignment.Left)
+local hintSub=label(side,"Outlined numbers make zero for a bonus. Every number is safe.",0,135,270,46,15,C.muted,Enum.TextXAlignment.Left)
+local flipButton=button(side,"±\nFLIP SIGNS",0,206,265,136,C.yellow,C.bg,27)
+local flipSmall=label(flipButton,"OPTIONAL · SPACE / TAP · 1s",5,104,255,25,12,C.bg)
 local recharge=frame(flipButton,0,131,265,5,rgb(151,191,56),6)
-local rules=label(side,"+ / −   Add the number you touch.\n\n0   Return to zero. Blast hunters.\n\n±   Flip pickups. Your charge stays.\n\n◆   Avoid coral-red hunters.",0,365,270,204,17,C.muted,Enum.TextXAlignment.Left)
-local risk=label(side,"RISK BUILDS POWER\nBigger chains make bigger novas. Crossing ±9 costs a shield.",0,596,270,85,16,C.yellow,Enum.TextXAlignment.Left)
-local keysHelp=label(root,"WASD / ARROWS · MOVE     SPACE / X · FLIP     P / ESC · PAUSE",20,874,1020,26,13,C.muted,Enum.TextXAlignment.Left)
+local rules=label(side,"✓   Collect every number to finish.\n\n0   Make zero for a bonus blast.\n\n±   Flip signs if it helps. Optional.\n\n◆   Slow hunters join at level 3.",0,365,270,204,17,C.muted,Enum.TextXAlignment.Left)
+local risk=label(side,"PLAY AT YOUR OWN PACE\nNo timer. No charge limit. Shields refill at each new level.",0,596,270,85,16,C.yellow,Enum.TextXAlignment.Left)
+local keysHelp=label(root,"TAP / CLICK A NUMBER · MOVE & STOP     WASD / ARROWS · MOVE     SPACE / X · FLIP",20,874,1020,26,13,C.muted,Enum.TextXAlignment.Left)
 local joystick=button(root,"",40,895,140,140,C.panel,C.ink);round(joystick,100);stroke(joystick,C.line,2)
 local stickCircle=frame(joystick,35,35,70,70,C.panel);stickCircle.BackgroundTransparency=1;round(stickCircle,100);stroke(stickCircle,C.line,2)
 local knob=frame(joystick,50,50,40,40,C.cyan,6);round(knob,100)
@@ -71,25 +73,25 @@ label(joystick,"MOVE",0,111,140,20,12,C.muted)
 local mobileHint=label(root,"",206,1040,500,33,18,C.muted,Enum.TextXAlignment.Left)
 local modal=frame(board,0,0,720,720,C.bg,20);modal.BackgroundTransparency=.04
 local startPane=frame(modal,40,24,640,672,C.bg);startPane.BackgroundTransparency=1
-label(startPane,"A LITTLE MATH. A LOT OF MAYHEM.",0,15,640,30,14,C.cyan)
-label(startPane,"MAKE",0,65,640,90,80,C.ink)
-label(startPane,"NOTHING.",0,145,640,90,80,C.yellow)
-label(startPane,"Hit zero. Unleash a nova.",0,244,640,38,27,C.ink)
-label(startPane,"+3    +4",70,296,240,55,35,C.cyan)
-label(startPane,"−7",312,296,90,55,35,C.pink)
+label(startPane,"FIVE LEVELS. TAKE YOUR TIME.",0,15,640,30,14,C.cyan)
+label(startPane,"CLEAR",0,65,640,90,80,C.ink)
+label(startPane,"THE BOARD.",0,145,640,90,80,C.yellow)
+label(startPane,"Collect every number. Level complete!",0,244,640,38,27,C.ink)
+label(startPane,"+2",70,296,240,55,35,C.cyan)
+label(startPane,"−2",312,296,90,55,35,C.pink)
 label(startPane,"= 0",418,296,145,55,35,C.yellow)
-label(startPane,"Collect signed numbers. FLIP reverses every pickup’s sign, but keeps your charge. Return to zero to blast the hunters.",32,364,576,75,19,C.muted)
-label(startPane,"Stay between −9 and +9. Overload or touch a hunter: lose a shield. Survive 90 seconds; three hits end the run.",32,443,576,64,17,C.muted)
-local startButton=button(startPane,"PLAY ARENA  →",42,523,556,61,C.yellow,C.bg,23)
+label(startPane,"Tap or click a number. Your ring goes there and stops. Collect them all to finish the level. Complete five levels to win.",32,364,576,75,19,C.muted)
+label(startPane,"No timer. First two levels: no enemies. Making zero gives a bonus. Every number is safe to collect.",32,443,576,64,17,C.muted)
+local startButton=button(startPane,"PLAY LEVEL 1  →",42,523,556,61,C.yellow,C.bg,23)
 label(startPane,"ARENA CODE",42,601,152,36,13,C.muted,Enum.TextXAlignment.Left)
 local seedBox=make("TextBox",startPane,{Position=UDim2.fromOffset(195,599),Size=UDim2.fromOffset(260,38),Text=os.date("!%Y-%m-%d"),PlaceholderText="YYYY-MM-DD",ClearTextOnFocus=false,TextSize=19,Font=Enum.Font.Code,TextColor3=C.ink,BackgroundColor3=C.panel,BorderSizePixel=0,ZIndex=5});round(seedBox,5)
 local randomButton=button(startPane,"RANDOM",467,599,130,38,C.panel,C.muted,14)
-label(startPane,"Same code = same starting arena. Share it with a friend.",0,643,640,23,12,C.muted)
+label(startPane,"Same code = same five levels. Share it with a friend.",0,643,640,23,12,C.muted)
 local pausePane=frame(modal,40,170,640,410,C.bg);pausePane.BackgroundTransparency=1;pausePane.Visible=false
 label(pausePane,"TAKE A BREATH",0,0,640,35,18,C.cyan)
 label(pausePane,"PAUSED.",0,58,640,100,78,C.yellow)
 local resumeButton=button(pausePane,"KEEP GOING →",50,210,540,65,C.yellow,C.bg,24)
-local restartButton=button(pausePane,"RESTART THIS ARENA",50,290,540,52,C.panel,C.muted,19)
+local restartButton=button(pausePane,"RESTART THIS LEVEL",50,290,540,52,C.panel,C.muted,19)
 local endPane=frame(modal,40,66,640,610,C.bg);endPane.BackgroundTransparency=1;endPane.Visible=false
 local resultStatus=label(endPane,"RUN COMPLETE",0,0,640,40,18,C.cyan)
 local resultScore=label(endPane,"0",0,56,640,112,85,C.yellow)
@@ -101,10 +103,10 @@ local resultCode=make("TextBox",endPane,{Position=UDim2.fromOffset(40,518),Size=
 label(endPane,"Copy this challenge text and send it to a friend.",0,580,640,25,13,C.muted)
 
 local mode="menu";local g=R.create(seedBox.Text);local clock=0;local accumulator=0;local best=0;local hudClock=0
-local keyState={};local stickX,stickY=0,0;local stickTouch=nil;local padX,padY=0,0
+local keyState={};local stickX,stickY=0,0;local stickTouch=nil;local boardTouch=nil;local padX,padY=0,0
 local pickupViews={};local enemyViews={};local particles={};local rings={};local floats={}
 local function signed(n) if n>0 then return "+"..n elseif n<0 then return "−"..math.abs(n) else return "0" end end
-local function clearInput() keyState={};stickX=0;stickY=0;padX=0;padY=0;stickTouch=nil;knob.Position=UDim2.fromOffset(50,50) end
+local function clearInput() R.cancelTarget(g);boardTouch=nil;keyState={};stickX=0;stickY=0;padX=0;padY=0;stickTouch=nil;knob.Position=UDim2.fromOffset(50,50) end
 local function resize()
  local size=gui.AbsoluteSize
  local portrait=size.X/size.Y<1.15
@@ -132,10 +134,13 @@ local function wipeEffects()
  for _,list in ipairs({particles,rings,floats}) do for _,e in ipairs(list) do e.view:Destroy() end end
  particles={};rings={};floats={}
 end
+local function playGame(state)
+ g=state;mode="play";accumulator=0;clearInput();wipeEffects();modal.Visible=false
+end
 local function start(seed)
  seed=tostring(seed):sub(1,40):gsub("[^%w%-]","")
  if seed=="" then seed=os.date("!%Y-%m-%d") end
- seedBox.Text=seed;g=R.create(seed);mode="play";accumulator=0;clearInput();wipeEffects();modal.Visible=false
+ seedBox.Text=seed;playGame(R.create(seed))
 end
 local function togglePause()
  if mode=="play" then mode="paused";clearInput();modal.Visible=true;startPane.Visible=false;endPane.Visible=false;pausePane.Visible=true
@@ -160,12 +165,13 @@ local function ring(x,y,radius,color)
 end
 local function finish()
  mode="end";clearInput();modal.Visible=true;startPane.Visible=false;pausePane.Visible=false;endPane.Visible=true
- resultStatus.Text=g.won and "90 SECONDS · REACTOR SURVIVED" or "THREE HITS · REACTOR DOWN"
+ resultStatus.Text=g.won and (g.campaignComplete and "ALL 5 LEVELS CLEARED · YOU WIN!" or ("LEVEL "..g.level.." CLEARED!")) or "TRY THIS LEVEL AGAIN"
  resultScore.Text=tostring(g.score)
- resultRank.Text=g.score>best and "NEW SESSION BEST" or (g.novas>=12 and "ZERO HERO" or (g.novas>=6 and "CHAIN REACTION" or "ONE MORE RUN?"))
+ resultRank.Text=g.won and "Every number collected. Well done!" or "Your completed levels are safe."
  best=math.max(best,g.score)
- resultStats.Text=g.novas.." NOVAS     /     "..g.bestChain.." LONGEST CHAIN\n\n"..g.kills.." HUNTERS BLASTED     /     "..math.floor(g.time).."s SURVIVED"
- resultCode.Text="ZERO RIOT | "..g.score.." points | "..g.novas.." novas\nArena: "..g.seed.." — can you beat me?"
+ resultStats.Text=g.collected.." / "..g.total.." NUMBERS COLLECTED     |     "..(g.won and g.level or g.level-1).." / 5 LEVELS\n\n"..g.novas.." ZERO BONUSES     |     NO TIME LIMIT"
+ replayButton.Text=g.won and (g.campaignComplete and "PLAY AGAIN FROM LEVEL 1 →" or "NEXT LEVEL →") or "RETRY THIS LEVEL →"
+ resultCode.Text="ZERO RIOT V2 | "..g.score.." points | "..(g.won and g.level or g.level-1).."/5 levels\nArena: "..g.seed.." — can you beat me?"
 end
 local function processEvents()
  for _,e in ipairs(g.events) do
@@ -183,7 +189,10 @@ local function flip() if mode=="play" and R.flip(g) then processEvents() end end
 startButton.Activated:Connect(function() start(seedBox.Text) end)
 randomButton.Activated:Connect(function() seedBox.Text="R"..math.random(100000,999999) end)
 flipButton.Activated:Connect(flip);pauseButton.Activated:Connect(togglePause);resumeButton.Activated:Connect(togglePause)
-restartButton.Activated:Connect(function() start(g.seed) end);replayButton.Activated:Connect(function() start(g.seed) end)
+restartButton.Activated:Connect(function() playGame(R.retryLevel(g)) end)
+replayButton.Activated:Connect(function()
+ if g.won then playGame(g.campaignComplete and R.create(g.seed) or R.nextLevel(g)) else playGame(R.retryLevel(g)) end
+end)
 homeButton.Activated:Connect(function() mode="menu";clearInput();g=R.create(seedBox.Text);wipeEffects();startPane.Visible=true;endPane.Visible=false;pausePane.Visible=false;modal.Visible=true end)
 resultCode.Focused:Connect(function() resultCode.SelectionStart=1;resultCode.CursorPosition=#resultCode.Text+1 end)
 local movement={W=true,A=true,S=true,D=true,Up=true,Down=true,Left=true,Right=true}
@@ -196,21 +205,32 @@ UIS.InputBegan:Connect(function(input,processed)
 end)
 UIS.InputEnded:Connect(function(input)
  keyState[input.KeyCode.Name]=nil
+ if input==boardTouch then boardTouch=nil end
  if input==stickTouch then stickTouch=nil;stickX=0;stickY=0;knob.Position=UDim2.fromOffset(50,50) end
 end)
 local function moveStick(input)
  local p=joystick.AbsolutePosition;local s=joystick.AbsoluteSize
  local x=(input.Position.X-p.X-s.X/2)/(s.X*.32);local y=(input.Position.Y-p.Y-s.Y/2)/(s.Y*.32)
  local d=math.sqrt(x*x+y*y);if d>1 then x=x/d;y=y/d end
- stickX=x;stickY=y;knob.Position=UDim2.fromOffset(50+x*42,50+y*42)
+ local precise=R.stickVector(x,y);stickX=precise.x;stickY=precise.y;knob.Position=UDim2.fromOffset(50+x*42,50+y*42)
 end
 joystick.InputBegan:Connect(function(input)
- if mode=="play" and (input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1) then stickTouch=input;moveStick(input) end
+ if mode=="play" and (input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1) then R.cancelTarget(g);boardTouch=nil;stickTouch=input;moveStick(input) end
+end)
+local boardInput=button(board,"",0,0,720,720,C.bg,C.ink)
+boardInput.BackgroundTransparency=1;boardInput.AutoButtonColor=false;boardInput.ZIndex=10
+local targetView=frame(effects,0,0,70,70,C.panel,2);targetView.BackgroundTransparency=1;targetView.AnchorPoint=Vector2.new(.5,.5);round(targetView,100);stroke(targetView,C.yellow,2);targetView.Visible=false
+local function moveToPointer(input)
+ local p,size=board.AbsolutePosition,board.AbsoluteSize
+ R.setTarget(g,(input.Position.X-p.X)*720/size.X,(input.Position.Y-p.Y)*720/size.Y)
+end
+boardInput.InputBegan:Connect(function(input)
+ if mode=="play" and (input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1) then boardTouch=input;moveToPointer(input) end
 end)
 UIS.InputChanged:Connect(function(input)
  if input.KeyCode==Enum.KeyCode.Thumbstick1 then
-  local v=input.Position;padX=v.X;padY=-v.Y
-  if math.sqrt(padX*padX+padY*padY)<.1 then padX=0;padY=0 end
+  local v=R.stickVector(input.Position.X,-input.Position.Y);padX=v.x;padY=v.y
+ elseif boardTouch and (input==boardTouch or (boardTouch.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement)) then moveToPointer(input)
  elseif stickTouch and (input==stickTouch or (stickTouch.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement)) then moveStick(input) end
 end)
 UIS.WindowFocusReleased:Connect(function() clearInput();if mode=="play" then togglePause() end end)
@@ -230,16 +250,20 @@ local function pickupView(p)
 end
 local function updateViews(dt)
  hero.Position=UDim2.fromOffset(g.x,g.y);local color=g.charge==0 and C.yellow or (g.charge>0 and C.cyan or C.pink)
- coreStroke.Color=color;auraStroke.Color=color;heroText.Text=signed(g.charge)
- coreStroke.Transparency=g.invulnerable>0 and mode=="play" and (.2+.2*math.sin(clock*20)) or 0
+ coreStroke.Color=color;auraStroke.Color=color;heroText.Text=signed(g.charge);heroText.TextSize=math.abs(g.charge)>=10 and 23 or 30
+ targetView.Visible=g.target~=nil and mode=="play";if g.target then targetView.Position=UDim2.fromOffset(g.target.x,g.target.y) end
+ coreStroke.Transparency=g.invulnerable>0 and mode=="play" and (.2) or 0
+ local pickupLive={}
  for _,p in ipairs(g.pickups) do
+  pickupLive[p.id]=true
   local v=pickupViews[p.id];if not v then v=pickupView(p);pickupViews[p.id]=v end
   v.view.Position=UDim2.fromOffset(p.x,p.y);v.view.Visible=p.wait<=.3
   local pc=p.v>0 and C.cyan or C.pink;local useful=g.charge~=0 and p.v==-g.charge
   v.body.BackgroundColor3=p.v>0 and rgb(19,58,68) or rgb(57,36,69)
   v.outline.Color=useful and C.yellow or pc;v.outline.Thickness=useful and 3 or 1.5;v.text.Text=signed(p.v);v.text.TextColor3=pc
-  v.halo.Visible=useful;v.haloStroke.Transparency=.25+.2*math.sin(clock*5);v.warn.Visible=math.abs(g.charge+p.v)>9
+  v.halo.Visible=useful;v.haloStroke.Transparency=.25+.2*math.sin(clock*5);v.warn.Visible=false
  end
+ for id,v in pairs(pickupViews) do if not pickupLive[id] then v.view:Destroy();pickupViews[id]=nil end end
  local live={}
  for _,e in ipairs(g.enemies) do
   live[e.id]=true;local v=enemyViews[e.id]
@@ -266,14 +290,20 @@ local function updateViews(dt)
  hudClock=hudClock+dt
  if hudClock>=.07 then
   hudClock=0;scoreLabel.Text=tostring(g.score);chargeLabel.Text=signed(g.charge);chargeLabel.TextColor3=color
-  timeLabel.Text=math.ceil(90-g.time).."s";shieldsLabel.Text=string.rep("●",g.lives)..string.rep("○",3-g.lives)
-  phaseLabel.Text=g.time<30 and "01 / CHARGE UP" or (g.time<60 and "02 / CROSS FIRE" or "03 / ZERO HOUR")
-  chainLabel.Text=g.chain>0 and (g.chain.." PICKUPS · POWER "..g.mass) or "BUILD A CHAIN"
-  dangerLabel.Text=math.abs(g.charge)>=7 and "NEAR OVERLOAD" or "LIMIT ±9";dangerLabel.TextColor3=math.abs(g.charge)>=7 and C.red or C.muted
-  local h=g.charge==0 and "Collect a charge\nto get started." or ("Find "..signed(-g.charge).."\nor flip "..signed(g.charge)..".")
-  hint.Text=h;mobileHint.Text=h:gsub("\n"," ")
-  flipButton.Text=g.flipCooldown>0 and ("±\nRECHARGING "..string.format("%.1f",g.flipCooldown).."s") or "±\nFLIP THE FIELD"
-  recharge.Size=UDim2.new(1-g.flipCooldown/2,0,0,5)
+  timeLabel.Text=tostring(#g.pickups);shieldsLabel.Text=string.rep("●",g.lives)..string.rep("○",3-g.lives)
+  phaseLabel.Text="LEVEL "..g.level.." / 5 · "..(g.level<=2 and "NO ENEMIES" or "SLOW HUNTERS")
+  chainLabel.Text=g.collected.." / "..g.total.." COLLECTED"
+  dangerLabel.Text="NO TIME LIMIT";dangerLabel.TextColor3=C.muted
+  progressFill.Size=UDim2.fromOffset(680*g.collected/g.total,4)
+  local h="Tap any number to collect it."
+  if g.charge~=0 then
+   local direct,flipped=false,false
+   for _,p in ipairs(g.pickups) do if p.v==-g.charge then direct=true end;if p.v==g.charge then flipped=true end end
+   if direct then h="Bonus: collect "..signed(-g.charge).." to make zero." elseif flipped then h="Optional: FLIP, then collect "..signed(-g.charge).."." else h="Keep collecting. Every number is safe." end
+  end
+  hint.Text=h;mobileHint.Text="Tap numbers. Collect all "..g.total.." to finish."
+  flipButton.Text=g.flipCooldown>0 and ("±\nRECHARGING "..string.format("%.1f",g.flipCooldown).."s") or "±\nFLIP SIGNS"
+  recharge.Size=UDim2.new(1-g.flipCooldown,0,0,5)
   flipButton.BackgroundColor3=mode=="play" and C.yellow or rgb(138,155,93)
  end
 end
