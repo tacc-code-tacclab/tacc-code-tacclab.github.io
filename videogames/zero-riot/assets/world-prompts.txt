@@ -1,0 +1,21 @@
+Sunset Candy Peaks
+
+Use case: stylized-concept
+Asset type: standalone scenic background illustration for a joyful premium family arithmetic bubble-shooter game, portrait 4:5.
+Primary request: Sunset Candy Peaks. A luminous apricot-pink sky with distant lavender clouds, fantasy candy-like crystal peaks and lush orange and pink foliage on floating islands at the lower corners, little turquoise waterfalls, and golden sunset light.
+Style/medium: original richly saturated polished game illustration, joyful, tactile softly rounded forms, luminous color, beautifully painted details and depth.
+Composition/framing: portrait 4:5. Keep most of the image, especially the center and top, as calm open sky with subtle gradients and distant soft clouds. Detailed scenery is confined mostly to the lower corners and narrow side edges. Keep a spacious readable central area for a large numbered bubble grid, with the lower center open for the game's cannon; do not render the grid or cannon. No dominant object in the central sky. Scenery should frame the playfield gracefully without enclosing it.
+Lighting/mood: warm luminous golden sunset, welcoming, magical.
+Constraints: scenic environment only; no text, numbers, UI, bubbles, cannon, characters, logos, watermark, border, or references to licensed games. Not a screenshot.
+
+---
+
+Moonlit Star Garden
+
+Use case: stylized-concept
+Asset type: standalone scenic background illustration for a joyful premium family arithmetic bubble-shooter game, portrait 4:5.
+Primary request: Moonlit Star Garden. A rich electric indigo-to-cyan twilight sky with small glowing distant stars. Floating islands at the lower corners support bioluminescent cyan and purple plants, crystalline waterfalls, and warm golden luminous flowers.
+Style/medium: original richly saturated polished game illustration, joyful, tactile softly rounded forms, luminous color, beautifully painted details and depth.
+Composition/framing: portrait 4:5. Keep most of the image, especially the center and top, as calm open sky with subtle gradients and tiny distant stars. Detailed scenery is confined mostly to the lower corners and narrow side edges. Keep a spacious readable central area for a large numbered bubble grid, with the lower center open for the game's cannon; do not render the grid or cannon. No dominant object in the central sky. Scenery should frame the playfield gracefully without enclosing it.
+Lighting/mood: serene magical moonlit twilight, luminous cyan and purple vegetation balanced by warm golden flower light, welcoming.
+Constraints: scenic environment only; no text, numbers, UI, bubbles, cannon, characters, logos, watermark, border, or references to licensed games. Not a screenshot.

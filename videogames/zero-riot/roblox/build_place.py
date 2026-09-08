@@ -67,5 +67,5 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=ROOT / 'Bubble_Riot_Roblox_V3.rbxlx')
+    parser.add_argument('--output', type=Path, default=ROOT / 'Bubble_Riot_Lumi_Rescue_Roblox_V4.rbxlx')
     build(parser.parse_args().output.resolve())

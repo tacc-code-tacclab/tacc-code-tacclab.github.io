@@ -1,4 +1,4 @@
--- Bubble Riot v3. Standalone 2D GUI: local simulation, native glossy bubbles, no asset IDs.
+-- Bubble Riot v4. Standalone 2D GUI: local simulation, native glossy bubbles, no asset IDs.
 local Players=game:GetService('Players')
 local UIS=game:GetService('UserInputService')
 local RunService=game:GetService('RunService')
@@ -30,12 +30,12 @@ local root=frame(gui,0,0,1120,1120,C.bg,2);root.BackgroundTransparency=1;root.An
 local scale=make('UIScale',root,{Scale=1})
 local logo=disc(root,46,41,49,C.purple);gradient(logo,rgb(223,209,255),C.purple,rgb(94,67,163));label(logo,'B',0,0,49,49,31,C.white)
 label(root,'BUBBLE RIOT',85,15,300,50,32,C.purple)
-local strap=label(root,'AIM. ADD. POP!',397,20,250,40,15,C.muted)
+local strap=label(root,'LUMI RESCUE',397,20,250,40,15,C.muted)
 local pauseButton=button(root,'Ⅱ PAUSE',928,23,165,41,rgb(222,222,239),15);pauseButton.TextColor3=C.purple
 local hud=frame(root,20,83,720,65,C.paper);round(hud,20);outline(hud,C.white)
 local captions={'GARDEN','MAKE','BUBBLES LEFT','SCORE'};local hudText={}
 for i=1,4 do local x=(i-1)*180;label(hud,captions[i],x,5,180,18,12,C.muted);hudText[i]=label(hud,'0',x,22,180,39,i==2 and 36 or 27,i==2 and C.purple or C.ink) end
-local board=frame(root,20,160,720,900,rgb(177,232,234));board.ClipsDescendants=true;round(board,26);outline(board,C.white,5);gradient(board,rgb(162,233,226),rgb(196,224,244),rgb(211,192,236),90)
+local board=frame(root,20,160,720,900,rgb(177,232,234));board.ClipsDescendants=true;round(board,26);outline(board,C.white,5);local skyGradient=gradient(board,rgb(162,233,226),rgb(196,224,244),rgb(211,192,236),90)
 -- Soft clouds, distant islands and flowering edges are drawn once, behind the arena.
 local scenery=frame(board,0,0,720,900,C.white);scenery.BackgroundTransparency=1
 for _,cloud in ipairs({{70,92,.7},{500,76,.9},{628,389,.65},{100,436,.6}}) do local x,y,s=cloud[1],cloud[2],cloud[3];for j=0,3 do local p=disc(scenery,x+j*38*s,y+(j%2)*11*s,(55+j%2*17)*s,C.white);p.BackgroundTransparency=.78 end end
@@ -50,17 +50,26 @@ for side=0,1 do
 end
 local rail=frame(board,58,82,604,3,rgb(130,176,180),2);rail.BackgroundTransparency=.25
 local nameLabel=label(board,'FIRST POPS',18,12,380,24,14,rgb(57,100,109),3);nameLabel.TextXAlignment=Enum.TextXAlignment.Left
-label(board,'NO TIMER',545,12,156,24,13,rgb(57,100,109),3)
+local rescueLabel=label(board,'LUMIS 0 / 2',518,12,185,26,16,C.purple,3)
 local items=frame(board,0,0,720,900,C.white,3);items.BackgroundTransparency=1
 local fx=frame(board,0,0,720,900,C.white,6);fx.BackgroundTransparency=1
 local aimDots={};for i=1,105 do local d=disc(items,0,0,6,C.white,1);d.Visible=false;aimDots[i]=d end
 local aimRing=disc(items,0,0,77,C.white,4);aimRing.BackgroundTransparency=1;outline(aimRing,C.white,3)
-local function bubble(parent,x,y,r,value,color,z)
- local p=palette[color%6+1];local o=disc(parent,x,y,r*2,C.white,z or 3);local grad=gradient(o,p[1],p[2],p[3],70);outline(o,C.white,2)
+local function lumi(parent,x,y,r,z)
+ local v=frame(parent,x-r,y-r,r*2,r*2,C.white,z or 5);v.BackgroundTransparency=1
+ label(v,'★',-r*.16,-r*.19,r*2.32,r*2.32,r*2.55,C.gold,2)
+ local eyes={};for _,sign in ipairs({-1,1}) do local e=disc(v,r+sign*r*.24,r*.92,r*.21,C.ink,3);e.Size=UDim2.fromOffset(r*.2,r*.29);eyes[#eyes+1]=e;disc(v,r+sign*r*.35,r*1.2,r*.17,C.pink,3) end
+ label(v,'⌣',r*.65,r*.94,r*.7,r*.55,r*.55,rgb(133,88,125),3)
+ return {view=v,eyes=eyes,r=r}
+end
+local function bubble(parent,x,y,r,value,color,z,lumiFlag,bombFlag)
+ local p=palette[color%6+1];local o=disc(parent,x,y,r*2,C.white,z or 3);local grad=gradient(o,p[1],p[2],p[3],70);outline(o,bombFlag and rgb(255,147,56) or C.white,bombFlag and 3 or 2)
  local shine=frame(o,r*.34,r*.24,r*.7,r*.2,C.white,2);round(shine);shine.Rotation=-20;shine.BackgroundTransparency=.26
  local gleam=frame(o,r*.95,r*1.63,r*.55,r*.09,C.white,2);round(gleam);gleam.Rotation=-22;gleam.BackgroundTransparency=.56
- local t=label(o,tostring(value),0,1,r*2,r*2,r*.94,C.ink,3)
- return {view=o,text=t,gradient=grad,r=r}
+ local t=label(o,tostring(value),0,lumiFlag and -8 or 1,r*2,r*2,lumiFlag and 26 or r*.94,C.ink,3)
+ local pet=nil;if lumiFlag then pet=lumi(o,r,r+23,14,4) end
+ local badge=nil;if bombFlag then badge=disc(o,r+23,r-24,25,rgb(255,132,60),5);label(badge,'✦',0,0,25,25,21,C.paper,2) end
+ return {view=o,text=t,gradient=grad,r=r,pet=pet,badge=badge}
 end
 local function moveBubble(v,x,y) v.view.Position=UDim2.fromOffset(x-v.r,y-v.r) end
 local cannon=frame(items,304,746,112,130,C.white,4);cannon.BackgroundTransparency=1
@@ -87,20 +96,25 @@ local track=frame(powerBox,18,46,274,10,rgb(224,222,235));round(track,8)
 local powerFill=frame(track,0,0,0,10,C.pink);round(powerFill,8);gradient(powerFill,C.mint,C.gold,C.pink,0)
 local powerHelp=label(powerBox,'3 correct shots in a row unlock a rainbow blast. Any number. Bigger pops!',18,68,274,48,14,C.muted)
 local hintButton=button(side,'✦ HELP ME AIM',0,663,310,52,rgb(225,221,243),17);hintButton.TextColor3=C.purple
-local keysHelp=label(side,'POINT & CLICK or DRAG & RELEASE\n← → aim · SPACE fire · 1 2 3 choose\n\nSums first. Multiply from garden 7.',0,741,310,100,14,C.muted)
-local bottomHelp=label(root,'CLEAR EVERY BUBBLE TO FINISH.  ·  12 GARDENS.  ·  UNLIMITED TRIES.',20,1076,1080,25,13,C.muted)
+local keysHelp=label(side,'POINT & CLICK or DRAG & RELEASE\n← → aim · SPACE fire · 1 2 3 choose\n\nAdd → subtract → multiply → divide.',0,741,310,100,14,C.muted)
+local bottomHelp=label(root,'RESCUE THE LUMIS.  ·  CLEAR EVERY BUBBLE.  ·  3 WORLDS, 12 LEVELS.',20,1076,1080,25,13,C.muted)
+local celebration=label(board,'',30,431,660,83,52,C.purple,8);celebration.Visible=false;celebration.TextStrokeColor3=C.white;celebration.TextStrokeTransparency=.12
+local celebrationSub=label(board,'',30,508,660,35,21,C.purple,8);celebrationSub.Visible=false;celebrationSub.TextStrokeColor3=C.white;celebrationSub.TextStrokeTransparency=.15
+local flashView=frame(board,0,0,720,900,rgb(255,228,130),7);flashView.BackgroundTransparency=1
+local starViews={};for i=1,22 do local v=label(scenery,'✦',38+(i*157)%630,40+(i*97)%620,12,12,7+i%3*2,rgb(199,250,255),2);v.Visible=false;starViews[#starViews+1]=v end
+local sceneryColors={};for _,o in ipairs(scenery:GetDescendants()) do if o:IsA('Frame') then sceneryColors[o]=o.BackgroundColor3 end end
 local toast=frame(board,40,613,640,70,C.paper,10);round(toast,21);outline(toast,C.white,2);toast.Visible=false
 local toastText=label(toast,'',12,8,616,54,21,C.purple)
 local modal=frame(board,0,0,720,900,C.paper,20);modal.BackgroundTransparency=.12
 local card=frame(modal,56,86,608,728,C.paper);round(card,28);outline(card,C.white,3)
 local intro=frame(card,0,0,608,728,C.paper);intro.BackgroundTransparency=1
-label(intro,'12 GARDENS TO CLEAR',20,25,568,35,16,C.purple)
-label(intro,'AIM. ADD.',20,82,568,75,58,C.ink)
-label(intro,'POP!',20,149,568,105,93,C.pink)
+label(intro,'3 WORLDS · 12 LEVELS',20,25,568,35,16,C.purple)
+label(intro,'POP &',20,82,568,75,58,C.ink)
+label(intro,'RESCUE!',20,149,568,105,76,C.pink)
 bubble(intro,180,303,37,3,3);label(intro,'+',223,272,45,65,34,C.ink);bubble(intro,300,303,37,2,1);label(intro,'=',343,272,45,65,34,C.ink);bubble(intro,420,303,37,5,5)
-label(intro,'Choose a shot. Hit a bubble to make the target number. Matching groups pop together!',40,370,528,83,23,C.ink)
-label(intro,'Clear every bubble to finish. Unsupported bubbles fall for bonus points. No timer. Unlimited tries.',40,465,528,74,19,C.muted)
-local startButton=button(intro,'LET’S POP!  →',45,566,518,66,C.purple,26)
+label(intro,'The Lumis are trapped! Choose a shot and make the target number to pop their bubbles.',40,370,528,83,23,C.ink)
+label(intro,'Clear every bubble to win. Explosive bubbles start chain reactions. Complete rows earn bonuses. No timer.',40,465,528,74,19,C.muted)
+local startButton=button(intro,'SAVE THE LUMIS! →',45,566,518,66,C.purple,26)
 label(intro,'GARDEN CODE',42,655,146,38,13,C.muted)
 local seedBox=make('TextBox',intro,{Text=os.date('!%Y-%m-%d'),PlaceholderText='Garden code',ClearTextOnFocus=false,Position=UDim2.fromOffset(194,655),Size=UDim2.fromOffset(265,38),TextSize=18,TextColor3=C.ink,BackgroundColor3=rgb(237,234,244),BorderSizePixel=0,Font=Enum.Font.Code,ZIndex=5});round(seedBox,8)
 local randomButton=button(intro,'↻',477,652,80,42,rgb(229,223,242),27);randomButton.TextColor3=C.purple
@@ -117,7 +131,7 @@ local nextButton=button(results,'NEXT GARDEN →',50,421,508,70,C.purple,26)
 local retryButton=button(results,'TRY FOR MORE STARS',50,515,508,55,rgb(229,223,242),19);retryButton.TextColor3=C.purple
 local shareText=make('TextBox',results,{Text='',ClearTextOnFocus=false,TextEditable=false,TextWrapped=true,Position=UDim2.fromOffset(45,607),Size=UDim2.fromOffset(518,78),TextSize=17,TextColor3=C.muted,BackgroundTransparency=1,Font=Enum.Font.Code,ZIndex=5})
 local mode='menu';local g=R.create(seedBox.Text);local clock=0;local endDelay=0;local toastTime=0;local recoil=0;local keys={};local pointer=nil;local mouseDown=false
-local views={};local bumperViews={};local particles={};local rings={};local drops={};local floaters={}
+local views={};local bumperViews={};local particles={};local rings={};local drops={};local floaters={};local rescues={};local celebrationTime=0;local flash=0;local activeWorld=-1
 local function clearInput() keys={};pointer=nil;mouseDown=false end
 local function resize()
  local size=gui.AbsoluteSize;local portrait=size.X/size.Y<1.13;local w,h=portrait and 760 or 1120,portrait and 1350 or 1120;root.Size=UDim2.fromOffset(w,h);scale.Scale=math.min(size.X/w,size.Y/h)*.97
@@ -133,10 +147,21 @@ gui:GetPropertyChangedSignal('AbsoluteSize'):Connect(resize);resize()
 local function say(text,time) toastText.Text=text;toast.Visible=true;toastTime=time or 2.7 end
 local function showPanel(which) modal.Visible=which~=nil;intro.Visible=which=='intro';paused.Visible=which=='paused';results.Visible=which=='results' end
 local function wipe()
- for _,list in ipairs({particles,rings,drops,floaters}) do for _,e in ipairs(list) do e.view:Destroy() end end;particles={};rings={};drops={};floaters={}
+ for _,list in ipairs({particles,rings,drops,floaters,rescues}) do for _,e in ipairs(list) do e.view:Destroy() end end;particles={};rings={};drops={};floaters={};rescues={};celebrationTime=0;celebration.Visible=false;celebrationSub.Visible=false;flash=0
  for id,v in pairs(views) do v.view:Destroy();views[id]=nil end;for _,v in ipairs(bumperViews) do v:Destroy() end;bumperViews={}
 end
-local function play(state) g=state;mode='play';endDelay=0;clearInput();wipe();showPanel(nil);say(g.level==7 and 'Now multiply! Make 12.' or ('Make '..g.config.target..'. Clear every bubble!')) end
+local function setWorld()
+ activeWorld=R.world(g);local colors={
+  {rgb(157,237,222),rgb(185,228,245),rgb(212,181,235),rgb(85,199,162)},
+  {rgb(238,167,203),rgb(255,187,150),rgb(255,224,144),rgb(240,133,110)},
+  {rgb(23,35,113),rgb(40,80,164),rgb(115,146,220),rgb(107,97,220)}
+ };local c=colors[activeWorld+1];skyGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,c[1]),ColorSequenceKeypoint.new(.5,c[2]),ColorSequenceKeypoint.new(1,c[3])});board.BackgroundColor3=C.white
+ for o,base in pairs(sceneryColors) do o.BackgroundColor3=base:Lerp(c[4],activeWorld==0 and 0 or .4) end
+ for _,v in ipairs(starViews) do v.Visible=activeWorld==2 end
+ sun.BackgroundColor3=activeWorld==2 and rgb(209,237,255) or rgb(255,246,184);sun.BackgroundTransparency=activeWorld==2 and .16 or .5
+ nameLabel.TextColor3=activeWorld==2 and C.white or rgb(73,76,109);rescueLabel.TextColor3=activeWorld==2 and C.gold or C.purple
+end
+local function play(state) g=state;mode='play';endDelay=0;clearInput();wipe();showPanel(nil);setWorld();say(R.operationName(g)..' to make '..g.config.target..'. Save the Lumis!',3) end
 local function start() local seed=seedBox.Text:sub(1,32):gsub('[^%w%-]','');if seed=='' then seed=os.date('!%Y-%m-%d') end;seedBox.Text=seed;play(R.create(seed)) end
 local function togglePause() if mode=='play' and not g.ended then mode='paused';clearInput();showPanel('paused') elseif mode=='paused' then mode='play';showPanel(nil) end end
 local function burst(x,y,color,n)
@@ -146,9 +171,9 @@ local function ring(x,y,r,color) local v=disc(fx,x,y,r*2,C.white,2);v.Background
 local function finish()
  mode='end';clearInput();showPanel('results');resultTitle.Text=g.campaignComplete and 'ALL 12 GARDENS CLEARED!' or ('GARDEN '..g.level..' CLEARED!');stars.Text=string.rep('★',g.stars)..string.rep('☆',3-g.stars)
  resultHeading.Text=g.campaignComplete and 'YOU’RE A POP STAR!' or (g.stars==3 and 'POP PERFECTION!' or 'BEAUTIFULLY POPPED!')
- resultStats.Text=g.score..' POINTS  ·  '..g.shots..' SHOTS\n'..g.totalStars..' STARS EARNED\nEvery bubble is gone!'
+ resultStats.Text=g.score..' POINTS  ·  '..g.shots..' SHOTS\n'..g.totalStars..' STARS EARNED\n'..g.totalRescued..' LUMIS RESCUED!'
  nextButton.Text=g.campaignComplete and 'PLAY AGAIN →' or 'NEXT GARDEN →'
- shareText.Text='BUBBLE RIOT | '..g.score..' points | '..g.totalStars..' stars | '..g.level..'/12 gardens\nGarden code: '..g.seed
+ shareText.Text='BUBBLE RIOT | '..g.score..' points | '..g.totalStars..' stars | '..g.level..'/12 levels | '..g.totalRescued..' Lumis\nGarden code: '..g.seed
 end
 local function processEvents()
  for _,e in ipairs(g.events) do
@@ -160,9 +185,14 @@ local function processEvents()
    for _,b in ipairs(e.popped) do burst(b.x,b.y,palette[b.color+1][2],12);ring(b.x,b.y,32,palette[b.color+1][2]) end
    for _,b in ipairs(e.dropped) do local v=bubble(fx,b.x,b.y,32,b.v,b.color,3);drops[#drops+1]={view=v.view,bubble=v,x=b.x,y=b.y,dx=(math.random()-.5)*160,dy=40,life=1.8} end
    local f=label(fx,'+'..e.points,e.x-120,e.y-30,240,50,34,C.purple,5);floaters[#floaters+1]={view=f,x=e.x-120,y=e.y-30,life=1.3}
-   say(e.message..(#e.dropped>0 and (' · '..#e.dropped..' bonus drops!') or (e.combo>1 and (' · Combo ×'..e.combo) or '')))
-  elseif e.type=='end' then endDelay=1.2 end
- end;g.events={}
+   for _,b in ipairs(e.rescued) do local v=lumi(fx,b.x,b.y,26,6);rescues[#rescues+1]={view=v.view,x=b.x,y=b.y,dx=b.x<360 and -65 or 65,life=2,phase=b.id} end
+   for _,b in ipairs(e.explosions) do burst(b.x,b.y,C.gold,30);ring(b.x,b.y,55,C.gold) end
+   flash=#e.explosions>0 and .16 or .04;celebrationTime=1.45;celebration.Visible=true;celebrationSub.Visible=true
+   celebration.Text=#e.explosions>0 and 'BOOM!' or (e.rowsCleared>0 and 'ROW CLEAR!' or (e.bankShot and 'TRICK SHOT!' or (#e.rescued>0 and 'LUMI SAVED!' or ('COMBO ×'..e.combo))))
+   celebrationSub.Text=#e.rescued>0 and (#e.rescued..' LUMIS RESCUED') or ('+'..e.points..' POINTS')
+   say(e.message..(#e.rescued>0 and (' · '..#e.rescued..' rescued!') or (#e.dropped>0 and (' · '..#e.dropped..' bonus drops!') or '')))
+  elseif e.type=='end' then endDelay=1.7 end
+ end;g.events={};if g.rainbowReady and not g.ended then say('RAINBOW READY! Any number. Bigger blast!') end
 end
 local function fire() if mode=='play' and R.shoot(g) then processEvents() end end
 local function choose(index) if mode=='play' then R.select(g,index) end end
@@ -203,7 +233,7 @@ hintButton.Activated:Connect(function()
 end)
 local function updateViews()
  local alive={}
- for _,b in ipairs(g.bubbles) do alive[b.id]=true;if not views[b.id] then views[b.id]=bubble(items,b.x,b.y,32,b.v,b.color,3) end end
+ for _,b in ipairs(g.bubbles) do alive[b.id]=true;if not views[b.id] then views[b.id]=bubble(items,b.x,b.y,32,b.v,b.color,3,b.lumi,b.bomb) end;local v=views[b.id];if v.pet then v.pet.view.Rotation=math.sin(clock*3+b.id)*7 end;if v.badge then v.badge.Rotation=clock*27%360 end end
  for id,v in pairs(views) do if not alive[id] then v.view:Destroy();views[id]=nil end end
  if #bumperViews~=#g.bumpers then for _,v in ipairs(bumperViews) do v:Destroy() end;bumperViews={};for _,b in ipairs(g.bumpers) do local v=disc(items,b.x,b.y,b.r*2,C.white,3);gradient(v,rgb(255,253,239),rgb(239,220,253),rgb(168,133,211));outline(v,C.white,3);label(v,'✦',0,0,b.r*2,b.r*2,48,rgb(176,143,213),3);bumperViews[#bumperViews+1]=v end end
  local preview=R.trace(g);local hit=nil;for _,b in ipairs(g.bubbles) do if b.id==preview.hitId then hit=b;break end end
@@ -220,8 +250,8 @@ local function updateViews()
  projectile.view.Visible=g.projectile~=nil
  for _,d in ipairs(trails) do d.Visible=g.projectile~=nil end
  if g.projectile then local p=g.projectile;moveBubble(projectile,p.x,p.y);projectile.text.Text=p.rainbow and '★' or tostring(p.value);for i,d in ipairs(trails) do d.Position=UDim2.fromOffset(p.x-p.dx*i*10-5,p.y-p.dy*i*10-5);d.BackgroundColor3=p.rainbow and palette[i][2] or C.white end end
- hudText[1].Text=g.level..' / 12';hudText[2].Text=tostring(g.config.target);hudText[3].Text=tostring(#g.bubbles);hudText[4].Text=tostring(g.score);nameLabel.Text=g.config.name
- opLabel.Text=g.config.op=='+' and 'ADDITION GARDEN' or 'MULTIPLICATION GARDEN'
+ hudText[1].Text=g.level..' / 12';hudText[2].Text=tostring(g.config.target);hudText[3].Text=tostring(#g.bubbles);hudText[4].Text=tostring(g.score);nameLabel.Text=({'GROVE','PEAKS','MOON'})[R.world(g)+1]..' · '..g.config.name;rescueLabel.Text='LUMIS '..g.rescued..' / '..g.lumiTotal
+ opLabel.Text=R.operationName(g)..' TO RESCUE'
  equation.Text=g.rainbowReady and 'ANY NUMBER!' or ((hit and tostring(hit.v) or '?')..' '..g.config.op..' '..g.ammo[g.selected+1]..' = ?')
  equationHint.Text='Make '..g.config.target..'. Clear every bubble.'
  for i,b in ipairs(ammoButtons) do b.Text=g.config.op..g.ammo[i];ammoOutlines[i].Color=g.selected==i-1 and C.purple or C.white;ammoOutlines[i].Thickness=g.selected==i-1 and 5 or 2 end
@@ -231,7 +261,10 @@ end
 RunService.PreRender:Connect(function(delta)
  local dt=math.min(.04,math.max(0,delta))
  if mode~='paused' then
-  clock=clock+dt;recoil=math.max(0,recoil-dt*6)
+  clock=clock+dt;recoil=math.max(0,recoil-dt*6);flash=math.max(0,flash-dt*.65);flashView.BackgroundTransparency=1-flash
+  if celebrationTime>0 then celebrationTime=celebrationTime-dt;celebration.TextTransparency=math.max(0,1-celebrationTime*2);celebrationSub.TextTransparency=celebration.TextTransparency;if celebrationTime<=0 then celebration.Visible=false;celebrationSub.Visible=false end end
+  for i=#rescues,1,-1 do local p=rescues[i];p.x=p.x+p.dx*dt+math.sin(clock*7+p.phase)*dt*20;p.y=p.y-160*dt;p.life=p.life-dt;if p.life<=0 then p.view:Destroy();table.remove(rescues,i) else p.view.Position=UDim2.fromOffset(p.x-26,p.y-26);p.view.Rotation=math.sin(clock*4+p.phase)*12 end end
+  if activeWorld==2 then for i,v in ipairs(starViews) do v.TextTransparency=.3+.35*(1+math.sin(clock*1.6+i))/2 end end
   if mode=='play' then if not g.projectile then local a=(keys[Enum.KeyCode.Right] and 1 or 0)-(keys[Enum.KeyCode.Left] and 1 or 0);g.angle=math.max(-1.16,math.min(1.16,g.angle+a*dt*1.05)) end;R.step(g,dt);if #g.events>0 then processEvents() end;if endDelay>0 then endDelay=endDelay-dt;if endDelay<=0 then finish() end end end
   for i=#particles,1,-1 do local p=particles[i];p.x=p.x+p.dx*dt;p.y=p.y+p.dy*dt;p.dy=p.dy+300*dt;p.life=p.life-dt;if p.life<=0 then p.view:Destroy();table.remove(particles,i) else p.view.Position=UDim2.fromOffset(p.x,p.y);p.view.TextTransparency=math.max(0,1-p.life);p.view.Rotation=p.life*170 end end
   for i=#rings,1,-1 do local p=rings[i];p.r=p.r+90*dt;p.life=p.life-dt;if p.life<=0 then p.view:Destroy();table.remove(rings,i) else p.view.Position=UDim2.fromOffset(p.x-p.r,p.y-p.r);p.view.Size=UDim2.fromOffset(p.r*2,p.r*2);p.stroke.Transparency=1-p.life*2 end end
@@ -241,7 +274,7 @@ RunService.PreRender:Connect(function(delta)
  end
  updateViews()
 end)
-updateViews()
+setWorld();updateViews()
 -- Disable platform avatar controls asynchronously; the START button is immediately usable.
 task.spawn(function()
  pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All,false) end)

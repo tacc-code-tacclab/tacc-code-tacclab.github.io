@@ -2,20 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#d9faf3"><meta name="description" content="Aim, add, POP! A joyful bubble shooter with chain reactions, rainbow shots and twelve increasingly mathematical levels. Free on desktop and mobile.">
-<title>Bubble Riot · Aim. Add. POP!</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css?v=3">
+<meta name="theme-color" content="#d9faf3"><meta name="description" content="Rescue the Lumis! Explosive bubbles, chain reactions and three illustrated worlds. Twelve levels introduce addition, subtraction, multiplication and division.">
+<title>Bubble Riot · Lumi Rescue</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <main class="shell">
-<header class="top"><a class="brand" href="../../#videogames" aria-label="Back to videogames"><span class="brand-orb">B</span><span>BUBBLE <b>RIOT</b><small>AIM. ADD. POP!</small></span></a><div class="top-actions"><button id="sound" class="quiet" aria-pressed="false">Sound off</button><button id="pause" class="quiet">Ⅱ Pause</button></div></header>
+<header class="top"><a class="brand" href="../../#videogames" aria-label="Back to videogames"><span class="brand-orb">B</span><span>BUBBLE <b>RIOT</b><small>LUMI RESCUE</small></span></a><div class="top-actions"><button id="sound" class="quiet" aria-pressed="false">Sound off</button><button id="pause" class="quiet">Ⅱ Pause</button></div></header>
 <section class="game-layout" aria-label="Bubble Riot game">
 <div class="arena-column">
 <div class="hud"><div><span>GARDEN</span><strong id="level">1 <small>/ 12</small></strong></div><div class="goal"><span>MAKE</span><strong id="target">5</strong></div><div><span>BUBBLES LEFT</span><strong id="remaining">12</strong></div><div><span>SCORE</span><strong id="score">0</strong></div></div>
+<div class="world-track" aria-label="Adventure progress"><span id="world0">1–4 · GROVE</span><span id="world1">5–8 · PEAKS</span><span id="world2">9–12 · MOON</span></div>
 <div class="board-wrap" id="board-wrap">
 <canvas id="game" width="720" height="900" tabindex="0" aria-label="Aim with the mouse or arrow keys. Click or press Space to shoot. Choose a shot with 1, 2 or 3."></canvas>
-<div class="board-tag"><span id="level-name">FIRST POPS</span><span>NO TIMER</span></div>
+<div class="board-tag"><span id="level-name">FIRST POPS</span><span id="rescue-count">LUMIS 0 / 2</span></div>
 <div class="overlay" id="overlay">
-<div class="modal" id="intro"><span class="eyebrow">12 GARDENS TO CLEAR</span><h1>Aim. Add.<br><em>POP!</em></h1><div class="example"><span class="orb lilac">3</span><b>+</b><span class="orb peach">2</span><b>=</b><span class="orb gold">5</span></div><p>Choose a shot. Hit a bubble to make the target number. Matching groups pop together!</p><p class="fine">Clear every bubble to finish. Nothing left holding a bubble up? It falls for bonus points. No timer. Unlimited tries.</p><button id="start" class="primary">LET’S POP! <span>→</span></button><div class="seed-row"><label for="seed">GARDEN CODE</label><input id="seed" maxlength="32" aria-label="Garden code"><button id="random" class="quiet" aria-label="Random garden">↻</button></div></div>
+<div class="modal" id="intro"><span class="eyebrow">3 WORLDS · 12 LEVELS</span><h1>Pop &amp;<br><em>RESCUE!</em></h1><div class="example"><span class="orb lilac">3</span><b>+</b><span class="orb peach">2</span><b>=</b><span class="orb gold">5</span></div><p>The Lumis are trapped! Choose a shot and make the target number to pop their bubbles.</p><p class="fine">Clear every bubble to win. Explosive bubbles start chain reactions; complete rows earn bonuses. No timer. Unlimited tries.</p><button id="start" class="primary">SAVE THE LUMIS! <span>→</span></button><div class="seed-row"><label for="seed">GARDEN CODE</label><input id="seed" maxlength="32" aria-label="Garden code"><button id="random" class="quiet" aria-label="Random garden">↻</button></div></div>
 <div class="modal" id="pause-panel" hidden><span class="eyebrow">TAKE YOUR TIME</span><h2>Little<br><em>breather?</em></h2><p>Your garden will be right here.</p><button id="resume" class="primary">KEEP POPPING →</button><button id="restart" class="secondary">Restart this garden</button></div>
 <div class="modal" id="results" hidden><span class="eyebrow" id="result-title">GARDEN CLEARED!</span><div class="stars" id="stars">★★★</div><h2 id="result-heading">Pop perfection!</h2><p id="result-stats"></p><button id="next" class="primary">NEXT GARDEN →</button><button id="retry" class="secondary">Try for more stars</button><button id="share" class="quiet">Copy challenge link</button><p class="fine" id="share-status" aria-live="polite"></p></div>
 </div>
@@ -28,9 +29,9 @@
 <div class="ammo" role="group" aria-label="Choose the number to shoot"><button class="ammo-btn" id="ammo0" aria-pressed="true"><span>+2</span><small>1</small></button><button class="ammo-btn" id="ammo1" aria-pressed="false"><span>+1</span><small>2</small></button><button class="ammo-btn" id="ammo2" aria-pressed="false"><span>+3</span><small>3</small></button></div>
 <button id="fire" class="primary fire">FIRE! <span>↗</span></button>
 <div class="power-card"><div><b>RAINBOW RIOT</b><span id="power-label">0 / 3</span></div><div class="power-track"><i id="power-fill"></i></div><p>3 correct shots in a row unlock a rainbow blast. Any number. Bigger pops!</p></div>
-<div class="help"><p><b>Drag & release</b> to shoot on mobile.<br><b>Point & click</b> on a computer.<br><b>← →</b> aim · <b>Space</b> fire · <b>1 2 3</b> choose.</p><button id="hint" class="secondary">✦ Help me aim</button><p class="fine">Sums first. Multiplication from garden 7.<br>Every garden ends when all bubbles are gone.</p></div>
+<div class="help"><p><b>Drag & release</b> to shoot on mobile.<br><b>Point & click</b> on a computer.<br><b>← →</b> aim · <b>Space</b> fire · <b>1 2 3</b> choose.</p><button id="hint" class="secondary">✦ Help me aim</button><p class="fine">Add → subtract → multiply → divide.<br>Every garden ends when all bubbles are gone.</p></div>
 </aside>
 </section>
-<footer><span>GROW YOUR SKILLS. POP YOUR WAY.</span><a href="https://github.com/tacc-code-tacclab/tacc-code-tacclab.github.io/tree/main/videogames/zero-riot">Source & Roblox</a></footer>
-</main><script src="core.js?v=3"></script><script src="game.js?v=3"></script>
+<footer><span>SAVE LITTLE LUMIS. SOLVE BIGGER PUZZLES.</span><a href="https://github.com/tacc-code-tacclab/tacc-code-tacclab.github.io/tree/main/videogames/zero-riot">Source & Roblox</a></footer>
+</main><script src="core.js?v=4"></script><script src="game.js?v=4"></script>
 </body></html>

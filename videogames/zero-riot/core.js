@@ -1,4 +1,4 @@
-/* Bubble Riot / ZERO RIOT v3. Deterministic maths, connected groups and ray collisions. */
+/* Bubble Riot / ZERO RIOT v4. Deterministic maths, connected groups and ray collisions. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ZeroRiot=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const W=720,H=900,CX=360,CY=802,BR=32,SR=17,SPEED=820;
@@ -7,27 +7,30 @@ const LEVELS=[
  {target:6,op:'+',rows:3,cols:6,name:'SWEET SIX',bumpers:0},
  {target:8,op:'+',rows:3,cols:7,name:'BUBBLE GROVE',bumpers:0},
  {target:10,op:'+',rows:3,cols:7,name:'BOUNCE TO TEN',bumpers:1},
- {target:12,op:'+',rows:4,cols:7,name:'CLOUD GARDEN',bumpers:1},
- {target:15,op:'+',rows:4,cols:8,name:'DOUBLE BOUNCE',bumpers:2},
+ {target:5,op:'−',rows:4,cols:7,name:'TAKE AWAY TRAIL',bumpers:1},
+ {target:10,op:'−',rows:4,cols:8,name:'SUNSET SUBTRACTION',bumpers:2},
  {target:12,op:'×',rows:3,cols:6,name:'MULTIPLY THE FUN',bumpers:0},
  {target:18,op:'×',rows:3,cols:7,name:'MAGIC MULTIPLES',bumpers:1},
  {target:24,op:'×',rows:4,cols:7,name:'CRYSTAL CANOPY',bumpers:1},
- {target:30,op:'+',rows:4,cols:8,name:'BIG SUMS',bumpers:2},
- {target:36,op:'×',rows:4,cols:8,name:'STAR BLOSSOM',bumpers:2},
+ {target:3,op:'÷',rows:4,cols:8,name:'STAR SHARING',bumpers:2},
+ {target:6,op:'÷',rows:4,cols:8,name:'DIVIDE THE GALAXY',bumpers:2},
  {target:48,op:'×',rows:5,cols:8,name:'THE GRAND BLOOM',bumpers:2}
 ];
 function seedNumber(value){let n=0;for(const c of String(value))n=(n*31+c.charCodeAt(0))%2147483646;return n+1;}
 function rng(seed){let s=seed;return()=>{s=s*16807%2147483647;return(s-1)/2147483646;};}
-function valueOf(g,v,ammo){return g.config.op==='+'?v+ammo:v*ammo;}
-function required(g,v){return g.config.op==='+'?g.config.target-v:g.config.target/v;}
+function valueOf(g,v,ammo){const op=g.config.op;return op==='+'?v+ammo:op==='−'?v-ammo:op==='÷'?v/ammo:v*ammo;}
+function required(g,v){const op=g.config.op;return op==='+'?g.config.target-v:op==='−'?v-g.config.target:op==='÷'?v/g.config.target:g.config.target/v;}
+function operationName(g){return {'+':'ADD','−':'SUBTRACT','×':'MULTIPLY','÷':'DIVIDE'}[g.config.op];}
+function world(g){return Math.floor((g.level-1)/4);}
 function create(seed,level=1,carry={}){
  level=Math.max(1,Math.min(LEVELS.length,Math.floor(level)));const config=LEVELS[level-1],random=rng(seedNumber(String(seed)+'/B'+level));
- const bank={score:carry.score||0,totalStars:carry.totalStars||0};
- const g={seed:String(seed),level,config,random,bank,score:bank.score,totalStars:bank.totalStars,stars:0,time:0,shots:0,misses:0,combo:0,power:0,rainbowReady:false,selected:0,ammo:[],angle:0,projectile:null,cooldown:0,ended:false,won:false,campaignComplete:false,bubbles:[],bumpers:[],events:[],nextId:0};
- const values=[];if(config.op==='+'){for(let v=1;v<config.target;v++)values.push(v);}else for(let v=2;v<config.target;v++)if(config.target%v===0)values.push(v);
+ const bank={score:carry.score||0,totalStars:carry.totalStars||0,totalRescued:carry.totalRescued||0};
+ const g={seed:String(seed),level,config,random,bank,score:bank.score,totalStars:bank.totalStars,totalRescued:bank.totalRescued,rescued:0,lumiTotal:0,stars:0,time:0,shots:0,misses:0,combo:0,power:0,rainbowReady:false,selected:0,ammo:[],angle:0,projectile:null,cooldown:0,ended:false,won:false,campaignComplete:false,bubbles:[],bumpers:[],events:[],nextId:0};
+ const values=[];if(config.op==='+'){for(let v=1;v<config.target;v++)values.push(v);}else if(config.op==='−'){for(let v=1;v<=12;v++)values.push(config.target+v);}else if(config.op==='÷'){for(let v=2;v<=12;v++)values.push(config.target*v);}else for(let v=2;v<config.target;v++)if(config.target%v===0)values.push(v);
  const start=(W-(config.cols-1)*76-38)/2;
  for(let row=0;row<config.rows;row++){let value=0;for(let col=0;col<config.cols;col++){if(col%3===0)value=level===1?1+row*2+Math.floor(col/3):values[Math.floor(random()*values.length)];g.bubbles.push({id:++g.nextId,x:start+col*76+(row%2)*38,y:132+row*66,v:value,row,color:value%6});}}
  if(config.bumpers>=1)g.bumpers.push({x:config.bumpers===1?260:210,y:525,r:40});if(config.bumpers>=2)g.bumpers.push({x:510,y:558,r:40});
+ for(let i=0;i<g.bubbles.length;i++){const b=g.bubbles[i],col=i%config.cols;b.lumi=b.row===config.rows-1&&col%3===1;b.bomb=level>=3&&b.row===Math.floor(config.rows/2)&&(col===1||(level>=6&&col===config.cols-2));if(b.lumi)g.lumiTotal++;}
  g.initial=g.bubbles.length;refreshAmmo(g);return g;
 }
 function nextLevel(g){return g.won&&!g.campaignComplete?create(g.seed,g.level+1,g):g;}
@@ -58,14 +61,19 @@ function refreshAmmo(g){if(!g.bubbles.length){g.ammo=[1,2,3];return;}const seen=
 function connected(g,start,sameValue){const found=new Set([start.id]),queue=[start];while(queue.length){const a=queue.shift();for(const b of g.bubbles)if(!found.has(b.id)&&(!sameValue||b.v===start.v)&&Math.hypot(a.x-b.x,a.y-b.y)<83){found.add(b.id);queue.push(b);}}return found;}
 function miss(g,message,x,y){g.misses++;g.combo=0;g.power=0;g.events.push({type:'miss',message,x:x||CX,y:y||CY-100});g.projectile=null;g.cooldown=.25;refreshAmmo(g);}
 function resolve(g,id,shot){const b=g.bubbles.find(b=>b.id===id);if(!b)return;
- const result=valueOf(g,b.v,shot.value);if(!shot.rainbow&&result!==g.config.target){miss(g,`${b.v} ${g.config.op} ${shot.value} = ${result} · aim for ${g.config.target}`,b.x,b.y);return;}
+ const result=valueOf(g,b.v,shot.value),shown=Number.isInteger(result)?result:Number(result.toFixed(2)),relation=Number.isInteger(result)?'=':'≈';if(!shot.rainbow&&result!==g.config.target){miss(g,`${b.v} ${g.config.op} ${shot.value} ${relation} ${shown} · aim for ${g.config.target}`,b.x,b.y);return;}
  const ids=connected(g,b,true);if(shot.rainbow)for(const q of g.bubbles)if(Math.hypot(q.x-b.x,q.y-b.y)<155)ids.add(q.id);
+ // Explosive bubbles propagate before support is recomputed; each detonates once.
+ const explosions=[],detonated=new Set(),rowsBefore=new Set(g.bubbles.map(q=>q.row));let changed=true;
+ while(changed){changed=false;for(const q of g.bubbles)if(ids.has(q.id)&&q.bomb&&!detonated.has(q.id)){detonated.add(q.id);explosions.push({x:q.x,y:q.y});for(const other of g.bubbles)if(Math.hypot(q.x-other.x,q.y-other.y)<160&&!ids.has(other.id)){ids.add(other.id);changed=true;}}}
  const popped=g.bubbles.filter(q=>ids.has(q.id));g.bubbles=g.bubbles.filter(q=>!ids.has(q.id));
  const anchored=new Set(),queue=g.bubbles.filter(q=>q.row===0);for(const q of queue)anchored.add(q.id);while(queue.length){const q=queue.shift();for(const other of g.bubbles)if(!anchored.has(other.id)&&Math.hypot(q.x-other.x,q.y-other.y)<83){anchored.add(other.id);queue.push(other);}}
  const dropped=g.bubbles.filter(q=>!anchored.has(q.id));g.bubbles=g.bubbles.filter(q=>anchored.has(q.id));
  g.combo++;if(!shot.rainbow){g.power++;if(g.power>=3){g.rainbowReady=true;g.power=0;g.events.push({type:'ready'});}}
- const points=popped.length*100+dropped.length*150+g.combo*50;g.score+=points;
- g.events.push({type:'pop',popped,dropped,x:b.x,y:b.y,points,message:shot.rainbow?'RAINBOW RIOT!':`${b.v} ${g.config.op} ${shot.value} = ${g.config.target}`,combo:g.combo});
+ const rescued=[...popped,...dropped].filter(q=>q.lumi),rowsCleared=[...rowsBefore].filter(row=>!g.bubbles.some(q=>q.row===row)).length;
+ g.rescued+=rescued.length;g.totalRescued+=rescued.length;
+ const bankShot=(shot.bounces||0)>0,points=popped.length*100+dropped.length*150+g.combo*50+rescued.length*300+rowsCleared*250+(bankShot?100:0);g.score+=points;
+ g.events.push({type:'pop',popped,dropped,rescued,explosions,rowsCleared,bankShot,x:b.x,y:b.y,points,message:shot.rainbow?'RAINBOW RIOT!':`${b.v} ${g.config.op} ${shot.value} = ${g.config.target}`,combo:g.combo});
  g.projectile=null;g.cooldown=.4;
  if(!g.bubbles.length){g.ended=true;g.won=true;g.campaignComplete=g.level===LEVELS.length;g.stars=g.misses===0?3:g.misses<=2?2:1;g.totalStars+=g.stars;g.score+=g.stars*200;g.events.push({type:'end'});}else refreshAmmo(g);
 }
@@ -76,5 +84,5 @@ function step(g,dt){if(g.ended)return;dt=Math.max(0,Math.min(.1,dt));g.time+=dt;
   if(h.kind==='wall'||h.kind==='bumper'){const r=reflect(p.dx,p.dy,h.nx,h.ny);p.dx=r.dx;p.dy=r.dy;p.x+=p.dx*.02;p.y+=p.dy*.02;p.bounces++;g.events.push({type:'bounce',x:p.x,y:p.y});if(p.bounces>8){miss(g,'Try another angle.');return;}}else break;
  }
 }
-return{W,H,CX,CY,BR,SR,SPEED,LEVELS,seedNumber,rng,create,nextLevel,retryLevel,aim,select,valueOf,required,cast,trace,refreshAmmo,shoot,step,resolve};
+return{W,H,CX,CY,BR,SR,SPEED,LEVELS,operationName,world,seedNumber,rng,create,nextLevel,retryLevel,aim,select,valueOf,required,cast,trace,refreshAmmo,shoot,step,resolve};
 });
