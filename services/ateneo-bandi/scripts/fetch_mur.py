@@ -1,160 +1,203 @@
-#!/usr/bin/env python3
-"""Build the static Ateneo Bandi index from the official MUR portal.
-
-The crawler is deliberately conservative: one request per second, an identifying
-user agent, retries, and a fail-safe that leaves the previous dataset untouched.
+"""National MUR index. Explicit categories, count reconciliation, Rome deadlines.
+Atomic publication only after all eight national result lists reconcile. Detail
+failures remain visible in coverage; they never become an empty successful digest.
 """
-from __future__ import annotations
-
-import argparse
-import datetime as dt
-import hashlib
-import json
-import re
-import sys
-import time
+import argparse, hashlib, json, re, time, unicodedata
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urljoin
-
+from urllib.parse import urljoin, urlsplit
+from zoneinfo import ZoneInfo
 import requests
 from bs4 import BeautifulSoup
+ROOT=Path(__file__).resolve().parents[1]
+BASE='https://bandi.mur.gov.it'
+CATEGORIES={
+ 'professors':('profcalls','Jobs','jv','Professore'),
+ 'researchers':('jobs','Jobs','jv','RTT / Ricercatore TD'),
+ 'contracts':('contrattidiricerca','Fellowship','jf','Contratto di ricerca'),
+ 'postdoc':('incarichipostdoc','Fellowship','jf','Incarico post-doc'),
+ 'research':('incarichidiricerca','Fellowship','jf','Incarico di ricerca'),
+ 'grants':('bandi','Fellowship','jf','Assegno di ricerca'),
+ 'phd':('doctorate','Fellowship','jf','Dottorato'),
+ 'technologists':('tecno','Jobs','jv','Tecnologo')}
+CODE=re.compile(r'(?<![\w/-])(?:\d{2}/[A-Z]{4}-\d{2}|[A-Z]{4}-\d{2}/[A-Z]|[A-Z]+(?:-[A-Z]+)?/\d{2}|\d{2}/[A-Z]\d)(?![\w/-])')
+def clean(s):return ' '.join(str(s or '').split())
+def norm(s):return ''.join(c for c in unicodedata.normalize('NFD',clean(s)).casefold() if unicodedata.category(c)!='Mn')
+def canonical(url):return 'https://'+urlsplit(url).netloc+urlsplit(url).path
 
-BASE = "https://bandi.mur.gov.it/"
-UA = "AteneoBandi/1.0 (+https://tacc-code-tacclab.github.io/services/ateneo-bandi/)"
-DETAIL_RE = re.compile(r"/public/(?:job|fellowship|chiamat|contratt|incaric)[^/]*/?(?:id_[a-z_]+/)?\d+", re.I)
-DATE_RE = re.compile(r"(\d{2}/\d{2}/\d{4})")
+def get(url,cache=None):
+ if cache and cache.exists():return cache.read_bytes()
+ for attempt in range(3):
+  try:
+   r=requests.get(url,timeout=(15,55),headers={'User-Agent':'AteneoBandi/2.0 (+https://tacc-code-tacclab.github.io/services/ateneo-bandi/)'});r.raise_for_status()
+   if cache:cache.parent.mkdir(parents=True,exist_ok=True);cache.write_bytes(r.content)
+   return r.content
+  except requests.RequestException:
+   if attempt==2:raise
+   time.sleep(1+attempt)
 
-REGIONS = {
-    "Bologna":"Emilia-Romagna","Cesena":"Emilia-Romagna","Ferrara":"Emilia-Romagna","Forlì":"Emilia-Romagna","Modena":"Emilia-Romagna","Parma":"Emilia-Romagna","Piacenza":"Emilia-Romagna","Ravenna":"Emilia-Romagna","Reggio Emilia":"Emilia-Romagna","Rimini":"Emilia-Romagna",
-    "Milano":"Lombardia","Bergamo":"Lombardia","Brescia":"Lombardia","Pavia":"Lombardia","Varese":"Lombardia","Como":"Lombardia","Monza":"Lombardia","Mantova":"Lombardia",
-    "Padova":"Veneto","Venezia":"Veneto","Verona":"Veneto","Vicenza":"Veneto","Treviso":"Veneto",
-    "Torino":"Piemonte","Alessandria":"Piemonte","Vercelli":"Piemonte","Novara":"Piemonte",
-    "Firenze":"Toscana","Pisa":"Toscana","Siena":"Toscana","Lucca":"Toscana",
-    "Roma":"Lazio","Viterbo":"Lazio","Cassino":"Lazio",
-    "Napoli":"Campania","Salerno":"Campania","Caserta":"Campania","Benevento":"Campania",
-    "Genova":"Liguria","Trieste":"Friuli-Venezia Giulia","Udine":"Friuli-Venezia Giulia","Trento":"Trentino-Alto Adige","Bolzano":"Trentino-Alto Adige",
-    "Perugia":"Umbria","Camerino":"Marche","Ancona":"Marche","Urbino":"Marche","Macerata":"Marche","L'Aquila":"Abruzzo","Chieti":"Abruzzo","Teramo":"Abruzzo",
-    "Bari":"Puglia","Lecce":"Puglia","Foggia":"Puglia","Potenza":"Basilicata","Matera":"Basilicata","Cosenza":"Calabria","Catanzaro":"Calabria","Reggio Calabria":"Calabria",
-    "Palermo":"Sicilia","Catania":"Sicilia","Messina":"Sicilia","Enna":"Sicilia","Cagliari":"Sardegna","Sassari":"Sardegna","Aosta":"Valle d'Aosta","Campobasso":"Molise"
-}
+def parse_deadline(text):
+ m=re.search(r'(\d{2})/(\d{2})/(\d{4})(?:\s*-?\s*alle ore\s*(\d{1,2}):(\d{2}))?',text)
+ if not m:raise ValueError('Missing deadline: '+text[:100])
+ d,mo,y,h,mi=m.groups();dt=datetime(int(y),int(mo),int(d),int(h or 23),int(mi or 59),0 if h else 59,tzinfo=ZoneInfo('Europe/Rome'))
+ return dt.date().isoformat(),dt.isoformat()
 
-def get(session: requests.Session, url: str, **kwargs) -> requests.Response:
-    last = None
-    for delay in (0, 2, 5):
-        if delay: time.sleep(delay)
-        try:
-            response = session.get(url, timeout=30, **kwargs)
-            response.raise_for_status()
-            time.sleep(1)
-            return response
-        except requests.RequestException as exc:
-            last = exc
-    raise RuntimeError(f"Cannot fetch {url}: {last}")
+def role_for(kind,role_text):
+ t=norm(role_text)
+ if kind=='professors':
+  if 'prima fascia' in t:return 'Professore ordinario'
+  if 'seconda fascia' in t:return 'Professore associato'
+  return 'Professore · fascia da verificare'
+ if kind=='researchers':
+  if '(a)' in t:return 'RTD-A'
+  if '(b)' in t:return 'RTD-B'
+  if 'pnrr' in t:return 'Ricercatore PNRR'
+  if 'rtt' in t:return 'RTT'
+ return CATEGORIES[kind][3]
 
-def text_map(soup: BeautifulSoup) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for row in soup.select("tr"):
-        cells = [c.get_text(" ", strip=True) for c in row.select("th,td")]
-        if len(cells) >= 2 and cells[0]: values.setdefault(cells[0].rstrip(" :"), " ".join(cells[1:]).strip())
-    return values
+def parse_list(html,kind,allow_filtered_empty=False):
+ soup=BeautifulSoup(html,'html.parser');text=soup.get_text(' ',strip=True)
+ count=re.search(r'trovati\s+(\d+)\s+bandi',text,re.I)
+ if count:expected=int(count[1])
+ elif re.search(r'Totale bandi aperti:\s*0\b',text):expected=0
+ elif allow_filtered_empty and 'Risultato della ricerca bandi' in text and soup.select_one('form select[name=idqualifica]'):expected=0
+ else:raise ValueError(kind+': missing count; source format changed')
+ records=[]
+ for p in soup.select('.result > p'):
+  a=p.select_one('a[href*="/public/"]');em=p.find('em');strong=p.find('strong')
+  if not a or not em or not strong:raise ValueError(kind+': malformed result')
+  url=canonical(urljoin(BASE,a['href']));raw_role=a.find('i');role=role_for(kind,raw_role.text if raw_role else '')
+  if raw_role:raw_role.extract()
+  deadline,instant=parse_deadline(em.get_text(' ',strip=True))
+  sectors=[clean(x.text).removeprefix('Settore ') for x in p.find_all('strong')[1:]]
+  records.append({'id':kind+'-'+url.rsplit('/',1)[-1],'url':url,'category':kind,'title':clean(a.text),'role':role,'institutionLabel':clean(strong.text),'institution':clean(strong.text),'deadline':deadline,'deadlineAt':instant,'sourceStatus':'closed' if 'scaduto' in em.get('class',[]) else 'open','sector':' · '.join(sectors),'codes':sorted(set(CODE.findall(' '.join(sectors)))),'published':None,'city':'','region':'','source':'MUR · Bandi'})
+ if len(records)!=expected or len({r['id'] for r in records})!=expected:raise ValueError(f'{kind}: expected {expected}, parsed {len(records)}; refusing partial publication')
+ entities={o['value']:clean(o.text) for o in soup.select('select[name="bb_type_code"] option') if o['value']!='%'}
+ return records,entities,expected
 
-def field(data: dict[str, str], *starts: str) -> str:
-    for key, value in data.items():
-        if any(key.casefold().startswith(start.casefold()) for start in starts) and value:
-            return value
-    return ""
+def detail(call,html):
+ soup=BeautifulSoup(html,'html.parser');fields={}
+ for row in soup.select('table tr'):
+  cells=row.find_all(['th','td'],recursive=False)
+  if len(cells)>=2:fields.setdefault(norm(cells[0].get_text(' ',strip=True)),[]).append(clean(cells[1].get_text(' ',strip=True)))
+ def first(key):return next((x for x in fields.get(norm(key),[]) if x and x!='-'),'')
+ title=first('Titolo del progetto di ricerca in italiano') or first('Titolo del progetto in italiano')
+ if not title:title=next((v[0] for k,v in fields.items() if k.startswith('titolo') and 'italiano' in k),'')
+ if not title:raise ValueError('Missing detail title '+call['url'])
+ call['title']=title
+ call['city']=first('Città')
+ call['gsd']=first('G.S.D.')
+ ssd=first('S.S.D') or first('S.S.D.')
+ call['sector']=ssd or call['sector'] or call['gsd']
+ sector_fields=' '.join(sum([v for k,v in fields.items() if k.startswith(('s.s.d','g.s.d','settore concorsuale'))],[]))
+ call['codes']=sorted(set(call['codes']+CODE.findall(sector_fields)))
+ pub=first('Data del bando')
+ if pub:call['published']=parse_deadline(pub)[0]
+ due=first('Data di scadenza del bando')
+ if not due:raise ValueError('Missing detail deadline')
+ call['deadline'],call['deadlineAt']=parse_deadline(due)
+ call['description']=first('Descrizione sintetica in italiano')[:3500]
+ call['detailVerified']=True
+ call['checkedAt']=datetime.now(timezone.utc).isoformat()
+ return call
 
-def iso_date(value: str) -> str:
-    match = DATE_RE.search(value or "")
-    return dt.datetime.strptime(match.group(1), "%d/%m/%Y").date().isoformat() if match else ""
+def enrich(call,catalog,labels):
+ inst=labels.get(norm(call.get('institutionLabel',''))) or labels.get(norm(call.get('institution','')))
+ if inst:call['institutionId']=inst['id'];call['institution']=inst['name']
+ raw=clean(call.get('city',''));call['sourceCity']=raw
+ aliases={'milan':'Milano','rome':'Roma','florence':'Firenze','naples':'Napoli','reggio calabria':'Reggio di Calabria','firenzaee':'Firenze','pieve emanuele - milano':'Pieve Emanuele','pollenzo fraz. di bra':'Bra','sesto fiorentino (fi) – italia':'Sesto Fiorentino','via menicucci 660121 ancona ancona':'Ancona'}
+ raw=aliases.get(norm(raw),raw)
+ cities=catalog['_cities'];found=cities.get(norm(raw)) or cities.get(norm(re.sub(r'\s*\([^)]*\)\s*$','',raw)))
+ places=[found] if found else []
+ if not places and re.search(r'\s*-\s*',raw):
+  parts=re.split(r'\s*-\s*',raw)
+  if all(norm(p) in cities for p in parts):places=[cities[norm(p)] for p in parts]
+ if places:
+  call['locations']=[{k:c[k] for k in ['name','code','region','province']} for c in places]
+  call['city']=', '.join(c['name'] for c in places);call['region']=', '.join(dict.fromkeys(c['region'] for c in places))
+  if len(places)==1:call['cityCode']=places[0]['code']
+ elif not raw and inst and inst.get('city'):
+  call['city']=inst['city'];call['region']=inst.get('region','');call['locationNote']='Sede dell’ateneo; verifica la sede di lavoro nel bando.'
+ elif 'province of matera' in norm(raw):call['region']='Basilicata';call['locationNote']='La fonte indica la provincia di Matera, senza specificare il comune.'
+ elif not call.get('region'):call['region']=''
+ codes=set(call.get('codes',[]));ssd=[]
+ for s in catalog['sectors']:
+  if s['code'] in codes or set(s['oldCodes']) & codes:ssd.append(s)
+ # When only a GSD is supplied do not invent a specific SSD in a multi-SSD group.
+ call['sectorCodes']=[s['code'] for s in ssd]
+ if ssd:call['sector']=' · '.join(s['code']+' — '+s['name'] for s in ssd)
+ call['groupCodes']=sorted(set([s['gsd'] for s in ssd]+[c for c in codes if re.fullmatch(r'\d{2}/[A-Z]{4}-\d{2}',c)]))
+ if not call['groupCodes']:
+  call['groupCodes']=sorted({item['gsd'] for item in catalog['sectors'] if set(item['oldSC']) & codes})
+ call['aliases']=sorted(set(sum([s['oldCodes']+s['oldSC']+[s['name']] for s in ssd],[])))
+ call['sectorCode']=' · '.join(call['sectorCodes'])
+ return call
 
-def infer_role(page_title: str, title: str) -> str:
-    text = f"{page_title} {title}".casefold()
-    if "ordinario" in text or "prima fascia" in text: return "Professore ordinario"
-    if "associato" in text or "seconda fascia" in text: return "Professore associato"
-    if "post doc" in text or "post-doc" in text: return "Incarico post-doc"
-    if "contratt" in text and "ricerca" in text: return "Contratto di ricerca"
-    if "assegn" in text: return "Assegno di ricerca"
-    if "dottorat" in text: return "Dottorato"
-    if "tecnolog" in text: return "Tecnologo"
-    return "RTT / Ricercatore TD"
+def active(call,now=None):
+ return call.get('sourceStatus')=='open' and bool(call.get('deadlineAt')) and datetime.fromisoformat(call['deadlineAt'])>=(now or datetime.now(timezone.utc)) and call.get('presentInLatestSource',True)
 
-def find_search_pages(session: requests.Session) -> list[str]:
-    soup = BeautifulSoup(get(session, BASE).text, "html.parser")
-    pages = {urljoin(BASE, a.get("href")).replace("http://bandi.mur.gov.it/", BASE) for a in soup.select("a[href]") if ".php" in (a.get("href") or "")}
-    pages.add(urljoin(BASE, "jobs.php/public/cercaJobs"))
-    return sorted(pages)
-
-def run_search(session: requests.Session, page: str) -> set[str]:
-    soup = BeautifulSoup(get(session, page).text, "html.parser")
-    form = soup.find("form")
-    if form:
-        params = {}
-        for hidden in form.select('input[type="hidden"][name]'):
-            params[hidden["name"]] = hidden.get("value", "")
-        for select in form.select("select[name]"):
-            options = select.find_all("option")
-            open_option = next((o for o in options if "apert" in o.get_text(" ", strip=True).casefold()), None)
-            wildcard = next((o for o in options if "tutt" in o.get_text(" ", strip=True).casefold()), None)
-            chosen = open_option or wildcard
-            if chosen: params[select["name"]] = chosen.get("value", "")
-        params.setdefault("azione", "cerca")
-        action = urljoin(page, form.get("action") or page)
-        soup = BeautifulSoup(get(session, action, params=params).text, "html.parser")
-    return {urljoin(page, a["href"]).replace("http://bandi.mur.gov.it/", BASE) for a in soup.select("a[href]") if DETAIL_RE.search(a["href"])}
-
-def parse_detail(session: requests.Session, url: str) -> dict | None:
-    soup = BeautifulSoup(get(session, url).text, "html.parser")
-    data = text_map(soup)
-    title = field(data, "Titolo del progetto di ricerca in italiano", "Titolo in italiano", "Titolo")
-    deadline = iso_date(field(data, "Data di scadenza"))
-    published = iso_date(field(data, "Data del bando", "Data pubblicazione"))
-    if not title or not deadline: return None
-    institution = field(data, "Organizzazione/Ente")
-    city = field(data, "Città")
-    sector_raw = field(data, "S.S.D")
-    gsd = field(data, "G.S.D")
-    sector_code, _, sector = sector_raw.partition(" - ")
-    heading = soup.find(["h1", "h2"])
-    page_title = heading.get_text(" ", strip=True) if heading else ""
-    canonical = url.split("?")[0]
-    return {
-        "id":"mur-" + hashlib.sha1(canonical.encode()).hexdigest()[:12], "title":title,
-        "role":infer_role(page_title, title), "institution":institution or "Ente non indicato",
-        "city":city or "Sede non indicata", "region":REGIONS.get(city, "Regione da verificare"),
-        "sector":sector or sector_raw or field(data, "Campo principale della ricerca"),
-        "sectorCode":sector_code if sector else "", "gsd":gsd,
-        "keywords":" ".join([field(data,"Campo principale"),field(data,"Sottocampo")]),
-        "published":published or deadline, "deadline":deadline, "source":"MUR · Bandi", "url":canonical
-    }
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="services/ateneo-bandi/data/calls.json")
-    args = parser.parse_args()
-    output = Path(args.output)
-    old = json.loads(output.read_text()) if output.exists() else {"calls":[]}
-    session = requests.Session(); session.headers.update({"User-Agent":UA,"Accept-Language":"it-IT,it;q=0.9"})
-    urls: set[str] = set()
-    for page in find_search_pages(session):
-        try: urls.update(run_search(session, page))
-        except Exception as exc: print(f"warning: {page}: {exc}", file=sys.stderr)
-    fresh = []
-    for index, url in enumerate(sorted(urls), 1):
-        try:
-            item = parse_detail(session, url)
-            if item: fresh.append(item)
-        except Exception as exc: print(f"warning: {url}: {exc}", file=sys.stderr)
-        print(f"[{index}/{len(urls)}] {url}", file=sys.stderr)
-    if len(fresh) < 5: raise RuntimeError(f"Safety stop: only {len(fresh)} records parsed")
-    by_id = {item["id"]:item for item in old.get("calls", [])}
-    by_id.update({item["id"]:item for item in fresh})
-    cutoff = (dt.date.today() - dt.timedelta(days=180)).isoformat()
-    merged = [item for item in by_id.values() if item.get("deadline", "") >= cutoff]
-    merged.sort(key=lambda item:(item["deadline"],item["institution"]))
-    payload={"updatedAt":dt.datetime.now(dt.timezone.utc).isoformat(),"coverageNote":"Indice aggiornato automaticamente dal portale MUR. Le categorie vengono ampliate progressivamente; verifica sempre il testo ufficiale.","calls":merged}
-    output.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n")
-    print(f"Wrote {len(merged)} calls ({len(fresh)} currently indexed)")
-    return 0
-
-if __name__ == "__main__": raise SystemExit(main())
+def main(source_dir=None,workers=4):
+ catalog=json.loads((ROOT/'data/catalogs.json').read_text());entities={i['id']:i for i in catalog['institutions']};calls=[];coverage=[]
+ source_dir=Path(source_dir) if source_dir else None
+ # All list checks finish successfully before any public JSON is replaced.
+ for kind,(path,form,status,role) in CATEGORIES.items():
+  url=f'{BASE}/{path}.php/public/cerca{form}?azione=cerca&{status}_comp_status_id=2-3'
+  rows,names,total=parse_list(get(url,source_dir/(kind+'.html') if source_dir else None),kind)
+  for key,name in names.items():
+   if key not in entities:entities[key]={'id':key,'name':name,'city':'','region':'','kind':'ente','aliases':[]}
+   elif name not in entities[key]['aliases']:entities[key]['aliases'].append(name)
+  calls.extend(rows);coverage.append({'category':kind,'expected':total,'parsed':len(rows),'url':url,'checkedAt':datetime.now(timezone.utc).isoformat(),'status':'ok'})
+  print(kind,total,flush=True)
+ research_roles={}
+ for code,role in {'21':'RTD-A','22':'RTD-B','81':'Ricercatore PNRR','82':'RTT'}.items():
+  url=f'{BASE}/jobs.php/public/cercaJobs?azione=cerca&jv_comp_status_id=2-3&idqualifica={code}'
+  rows,_,total=parse_list(get(url,source_dir/('role-'+code+'.html') if source_dir else None),'researchers',allow_filtered_empty=True)
+  for c in rows:
+   if c['id'] in research_roles:raise ValueError('Overlapping researcher categories')
+   research_roles[c['id']]=role
+ if set(research_roles)!={c['id'] for c in calls if c['category']=='researchers'}:raise ValueError('Researcher subtypes do not reconcile')
+ for c in calls:
+  if c['id'] in research_roles:c['role']=research_roles[c['id']]
+ known_names={norm(n) for i in entities.values() for n in [i['name']]+i['aliases']}
+ for call in calls:
+  name=call['institutionLabel']
+  if norm(name) not in known_names:
+   key='mur-'+hashlib.sha1(name.encode()).hexdigest()[:12];entities[key]={'id':key,'name':name,'city':'','region':'','kind':'ente','aliases':[]};known_names.add(norm(name))
+ catalog['institutions']=list(entities.values()); labels={norm(n):i for i in entities.values() for n in [i['name']]+i['aliases'] if n}
+ citymap={norm(n):c for c in catalog['cities'] for n in [c['name']]+c['aliases'] if n};catalog['_cities']=citymap
+ old=json.loads((ROOT/'data/calls.json').read_text()) if (ROOT/'data/calls.json').exists() else {'calls':[]}
+ failures=[];completed=[]
+ def worker(c):
+  try:return detail(c,get(c['url'],source_dir/'details'/(c['id']+'.html') if source_dir else None))
+  except Exception as e:c['detailVerified']=False;failures.append(c['id']);print('DETAIL FAILED',c['id'],type(e).__name__,flush=True);return c
+ with ThreadPoolExecutor(max_workers=workers) as ex:
+  for f in as_completed([ex.submit(worker,c) for c in calls]):
+   c=enrich(f.result(),catalog,labels);c['presentInLatestSource']=True;completed.append(c)
+   if len(completed)%50==0:print('Details',len(completed),'/',len(calls),flush=True)
+ urls={c['url'] for c in completed};now=datetime.now(timezone.utc)
+ for c in old['calls']:
+  if canonical(c['url']) in urls:continue
+  # Retain history, but never treat absence from today's active list as confirmation.
+  c['presentInLatestSource']=False
+  path=urlsplit(c['url']).path.split('.php')[0].lstrip('/')
+  kind=next((k for k,v in CATEGORIES.items() if v[0]==path),None)
+  if not kind:continue
+  c['category']=kind;c['id']=kind+'-'+c['url'].rsplit('/',1)[-1]
+  if kind not in ['professors','researchers']:c['role']=CATEGORIES[kind][3]
+  if not c.get('deadlineAt'):c['deadlineAt']=c['deadline']+'T23:59:59'+('+'+('02:00' if datetime.fromisoformat(c['deadline']).replace(tzinfo=ZoneInfo('Europe/Rome')).utcoffset().seconds==7200 else '01:00'))
+  c['sourceStatus']='closed' if datetime.fromisoformat(c['deadlineAt'])<now else 'unconfirmed'
+  c['codes']=sorted(set(c.get('codes',[])+CODE.findall(' '.join([c.get('sector',''),c.get('sectorCode',''),c.get('gsd','')]))))
+  completed.append(enrich(c,catalog,labels));urls.add(canonical(c['url']))
+ updated=now.isoformat()
+ data={'schemaVersion':2,'updatedAt':updated,'coverage':coverage,'detailFailures':failures,'coverageNote':f'Tutte le 8 categorie nazionali MUR controllate. {len(calls)} schede nelle liste aperte; {len(failures)} dettagli non verificati. L’archivio conserva i bandi già acquisiti, non tutto lo storico MUR. Sono esclusi i bandi pubblicati solo sui siti degli enti.','calls':sorted(completed,key=lambda c:(c['deadline'],c['id']))}
+ prof=[c for c in completed if c['category']=='professors' and c.get('presentInLatestSource')]
+ targets=[c for c in prof if c['role']=='Professore ordinario' and active(c,now) and (set(c.get('sectorCodes',[])) & {'BIOS-08/A','BIOS-14/A'} or set(c.get('groupCodes',[])) & {'05/BIOS-08','05/BIOS-14'})]
+ uncertain=[c['id'] for c in prof if not c.get('detailVerified') or not c.get('codes') or c['role']=='Professore · fascia da verificare']
+ digest={'updatedAt':updated,'scope':'Italia; chiamate dei professori MUR; prima fascia; biologia molecolare oppure genetica','source':next(c for c in coverage if c['category']=='professors'),'status':'incomplete' if uncertain else 'verified','unclassified':uncertain,'calls':targets,'coverageNote':'Ricerca nazionale MUR senza restrizioni di ateneo. Verificare documenti, rettifiche e riserve nei bandi originali; non certifica la completezza dei siti di ateneo.'}
+ del catalog['_cities']
+ for name,obj in [('calls.json',data),('catalogs.json',catalog),('professor-watch.json',digest)]:
+  target=ROOT/'data'/name;tmp=target.with_suffix('.tmp');tmp.write_text(json.dumps(obj,ensure_ascii=False,separators=(',',':'))+'\n');tmp.replace(target)
+ print('Published',len(completed),'records; watch:',digest['status'],len(targets),'matches;',len(uncertain),'uncertain',flush=True)
+if __name__=='__main__':
+ p=argparse.ArgumentParser();p.add_argument('--source-dir');p.add_argument('--workers',type=int,default=4);a=p.parse_args();main(a.source_dir,a.workers)

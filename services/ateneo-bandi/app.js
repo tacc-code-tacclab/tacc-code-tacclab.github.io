@@ -1,156 +1,93 @@
 (function () {
-  "use strict";
-
-  const state = { calls: [], visible: 10, filtered: [] };
-  const el = (id) => document.getElementById(id);
-  const form = el("filters");
-  const fields = ["query", "role", "region", "city", "institution", "status", "sort"];
-
-  const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const isoDay = (date) => new Date(`${date}T23:59:59`);
-  const formatDate = (date) => new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", year: "numeric" }).format(isoDay(date));
-  const isActive = (call, now = new Date()) => isoDay(call.deadline) >= now;
-  const daysLeft = (call, now = new Date()) => Math.ceil((isoDay(call.deadline) - now) / 86400000);
-  const safeUrl = (value) => { try { const url = new URL(value); return url.protocol === "https:" ? url.href : "#"; } catch { return "#"; } };
-
-  function populateSelect(id, values) {
-    const select = el(id);
-    const existing = new Set([...select.options].map((option) => option.value));
-    [...new Set(values.filter(Boolean))].filter((value) => !existing.has(value)).sort((a, b) => a.localeCompare(b, "it")).forEach((value) => {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = value;
-      select.append(option);
-    });
+  'use strict';
+  const state = { calls: [], visible: 12, filtered: [], catalog: null, engine: null };
+  const el = id => document.getElementById(id);
+  const form = el('filters');
+  const fields = ['query','sector','role','region','city','institution','status','sort'];
+  const S = window.BandiSearch;
+  const storage = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k,v) { try { localStorage.setItem(k,v); return true; } catch { return false; } }, remove(k) { try { localStorage.removeItem(k); } catch {} } };
+  const escape = v => String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeUrl = value => { try { const u = new URL(value); return u.protocol === 'https:' ? escape(u.href) : '#'; } catch { return '#'; } };
+  const formatDay = date => date ? new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeZone:'Europe/Rome'}).format(new Date(`${date}T12:00:00Z`)) : 'Non indicata';
+  const formatInstant = date => new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Rome'}).format(new Date(date));
+  const currentFilters = () => Object.fromEntries(fields.map(f => [f, el(f).value.trim()]));
+  function options(id, entries) {
+    el(id).replaceChildren(...entries.map(e => { const o = document.createElement('option'); o.value = typeof e === 'string' ? e : e.value; o.textContent = typeof e === 'string' ? e : e.label; return o; }));
   }
-
-  function currentFilters() {
-    return Object.fromEntries(fields.map((field) => [field, el(field).value]));
+  function cities() {
+    if (!state.catalog) return;
+    const q = S.normalize(el('city').value.split(' — ')[0]);
+    const region = el('region').value;
+    options('city-options', state.catalog.cities.filter(c => (!region || c.region === region) && (!q || [c.name,...c.aliases].some(n => S.normalize(n).includes(q)))).slice(0,100).map(c => ({value:`${c.name} — ${c.province}`,label:c.region})));
   }
-
-  function matches(call, filters, now = new Date()) {
-    const haystack = normalize([call.title, call.sector, call.sectorCode, call.gsd, call.keywords, call.institution, call.city, call.region, call.role].join(" "));
-    const tokens = normalize(filters.query).split(/\s+/).filter(Boolean);
-    if (tokens.some((token) => !haystack.includes(token))) return false;
-    if (filters.role && call.role !== filters.role) return false;
-    if (filters.region && call.region !== filters.region) return false;
-    if (filters.city && call.city !== filters.city) return false;
-    if (filters.institution && call.institution !== filters.institution) return false;
-    const active = isActive(call, now);
-    if (filters.status === "active" && !active) return false;
-    if (filters.status === "expired" && active) return false;
-    if (filters.status === "expiring" && (!active || daysLeft(call, now) > 7)) return false;
-    return true;
+  function setFilters(values) { form.reset(); fields.forEach(f => { if (typeof values[f] === 'string') el(f).value = values[f]; }); cities(); }
+  function makeQuery(f) {
+    const p = new URLSearchParams();
+    Object.entries(f).forEach(([k,v]) => { if (v && !(k==='status' && v==='active') && !(k==='sort' && v==='deadline')) p.set(k,v); });
+    return `${location.pathname}${p.size ? '?'+p : ''}`;
   }
-
-  function sortCalls(calls, sort) {
-    return [...calls].sort((a, b) => {
-      if (sort === "newest") return b.published.localeCompare(a.published);
-      if (sort === "institution") return a.institution.localeCompare(b.institution, "it");
-      return a.deadline.localeCompare(b.deadline);
-    });
+  function card(c) {
+    const active = S.isActive(c), expired = S.isExpired(c), n = S.daysLeft(c);
+    const label = active ? (n <= 1 ? 'Scadenza vicina' : `${n} giorni`) : expired ? 'Scaduto / chiuso' : 'Stato da verificare';
+    const a = document.createElement('article'); a.className = 'call-card';
+    const place = [c.city,c.region].filter(Boolean).join(', ') || 'Sede da verificare nel bando';
+    a.innerHTML = `<div class="call-top"><div class="badges"><span class="badge status ${active?'':'expired'}">${label}</span><span class="badge">${escape(c.role)}</span></div><span class="deadline">Scadenza · ${c.deadlineAt ? formatInstant(c.deadlineAt) : formatDay(c.deadline)} (Italia)</span></div>
+      <h3>${escape(c.title)}</h3><div class="call-meta"><span>⌂ ${escape(c.institution)}</span><span>⌖ ${escape(place)}</span><span>Pubblicato ${formatDay(c.published)}</span></div>
+      <p class="sector">${escape(c.sector || c.gsd || 'Settore da verificare nel bando')}</p>
+      ${c.aliases?.length ? `<p class="code-aliases">Codici equivalenti: ${escape(c.aliases.filter(x => /\d/.test(x)).join(' · '))}</p>`:''}
+      ${c.locationNote ? `<p class="small-text">${escape(c.locationNote)}</p>`:''}
+      ${c.detailVerified === false ? '<p class="small-text">Scheda importata dalla lista MUR; dettaglio non verificato nell’ultimo controllo.</p>':''}
+      <div class="call-bottom"><span class="source">Fonte: MUR · Bandi</span><a class="official" href="${safeUrl(c.url)}" target="_blank" rel="noopener">Verifica il bando ufficiale ↗</a></div>`;
+    return a;
   }
-
-  function card(call) {
-    const active = isActive(call);
-    const remaining = daysLeft(call);
-    const article = document.createElement("article");
-    article.className = "call-card";
-    const statusText = active ? (remaining === 0 ? "Scade oggi" : remaining === 1 ? "1 giorno" : `${remaining} giorni`) : "Scaduto";
-    article.innerHTML = `
-      <div class="call-top"><div class="badges"><span class="badge status ${active ? "" : "expired"}">${statusText}</span><span class="badge">${escapeHtml(call.role)}</span></div><span class="deadline">Scadenza · ${formatDate(call.deadline)}</span></div>
-      <h3>${escapeHtml(call.title)}</h3>
-      <div class="call-meta"><span>⌂ ${escapeHtml(call.institution)}</span><span>⌖ ${escapeHtml(call.city)}, ${escapeHtml(call.region)}</span><span>Pubblicato ${formatDate(call.published)}</span></div>
-      <p class="sector"><strong>${escapeHtml(call.sectorCode || call.gsd || "Settore non indicato")}</strong> · ${escapeHtml(call.sector || "Consulta il bando")}</p>
-      <div class="call-bottom"><span class="source">Fonte: ${escapeHtml(call.source)}</span><a class="official" href="${safeUrl(call.url)}" target="_blank" rel="noopener">Verifica il bando ufficiale ↗</a></div>`;
-    return article;
+  function render(reset = true) {
+    if (!state.engine) return;
+    if (reset) state.visible = 12;
+    const f = currentFilters();
+    state.filtered = S.sortCalls(state.calls.filter(c => state.engine.matches(c,f)),f.sort);
+    const cards = el('cards'); cards.replaceChildren(...state.filtered.slice(0,state.visible).map(card)); cards.setAttribute('aria-busy','false');
+    if (!state.filtered.length) cards.append(el('empty-template').content.cloneNode(true));
+    el('result-count').textContent = state.filtered.length;
+    const active = state.filtered.filter(c => S.isActive(c)).length, expired = state.filtered.filter(c => S.isExpired(c)).length;
+    el('result-summary').textContent = `${active} aperti · ${expired} scaduti/chiusi${state.filtered.length-active-expired ? ` · ${state.filtered.length-active-expired} da verificare`:''}`;
+    el('load-more').hidden = state.visible >= state.filtered.length;
+    history.replaceState(null,'',makeQuery(f)+location.hash);
   }
-
-  function escapeHtml(value) {
-    return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+  function savedState() {
+    const exists = !!storage.get('ateneo-bandi-search');
+    el('restore-search').hidden = !exists; el('delete-search').hidden = !exists;
   }
-
-  function render(resetVisible = true) {
-    if (resetVisible) state.visible = 10;
-    const filters = currentFilters();
-    state.filtered = sortCalls(state.calls.filter((call) => matches(call, filters)), filters.sort);
-    const cards = el("cards");
-    cards.replaceChildren(...state.filtered.slice(0, state.visible).map(card));
-    cards.setAttribute("aria-busy", "false");
-    if (!state.filtered.length) cards.append(el("empty-template").content.cloneNode(true));
-    el("result-count").textContent = state.filtered.length;
-    const activeCount = state.filtered.filter((call) => isActive(call)).length;
-    el("result-summary").textContent = `${activeCount} aperti · ${state.filtered.length - activeCount} scaduti · ordinamento per ${filters.sort === "deadline" ? "scadenza" : filters.sort === "newest" ? "pubblicazione" : "ateneo"}.`;
-    el("load-more").hidden = state.visible >= state.filtered.length;
-    history.replaceState(null, "", makeQuery(filters));
-  }
-
-  function makeQuery(filters) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => { if (value && !(key === "status" && value === "active") && !(key === "sort" && value === "deadline")) params.set(key, value); });
-    return `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`;
-  }
-
-  function applyQuery() {
-    const params = new URLSearchParams(location.search);
-    fields.forEach((field) => { if (params.has(field)) el(field).value = params.get(field); });
-  }
-
-  function updateCities() {
-    const chosenRegion = el("region").value;
-    const current = el("city").value;
-    el("city").innerHTML = '<option value="">Tutte le città</option>';
-    populateSelect("city", state.calls.filter((call) => !chosenRegion || call.region === chosenRegion).map((call) => call.city));
-    if ([...el("city").options].some((option) => option.value === current)) el("city").value = current;
-  }
-
   async function init() {
-    document.querySelector(".theme").addEventListener("click", () => {
-      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      localStorage.setItem("theme", next);
-    });
     try {
-      const response = await fetch("data/calls.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("Dati non disponibili");
-      const payload = await response.json();
-      state.calls = payload.calls || [];
-      populateSelect("role", state.calls.map((call) => call.role));
-      populateSelect("region", state.calls.map((call) => call.region));
-      populateSelect("institution", state.calls.map((call) => call.institution));
-      updateCities();
-      el("freshness").textContent = `Aggiornato · ${new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(payload.updatedAt))}`;
-      if (payload.coverageNote) { el("data-notice").textContent = payload.coverageNote; el("data-notice").hidden = false; }
-      applyQuery();
-      updateCities();
-      render();
-    } catch (error) {
-      el("cards").setAttribute("aria-busy", "false");
-      el("cards").innerHTML = '<div class="empty"><span>!</span><h3>Dati momentaneamente non disponibili.</h3><p>Puoi consultare direttamente il portale ufficiale MUR dalla sezione Fonti.</p></div>';
-      el("data-notice").textContent = error.message;
-      el("data-notice").hidden = false;
+      const [data,catalog] = await Promise.all(['data/calls.json','data/catalogs.json'].map(async url => { let r; try { r = await fetch('https://raw.githubusercontent.com/tacc-code-tacclab/tacc-code-tacclab.github.io/main/services/ateneo-bandi/'+url+'?v=2&t='+Math.floor(Date.now()/300000),{cache:'no-store'}); if (!r.ok) throw new Error('Snapshot non disponibile'); } catch { r = await fetch(url,{cache:'no-store'}); } if (!r.ok) throw new Error('Dati non disponibili'); return r.json(); }));
+      state.calls = data.calls; state.catalog = catalog; state.engine = S.create(catalog);
+      catalog.regions.forEach(r => { const o=document.createElement('option'); o.value=r; o.textContent=r; el('region').append(o); });
+      options('institution-options', [...catalog.institutions].sort((a,b) => a.name.localeCompare(b.name,'it')).map(i => ({value:i.name,label:[i.city,i.region,...i.aliases].filter(Boolean).join(' · ')})));
+      const sectors = [...catalog.sectors.map(s => ({value:`${s.code} — ${s.name}`,label:`ex ${s.oldCodes.join(', ')} · ${s.gsd}`})), ...catalog.groups.map(g => ({value:`${g.code} — ${g.name}`,label:'Gruppo scientifico-disciplinare'})), ...catalog.oldSC.map(g => ({value:`${g.code} — ${g.name}`,label:'Settore concorsuale precedente'})), ...catalog.oldSectors.map(s => ({value:s.code,label:s.name}))];
+      options('sector-options',sectors);
+      el('catalog-summary').textContent = `${catalog.institutions.filter(i=>i.kind==='ateneo').length} istituzioni universitarie · ${catalog.institutions.filter(i=>i.kind!=='ateneo').length} altri enti · 20 regioni · ${catalog.cities.length.toLocaleString('it-IT')} comuni · ${catalog.groups.length} GSD · ${catalog.sectors.length} SSD attuali + codici storici`;
+      el('freshness').textContent = `Ultimo controllo · ${formatInstant(data.updatedAt)}`;
+      const stale = Date.now()-new Date(data.updatedAt).getTime()>36*3600000;
+      el('data-notice').textContent = (stale ? 'ATTENZIONE: l’indice non viene aggiornato da oltre 36 ore. ' : '') + data.coverageNote;
+      el('data-notice').hidden = false;
+      const names = {professors:'Professori',researchers:'Ricercatori',contracts:'Contratti di ricerca',postdoc:'Post-doc',research:'Incarichi di ricerca',grants:'Assegni',phd:'Dottorati',technologists:'Tecnologi'};
+      el('coverage-details').innerHTML = `<p>Ogni categoria viene interrogata su tutti gli enti, senza filtro territoriale. Le date sono interpretate nel fuso Europe/Rome.</p><ul>${(data.coverage||[]).map(c=>`<li><a target="_blank" rel="noopener" href="${safeUrl(c.url)}">${escape(names[c.category]||c.category)}</a>: ${c.parsed}/${c.expected} schede · ${formatInstant(c.checkedAt)}</li>`).join('')}</ul><p>Un elenco completo di atenei non garantisce che ogni bando sia comunicato al MUR. L’archivio del servizio cresce con le acquisizioni; per lo storico integrale consulta la fonte.</p>`;
+      setFilters(Object.fromEntries(new URLSearchParams(location.search))); render(); savedState();
+    } catch(error) {
+      el('cards').setAttribute('aria-busy','false'); el('cards').innerHTML='<div class="empty"><h3>Dati momentaneamente non disponibili.</h3><p>Consulta il portale ufficiale MUR nella sezione Fonti.</p></div>';
+      el('data-notice').textContent=error.message;el('data-notice').hidden=false;
     }
   }
-
-  form.addEventListener("submit", (event) => { event.preventDefault(); render(); el("results").scrollIntoView({ behavior: "smooth" }); });
-  form.addEventListener("change", (event) => { if (event.target.id === "region") updateCities(); render(); });
-  let queryTimer;
-  el("query").addEventListener("input", () => { clearTimeout(queryTimer); queryTimer = setTimeout(() => render(), 160); });
-  el("reset").addEventListener("click", () => { form.reset(); updateCities(); render(); });
-  el("load-more").addEventListener("click", () => { state.visible += 10; render(false); });
-  document.querySelectorAll("[data-preset]").forEach((button) => button.addEventListener("click", () => {
-    form.reset();
-    Object.entries(JSON.parse(button.dataset.preset)).forEach(([key, value]) => { el(key).value = value; });
-    updateCities(); render(); el("results").scrollIntoView({ behavior: "smooth" });
-  }));
-  el("save-search").addEventListener("click", () => {
-    localStorage.setItem("ateneo-bandi-search", JSON.stringify(currentFilters()));
-    el("save-search").textContent = "★ Ricerca salvata";
-    el("save-search").classList.add("saved");
-  });
-  const saved = localStorage.getItem("ateneo-bandi-search");
-  if (saved) { el("save-search").textContent = "★ Ricerca salvata"; el("save-search").classList.add("saved"); }
-
-  window.AteneoBandi = { normalize, matches, sortCalls, isActive, daysLeft };
+  form.addEventListener('submit',e=>{e.preventDefault();render();el('results').scrollIntoView({behavior:'smooth'});});
+  form.addEventListener('change',e=>{if(e.target.id==='region'){el('city').value='';cities();}render();});
+  let timer; ['query','sector','city','institution'].forEach(id=>el(id).addEventListener('input',()=>{if(id==='city')cities();clearTimeout(timer);timer=setTimeout(()=>render(),180);}));
+  el('reset').addEventListener('click',()=>{form.reset();cities();render();});
+  el('load-more').addEventListener('click',()=>{state.visible+=12;render(false);});
+  document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{setFilters(JSON.parse(b.dataset.preset));render();el('results').scrollIntoView({behavior:'smooth'});}));
+  el('save-search').addEventListener('click',()=>{el('save-status').textContent=storage.set('ateneo-bandi-search',JSON.stringify(currentFilters()))?'Ricerca salvata su questo dispositivo.':'Il browser non permette di salvare: copia il link.';savedState();});
+  el('restore-search').addEventListener('click',()=>{try{setFilters(JSON.parse(storage.get('ateneo-bandi-search'))||{});render();el('save-status').textContent='Ricerca ripristinata.';}catch{storage.remove('ateneo-bandi-search');savedState();}});
+  el('delete-search').addEventListener('click',()=>{storage.remove('ateneo-bandi-search');savedState();el('save-status').textContent='Ricerca salvata eliminata.';});
+  el('share-search').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.origin+makeQuery(currentFilters()));el('save-status').textContent='Link copiato.';}catch{el('save-status').textContent='Copia l’indirizzo dalla barra del browser: contiene già i filtri.';}});
+  document.querySelector('.theme').addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;storage.set('theme',next);});
   init();
 })();

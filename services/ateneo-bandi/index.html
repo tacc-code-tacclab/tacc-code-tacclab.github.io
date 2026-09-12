@@ -11,15 +11,16 @@
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="style.css?v=1" />
+    <link rel="stylesheet" href="style.css?v=2" />
     <script>
       (() => {
-        const saved = localStorage.getItem("theme");
+        let saved; try { saved = localStorage.getItem("theme"); } catch {}
         const preferred = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         document.documentElement.dataset.theme = saved || preferred;
       })();
     </script>
-    <script src="app.js?v=1" defer></script>
+    <script src="search.js?v=2" defer></script>
+    <script src="app.js?v=2" defer></script>
     <title>Ateneo Bandi — TACC Lab Services</title>
   </head>
   <body>
@@ -67,11 +68,13 @@
             <span>Parole chiave, settore o codice SSD</span>
             <span class="query-wrap"><span aria-hidden="true">⌕</span><input id="query" name="query" type="search" autocomplete="off" placeholder="es. biologia molecolare, genetica, INFO-01/A" /></span>
           </label>
+          <label class="sector-picker"><span>Disciplina · SSD, GSD o settore concorsuale (anche vecchi codici)</span><input id="sector" name="sector" list="sector-options" placeholder="es. BIO11, BIOS-08/A, genetica o 05/I1" autocomplete="off" /><datalist id="sector-options"></datalist><small>Puoi combinare discipline con “o”: biologia molecolare o genetica.</small></label>
+          <p id="catalog-summary" class="catalog-summary"></p>
           <div class="filters-grid">
-            <label><span>Tipo di posizione</span><select id="role" name="role"><option value="">Tutti i ruoli</option><option>Incarico post-doc</option><option>Contratto di ricerca</option><option>Assegno di ricerca</option><option>RTT / Ricercatore TD</option><option>Professore associato</option><option>Professore ordinario</option><option>Dottorato</option><option>Tecnologo</option></select></label>
+            <label><span>Tipo di posizione</span><select id="role" name="role"><option value="">Tutti i ruoli</option><option>Incarico post-doc</option><option>Contratto di ricerca</option><option>Assegno di ricerca</option><option>RTT / Ricercatore TD</option><option>RTT</option><option>RTD-A</option><option>RTD-B</option><option>Ricercatore PNRR</option><option>Incarico di ricerca</option><option>Professore associato</option><option>Professore ordinario</option><option>Dottorato</option><option>Tecnologo</option></select></label>
             <label><span>Regione</span><select id="region" name="region"><option value="">Tutta Italia</option></select></label>
-            <label><span>Città</span><select id="city" name="city"><option value="">Tutte le città</option></select></label>
-            <label><span>Ateneo o ente</span><select id="institution" name="institution"><option value="">Tutti gli enti</option></select></label>
+            <label><span>Città</span><input id="city" name="city" list="city-options" autocomplete="off" placeholder="Digita una città italiana" /><datalist id="city-options"></datalist></label>
+            <label><span>Ateneo o ente</span><input id="institution" name="institution" list="institution-options" autocomplete="off" placeholder="Tutti gli atenei e gli enti" /><datalist id="institution-options"></datalist></label>
             <label><span>Stato</span><select id="status" name="status"><option value="active">Solo aperti</option><option value="expiring">In scadenza (7 giorni)</option><option value="expired">Scaduti</option><option value="all">Tutti</option></select></label>
             <label><span>Ordina per</span><select id="sort" name="sort"><option value="deadline">Scadenza più vicina</option><option value="newest">Più recenti</option><option value="institution">Ateneo A–Z</option></select></label>
           </div>
@@ -83,8 +86,8 @@
         <div class="quick-searches" aria-label="Ricerche di esempio">
           <span>Prova:</span>
           <button type="button" data-preset='{"region":"Emilia-Romagna","role":"RTT / Ricercatore TD"}'>RTT in Emilia-Romagna</button>
-          <button type="button" data-preset='{"query":"biologia molecolare"}'>Biologia molecolare</button>
-          <button type="button" data-preset='{"query":"informatica"}'>Informatica</button>
+          <button type="button" data-preset='{"sector":"BIO11 o BIO18","role":"Professore ordinario"}'>Ordinari · molecolare o genetica</button>
+          <button type="button" data-preset='{"sector":"INFO-01/A o IINF-05/A"}'>Informatica</button>
         </div>
       </section>
 
@@ -92,13 +95,13 @@
         <aside class="saved-card">
           <p class="step">02 · SEGUI</p>
           <h2>Salva questa ricerca.</h2>
-          <p>Conserva i filtri su questo dispositivo. Gli avvisi email con verifica dell'indirizzo sono in fase di attivazione.</p>
+          <p>Conserva i filtri su questo dispositivo oppure condividi il link. La ricerca pubblica è gratuita e non richiede email o registrazione.</p>
           <button class="save-search" id="save-search" type="button">☆ Salva i filtri</button>
-          <div class="email-preview" aria-label="Anteprima avvisi email">
-            <label><span>Email</span><input type="email" placeholder="nome@universita.it" disabled /></label>
-            <button type="button" disabled>Attiva avviso</button>
-            <small>Presto disponibile · double opt-in</small>
-          </div>
+          <button class="ghost" id="restore-search" type="button" hidden>Riprendi ricerca salvata</button>
+          <button class="ghost" id="delete-search" type="button" hidden>Elimina ricerca salvata</button>
+          <button class="ghost" id="share-search" type="button">Copia link della ricerca</button>
+          <p id="save-status" role="status" class="small-text"></p>
+          <p class="small-text">Gli enti e le discipline restano selezionabili anche senza bandi aperti. Nessun risultato significa nessuna corrispondenza nell’indice, non assenza certa di concorsi.</p>
         </aside>
 
         <div class="results-main">
@@ -106,7 +109,7 @@
             <div><p class="step">03 · VALUTA</p><h2><span id="result-count">0</span> opportunità trovate</h2></div>
             <p id="result-summary" aria-live="polite">Applica i filtri per iniziare.</p>
           </div>
-          <div class="notice" id="data-notice" hidden></div>
+          <div class="notice" id="data-notice" hidden></div><details class="coverage-panel"><summary>Copertura e ultimo controllo delle fonti</summary><div id="coverage-details"></div></details>
           <div class="cards" id="cards" aria-live="polite" aria-busy="true"></div>
           <button class="load-more" id="load-more" type="button" hidden>Mostra altri risultati</button>
           <template id="empty-template">
@@ -119,7 +122,7 @@
         <div><p class="step">METODO</p><h2>Prima il dato.<br />Poi il design.</h2></div>
         <ol>
           <li><span>01</span><div><h3>Raccogliamo</h3><p>La prima fonte è il portale Bandi del Ministero dell'Università e della Ricerca.</p></div></li>
-          <li><span>02</span><div><h3>Normalizziamo</h3><p>Ruoli, città, vecchi settori e nuovi GSD/SSD diventano ricercabili nello stesso modo.</p></div></li>
+          <li><span>02</span><div><h3>Normalizziamo</h3><p>Cataloghi MUR/USTAT e ISTAT indipendenti dai bandi. I codici vecchi e nuovi sono collegati mediante l’Allegato B del DM 639/2024; alcune corrispondenze sono uno-a-molti.</p></div></li>
           <li><span>03</span><div><h3>Verifichi</h3><p>Non sostituiamo il bando: ogni scheda porta alla pagina ufficiale da leggere prima di candidarsi.</p></div></li>
         </ol>
       </section>
@@ -128,10 +131,10 @@
         <div class="sources-title"><p class="step">COPERTURA E TRASPARENZA</p><h2>Le fonti non sono tutte uguali.</h2></div>
         <div class="source-grid">
           <article class="source-primary"><span>Fonte principale</span><h3>MUR · Bandi</h3><p>Ricercatori, chiamate dei professori, contratti e incarichi di ricerca/post-doc, assegni, tecnologi e dottorati comunicati dagli enti.</p><a href="https://bandi.mur.gov.it/" target="_blank" rel="noopener">Apri il portale MUR ↗</a></article>
-          <article><span>Fonte complementare</span><h3>Siti degli atenei</h3><p>Sono il riferimento finale per testo, allegati, rettifiche e opportunità locali non sempre presenti negli aggregatori.</p></article>
+          <article><span>Fonte complementare</span><h3>Siti degli atenei</h3><p>Sono il riferimento finale per testo, allegati e rettifiche. I bandi pubblicati esclusivamente sui siti degli enti non sono ancora indicizzati automaticamente.</p></article>
           <article><span>Fonte complementare</span><h3>inPA e Gazzetta</h3><p>Utili per concorsi pubblici generali e avvisi; non sostituiscono la raccolta specialistica universitaria.</p><a href="https://www.inpa.gov.it/" target="_blank" rel="noopener">Apri inPA ↗</a></article>
         </div>
-        <p class="disclaimer">Servizio informativo indipendente e sperimentale. Date e classificazioni possono contenere errori: fa fede esclusivamente il documento pubblicato dall'ente banditore. Ultimo controllo automatico indicato in alto.</p>
+        <p class="catalog-sources">Cataloghi: <a href="https://dati-ustat.mur.gov.it/dataset/metadati">MUR — Ufficio Statistica e Studi (IODL 2.0)</a> · <a href="https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.xlsx">ISTAT — comuni italiani</a> · <a href="https://www.mur.gov.it/it/atti-e-normativa/decreto-ministeriale-n-639-del-02-05-2024">DM 639/2024</a>.</p><p class="disclaimer">Servizio informativo indipendente e sperimentale. Date e classificazioni possono contenere errori: fa fede esclusivamente il documento pubblicato dall'ente banditore. Ultimo controllo automatico indicato in alto.</p>
       </section>
     </main>
 
