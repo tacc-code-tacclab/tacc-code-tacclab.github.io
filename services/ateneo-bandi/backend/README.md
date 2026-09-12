@@ -35,3 +35,26 @@ is untouched.
 
 Pause by disabling the automation or setting `enabled=false` in the private row.
 No public unsubscribe endpoint is needed because there is no public subscription.
+
+## Weekly descriptive report
+
+A separate Monday-morning automation sends the administrator a short statistical
+report for the previous calendar week (Monday through Sunday, Europe/Rome),
+covering all disciplines and all MUR categories. It sends every week, even when
+there are no new personal alerts. Its private configuration and delivery log live
+under `criteria.weekly_report`, separate from the personal alert's identities and
+daily `digest_runs` records.
+
+`../reports/weekly_stats.cjs` provides the deterministic aggregation. It selects by
+publication date, includes subsequently closed calls, counts each MUR call once
+(not each position), separates full and associate professors, and ranks normalized
+GSDs and university institutions overall and per category. A multisector call
+counts once per GSD, so sector percentages may sum above 100%. Other entities are
+counted separately from universities. Missing publication dates cannot be assigned
+to a week and are disclosed rather than guessed.
+
+These describe the collected MUR index, not a census of all university notices.
+The index started its current national collection on 12 September 2026; early
+weeks are incomplete and historic rankings must be labelled accordingly. No
+week-on-week trend is claimed without comparable collection coverage. The weekly
+report checks source freshness and records delivery only after Gmail returns an ID.
