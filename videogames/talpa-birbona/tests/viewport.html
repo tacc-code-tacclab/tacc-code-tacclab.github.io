@@ -1,1 +1,8 @@
-<!doctype html><html lang="it"><meta charset="utf-8"><title>Talpa Birbona — responsive QA</title><style>body{background:#ddd;font:14px sans-serif}iframe{border:3px solid #777;border-radius:18px;background:white;width:390px;height:844px}h1{font-size:18px}</style><h1>Anteprima layout 390 × 844 — comandi e pannelli</h1><iframe src="../" title="Talpa Birbona su schermo stretto"></iframe></html>
+<!doctype html>
+<html lang="it"><meta charset="utf-8"><title>Talpa Birbona — responsive QA</title>
+<style>body{background:#ddd;font:14px sans-serif}iframe{display:block;border:3px solid #777;border-radius:18px;background:white;width:390px;height:844px}h1{font-size:18px}nav{display:flex;gap:8px;margin-bottom:12px}button{padding:10px;cursor:pointer}</style>
+<h1>Anteprima comandi e pannelli — mobile V2</h1>
+<nav aria-label="Dimensioni anteprima"><button data-width="320" data-height="740">Telefono piccolo</button><button data-width="390" data-height="844">Telefono</button><button data-width="844" data-height="390">Orizzontale</button></nav>
+<iframe src="../?release=mobile-v2" title="Talpa Birbona su schermo stretto"></iframe>
+<script>for(const b of document.querySelectorAll('button'))b.addEventListener('click',()=>{const f=document.querySelector('iframe');f.style.width=b.dataset.width+'px';f.style.height=b.dataset.height+'px';});</script>
+</html>
