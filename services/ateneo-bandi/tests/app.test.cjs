@@ -1,0 +1,20 @@
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+
+const noop = () => {};
+const elements = new Map();
+const fakeElement = () => ({ value:"", hidden:false, dataset:{}, classList:{add:noop}, addEventListener:noop, append:noop, appendChild:noop, replaceChildren:noop, setAttribute:noop, scrollIntoView:noop, options:[], content:{cloneNode:()=>({})}, innerHTML:"", textContent:"", reset:noop });
+const document = { getElementById:(id)=>{ if(!elements.has(id)) elements.set(id,fakeElement()); return elements.get(id); }, querySelector:()=>fakeElement(), querySelectorAll:()=>[] };
+const context = { window:{}, document, localStorage:{getItem:()=>null,setItem:noop}, matchMedia:()=>({matches:false}), location:{pathname:"/",search:"",hash:""}, history:{replaceState:noop}, fetch:async()=>({ok:true,json:async()=>({calls:[],updatedAt:"2026-09-12"})}), URL, URLSearchParams, Intl, Date, setTimeout, clearTimeout, console };
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(require.resolve("../app.js"),"utf8"),context);
+const api=context.window.AteneoBandi;
+const call={title:"Biologia molecolare",sector:"Genetica",sectorCode:"BIOS-14/A",institution:"Università di Ferrara",city:"Ferrara",region:"Emilia-Romagna",role:"RTT / Ricercatore TD",deadline:"2026-09-20",published:"2026-09-01"};
+const base={query:"",role:"",region:"",city:"",institution:"",status:"active",sort:"deadline"};
+assert.equal(api.normalize("Università"),"universita");
+assert.equal(api.matches(call,{...base,query:"biologia genetica"},new Date("2026-09-12T12:00:00Z")),true);
+assert.equal(api.matches(call,{...base,region:"Lazio"},new Date("2026-09-12T12:00:00Z")),false);
+assert.equal(api.matches(call,{...base,status:"expiring"},new Date("2026-09-12T12:00:00Z")),false);
+assert.equal(api.daysLeft(call,new Date("2026-09-12T12:00:00Z")),9);
+console.log("Ateneo Bandi filter tests passed");

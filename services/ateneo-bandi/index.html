@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#072d35" />
+    <meta name="description" content="Ateneo Bandi: cerca concorsi, contratti e opportunità di ricerca nelle università italiane per ruolo, settore, ateneo e territorio." />
+    <meta property="og:title" content="Ateneo Bandi — opportunità accademiche, senza labirinti" />
+    <meta property="og:description" content="Ricerca semplice e verificabile dei bandi universitari italiani." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css?v=1" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem("theme");
+        const preferred = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = saved || preferred;
+      })();
+    </script>
+    <script src="app.js?v=1" defer></script>
+    <title>Ateneo Bandi — TACC Lab Services</title>
+  </head>
+  <body>
+    <a class="skip" href="#results">Vai ai risultati</a>
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="Torna al sito di Cristian Taccioli">
+        <img src="../../favicon.svg" width="38" height="38" alt="" />
+        <span>TACC Lab <b>Services</b></span>
+      </a>
+      <nav aria-label="Navigazione servizio">
+        <a href="#come-funziona">Come funziona</a>
+        <a href="#fonti">Fonti</a>
+        <button class="theme" type="button" aria-label="Cambia tema">◐</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="overline">Servizio sperimentale · dati ufficiali MUR</p>
+          <h1>Il prossimo bando<br /><em>non deve sfuggirti.</em></h1>
+          <p class="lede">Cerca opportunità accademiche italiane per argomento, ruolo, ateneo e territorio. Ogni risultato rimanda alla fonte ufficiale.</p>
+          <div class="trust-row" aria-label="Caratteristiche del servizio">
+            <span><i></i> Fonti verificabili</span>
+            <span><i></i> Ricerca senza account</span>
+            <span><i></i> Nessun dato venduto</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+          <div class="signal"><span>BIOS</span><strong>14/A</strong></div>
+          <div class="signal small"><span>INFO</span><strong>01/A</strong></div>
+          <div class="pulse"></div>
+        </div>
+      </section>
+
+      <section class="search-panel" aria-labelledby="search-title">
+        <div class="search-heading">
+          <div><p class="step">01 · CERCA</p><h2 id="search-title">Descrivi l'opportunità che vuoi.</h2></div>
+          <span class="freshness" id="freshness">Dati in caricamento…</span>
+        </div>
+
+        <form id="filters" role="search">
+          <label class="main-query">
+            <span>Parole chiave, settore o codice SSD</span>
+            <span class="query-wrap"><span aria-hidden="true">⌕</span><input id="query" name="query" type="search" autocomplete="off" placeholder="es. biologia molecolare, genetica, INFO-01/A" /></span>
+          </label>
+          <div class="filters-grid">
+            <label><span>Tipo di posizione</span><select id="role" name="role"><option value="">Tutti i ruoli</option><option>Incarico post-doc</option><option>Contratto di ricerca</option><option>Assegno di ricerca</option><option>RTT / Ricercatore TD</option><option>Professore associato</option><option>Professore ordinario</option><option>Dottorato</option><option>Tecnologo</option></select></label>
+            <label><span>Regione</span><select id="region" name="region"><option value="">Tutta Italia</option></select></label>
+            <label><span>Città</span><select id="city" name="city"><option value="">Tutte le città</option></select></label>
+            <label><span>Ateneo o ente</span><select id="institution" name="institution"><option value="">Tutti gli enti</option></select></label>
+            <label><span>Stato</span><select id="status" name="status"><option value="active">Solo aperti</option><option value="expiring">In scadenza (7 giorni)</option><option value="expired">Scaduti</option><option value="all">Tutti</option></select></label>
+            <label><span>Ordina per</span><select id="sort" name="sort"><option value="deadline">Scadenza più vicina</option><option value="newest">Più recenti</option><option value="institution">Ateneo A–Z</option></select></label>
+          </div>
+          <div class="form-actions">
+            <button class="primary" type="submit">Cerca bandi <span>→</span></button>
+            <button class="ghost" id="reset" type="button">Azzera filtri</button>
+          </div>
+        </form>
+        <div class="quick-searches" aria-label="Ricerche di esempio">
+          <span>Prova:</span>
+          <button type="button" data-preset='{"region":"Emilia-Romagna","role":"RTT / Ricercatore TD"}'>RTT in Emilia-Romagna</button>
+          <button type="button" data-preset='{"query":"biologia molecolare"}'>Biologia molecolare</button>
+          <button type="button" data-preset='{"query":"informatica"}'>Informatica</button>
+        </div>
+      </section>
+
+      <section class="results-layout" id="results">
+        <aside class="saved-card">
+          <p class="step">02 · SEGUI</p>
+          <h2>Salva questa ricerca.</h2>
+          <p>Conserva i filtri su questo dispositivo. Gli avvisi email con verifica dell'indirizzo sono in fase di attivazione.</p>
+          <button class="save-search" id="save-search" type="button">☆ Salva i filtri</button>
+          <div class="email-preview" aria-label="Anteprima avvisi email">
+            <label><span>Email</span><input type="email" placeholder="nome@universita.it" disabled /></label>
+            <button type="button" disabled>Attiva avviso</button>
+            <small>Presto disponibile · double opt-in</small>
+          </div>
+        </aside>
+
+        <div class="results-main">
+          <div class="results-head">
+            <div><p class="step">03 · VALUTA</p><h2><span id="result-count">0</span> opportunità trovate</h2></div>
+            <p id="result-summary" aria-live="polite">Applica i filtri per iniziare.</p>
+          </div>
+          <div class="notice" id="data-notice" hidden></div>
+          <div class="cards" id="cards" aria-live="polite" aria-busy="true"></div>
+          <button class="load-more" id="load-more" type="button" hidden>Mostra altri risultati</button>
+          <template id="empty-template">
+            <div class="empty"><span>⌕</span><h3>Nessun bando corrisponde ai filtri.</h3><p>Prova ad allargare territorio, ruolo o parole chiave.</p></div>
+          </template>
+        </div>
+      </section>
+
+      <section class="method" id="come-funziona">
+        <div><p class="step">METODO</p><h2>Prima il dato.<br />Poi il design.</h2></div>
+        <ol>
+          <li><span>01</span><div><h3>Raccogliamo</h3><p>La prima fonte è il portale Bandi del Ministero dell'Università e della Ricerca.</p></div></li>
+          <li><span>02</span><div><h3>Normalizziamo</h3><p>Ruoli, città, vecchi settori e nuovi GSD/SSD diventano ricercabili nello stesso modo.</p></div></li>
+          <li><span>03</span><div><h3>Verifichi</h3><p>Non sostituiamo il bando: ogni scheda porta alla pagina ufficiale da leggere prima di candidarsi.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="sources" id="fonti">
+        <div class="sources-title"><p class="step">COPERTURA E TRASPARENZA</p><h2>Le fonti non sono tutte uguali.</h2></div>
+        <div class="source-grid">
+          <article class="source-primary"><span>Fonte principale</span><h3>MUR · Bandi</h3><p>Ricercatori, chiamate dei professori, contratti e incarichi di ricerca/post-doc, assegni, tecnologi e dottorati comunicati dagli enti.</p><a href="https://bandi.mur.gov.it/" target="_blank" rel="noopener">Apri il portale MUR ↗</a></article>
+          <article><span>Fonte complementare</span><h3>Siti degli atenei</h3><p>Sono il riferimento finale per testo, allegati, rettifiche e opportunità locali non sempre presenti negli aggregatori.</p></article>
+          <article><span>Fonte complementare</span><h3>inPA e Gazzetta</h3><p>Utili per concorsi pubblici generali e avvisi; non sostituiscono la raccolta specialistica universitaria.</p><a href="https://www.inpa.gov.it/" target="_blank" rel="noopener">Apri inPA ↗</a></article>
+        </div>
+        <p class="disclaimer">Servizio informativo indipendente e sperimentale. Date e classificazioni possono contenere errori: fa fede esclusivamente il documento pubblicato dall'ente banditore. Ultimo controllo automatico indicato in alto.</p>
+      </section>
+    </main>
+
+    <footer><a href="../../">← Cristian Taccioli</a><p>Ateneo Bandi · un progetto TACC Lab Services</p><span><a href="privacy.html">Privacy</a> · <a href="mailto:cristian.taccioli@unipd.it">Segnala un errore</a></span></footer>
+  </body>
+</html>
