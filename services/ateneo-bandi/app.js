@@ -81,7 +81,7 @@
   form.addEventListener('submit',e=>{e.preventDefault();render();el('results').scrollIntoView({behavior:'smooth'});});
   form.addEventListener('change',e=>{if(e.target.id==='region'){el('city').value='';cities();}render();});
   let timer; ['query','sector','city','institution'].forEach(id=>el(id).addEventListener('input',()=>{if(id==='city')cities();clearTimeout(timer);timer=setTimeout(()=>render(),180);}));
-  el('reset').addEventListener('click',()=>{form.reset();cities();render();});
+  el('reset-filters').addEventListener('click',()=>{form.reset();cities();render();});
   el('load-more').addEventListener('click',()=>{state.visible+=12;render(false);});
   document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{setFilters(JSON.parse(b.dataset.preset));render();el('results').scrollIntoView({behavior:'smooth'});}));
   el('save-search').addEventListener('click',()=>{el('save-status').textContent=storage.set('ateneo-bandi-search',JSON.stringify(currentFilters()))?'Ricerca salvata su questo dispositivo.':'Il browser non permette di salvare: copia il link.';savedState();});
