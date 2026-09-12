@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>BERTRANDA — The Carapace Below</title>
+  <meta name="description" content="A short original first-person horror game. Track five moulting nests through a decaying boarding house while Bertranda hunts you.">
+  <meta name="theme-color" content="#080a07">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BERTRANDA — The Carapace Below">
+  <meta property="og:description" content="Find the nests. Trust the needle. Do not let your cousin hear you run.">
+  <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/bertranda/">
+  <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/bertranda-cover.svg" as="image" type="image/svg+xml">
+  <link rel="stylesheet" href="game.css?v=1">
+  <script src="../game-counter.js?v=20260805-visitors1" defer></script>
+</head>
+<body>
+  <main id="game" aria-label="Bertranda horror game">
+    <div id="render-host" aria-label="First-person view of the boarding house"></div>
+
+    <div id="loading" class="loading" role="status" aria-live="polite">
+      <span class="loading-mark" aria-hidden="true"></span>
+      <strong>PREPARING THE HOUSE</strong>
+      <small>Do not answer if it scratches from inside the wall.</small>
+    </div>
+
+    <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
+      <div class="title-art" aria-hidden="true">
+        <img src="assets/bertranda-cover.svg" alt="">
+        <span class="tape-code">TAPE 06 · 02:13:17</span>
+      </div>
+      <div class="title-copy">
+        <p class="eyebrow">An original short horror game</p>
+        <h1 id="game-title"><span>BER</span>TRANDA</h1>
+        <p class="subtitle">THE CARAPACE BELOW</p>
+        <p class="story">Your cousin catalogued a box of insects that arrived without a sender. At 2:13 a.m., the specimen bell rang by itself. Find and cauterise the five moulting nests before Bertranda finishes changing.</p>
+
+        <div class="settings-row">
+          <fieldset>
+            <legend>Threat</legend>
+            <div class="segmented" data-setting="difficulty">
+              <button type="button" data-value="quiet">Quiet</button>
+              <button type="button" data-value="normal" class="selected">Normal</button>
+              <button type="button" data-value="nightmare">Nightmare</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Image</legend>
+            <div class="segmented" data-setting="quality">
+              <button type="button" data-value="low">Low</button>
+              <button type="button" data-value="auto" class="selected">Auto</button>
+              <button type="button" data-value="high">High</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="title-actions">
+          <button id="start-button" class="primary" type="button" disabled>ENTER THE HOUSE</button>
+          <button id="mute-button" class="secondary" type="button" aria-pressed="false">SOUND ON</button>
+          <a class="secondary" href="roblox/Bertranda.rbxlx" download>ROBLOX FILE</a>
+        </div>
+
+        <div class="controls-summary" aria-label="Controls">
+          <span><b>WASD</b> MOVE</span><span><b>MOUSE</b> LOOK</span><span><b>SHIFT</b> RUN</span><span><b>E</b> HOLD / HIDE</span><span><b>F</b> TORCH</span>
+        </div>
+        <div class="title-foot">
+          <a href="../../#videogames">← All games</a>
+          <span class="game-visitor-counter" data-game-visitors="bertranda" data-counter-label="BERTRANDA">BERTRANDA · … VISITORS</span>
+          <span>Original story, code and artwork · headphones recommended</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="hud" class="hud" aria-label="Game status" hidden>
+      <div class="objective-card">
+        <span>OBJECTIVE</span>
+        <strong id="objective-text">Find the first moulting nest</strong>
+        <small id="nest-count">0 / 5 SEALED</small>
+      </div>
+
+      <div id="danger" class="danger" aria-live="assertive">SHE HEARD THAT</div>
+      <div id="reticle" class="reticle" aria-hidden="true"></div>
+      <div id="prompt" class="prompt" role="status" aria-live="polite"></div>
+      <div id="subtitle" class="caption" role="status" aria-live="polite"></div>
+      <div id="hold-wrap" class="hold-wrap" aria-hidden="true"><i id="hold-fill"></i></div>
+
+      <aside class="detector" aria-label="Chitinometer">
+        <img src="assets/chitinometer.svg" alt="" aria-hidden="true">
+        <div>
+          <span>CHITINOMETER</span>
+          <strong id="range-text">SEARCHING</strong>
+          <div class="signal-bars" id="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </aside>
+
+      <div class="torch-status"><span>TORCH</span><i><b id="battery-fill"></b></i><strong id="battery-text">100%</strong></div>
+      <button id="pause-button" class="pause-button" type="button" aria-label="Pause game">Ⅱ</button>
+    </section>
+
+    <section id="touch-controls" class="touch-controls" aria-label="Touch controls" hidden>
+      <div id="move-pad" class="move-pad" aria-label="Movement joystick"><i id="move-knob"></i></div>
+      <div id="look-pad" class="look-pad" aria-label="Drag to look around"></div>
+      <button id="touch-run" class="touch-button run" type="button">RUN</button>
+      <button id="touch-action" class="touch-button action" type="button">HOLD</button>
+      <button id="touch-torch" class="touch-button torch" type="button">TORCH</button>
+    </section>
+
+    <section id="pause-screen" class="screen modal" hidden aria-labelledby="pause-title">
+      <div class="modal-card">
+        <p class="eyebrow">The house is still listening</p>
+        <h2 id="pause-title">PAUSED</h2>
+        <p>Bertranda will wait. The nests will not.</p>
+        <button id="resume-button" class="primary" type="button">RETURN</button>
+        <button id="restart-button" class="secondary" type="button">RESTART NIGHT</button>
+        <a class="secondary" href="../../#videogames">LEAVE HOUSE</a>
+      </div>
+    </section>
+
+    <section id="death-screen" class="screen modal death-screen" hidden aria-labelledby="death-title">
+      <div class="death-art" aria-hidden="true"><img src="assets/bertranda-roach.svg" alt=""></div>
+      <div class="modal-card">
+        <p class="eyebrow">TAPE ENDS · 02:13</p>
+        <h2 id="death-title">SHE FOUND YOU</h2>
+        <p>The next shell in the house will have your face.</p>
+        <button id="retry-button" class="primary" type="button">TRY AGAIN</button>
+        <a class="secondary" href="../../#videogames">LEAVE HOUSE</a>
+      </div>
+    </section>
+
+    <section id="win-screen" class="screen modal win-screen" hidden aria-labelledby="win-title">
+      <div class="modal-card">
+        <p class="eyebrow">THE FRONT DOOR OPENS</p>
+        <h2 id="win-title">DAWN HAS TEETH</h2>
+        <p id="win-copy">The nests are ash. Somewhere beneath the floor, Bertranda is learning how to moult again.</p>
+        <p class="time-line">ESCAPE TIME <strong id="final-time">00:00</strong></p>
+        <button id="again-button" class="primary" type="button">PLAY AGAIN</button>
+        <a class="secondary" href="roblox/Bertranda.rbxlx" download>DOWNLOAD ROBLOX PLACE</a>
+        <a class="secondary" href="../../#videogames">ALL GAMES</a>
+      </div>
+    </section>
+
+    <div class="vhs" aria-hidden="true"></div>
+    <div id="jumpscare" class="jumpscare" aria-hidden="true"><img src="assets/bertranda-roach.svg" alt=""></div>
+  </main>
+
+  <noscript>This game needs JavaScript enabled.</noscript>
+  <script src="../lovecraft/three.min.js"></script>
+  <script src="game.js?v=1"></script>
+</body>
+</html>

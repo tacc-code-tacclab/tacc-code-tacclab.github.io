@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Chitinometer</title>
+  <desc id="desc">Original vector icon of the brass detector used to locate moulting nests.</desc>
+  <defs>
+    <linearGradient id="case" x2="1" y2="1"><stop stop-color="#827443"/><stop offset=".45" stop-color="#302d1c"/><stop offset="1" stop-color="#0c0c08"/></linearGradient>
+    <radialGradient id="dial"><stop stop-color="#314437"/><stop offset=".72" stop-color="#111914"/><stop offset="1" stop-color="#050705"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path d="M149 43h214l64 73v339H85V116z" fill="url(#case)" stroke="#b3a26a" stroke-width="11"/>
+  <path d="M165 16h182l16 27H149z" fill="#1a1910" stroke="#8b7c46" stroke-width="8"/>
+  <circle cx="256" cy="221" r="129" fill="url(#dial)" stroke="#c1ad6b" stroke-width="12"/>
+  <g fill="none" stroke="#97c290" stroke-width="5" opacity=".75"><circle cx="256" cy="221" r="91"/><circle cx="256" cy="221" r="56"/><path d="M127 221h258M256 92v258"/></g>
+  <path d="M256 221 343 149" stroke="#e9c657" stroke-width="11" stroke-linecap="round" filter="url(#glow)"/>
+  <circle cx="256" cy="221" r="17" fill="#8e211a" stroke="#e7d18a" stroke-width="7"/>
+  <path d="M256 221c44-43 89-45 129-9M256 221c26 21 48 50 57 90" fill="none" stroke="#d4bd65" stroke-width="5" opacity=".72"/>
+  <rect x="128" y="374" width="256" height="45" rx="5" fill="#080b08" stroke="#8b7c46" stroke-width="7"/>
+  <g fill="#9dcc87"><rect x="146" y="389" width="15" height="15"/><rect x="170" y="389" width="15" height="15"/><rect x="194" y="389" width="15" height="15"/></g>
+  <path d="M239 396h118" stroke="#4e674a" stroke-width="8"/>
+  <circle cx="128" cy="447" r="17" fill="#741912" stroke="#ba8e54" stroke-width="6"/><circle cx="384" cy="447" r="17" fill="#1a321e" stroke="#ba8e54" stroke-width="6"/>
+</svg>

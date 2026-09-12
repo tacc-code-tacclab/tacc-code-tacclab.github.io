@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Bertranda after the moult</title>
+  <desc id="desc">Original full-body vector illustration of Bertranda transformed into a six-legged, cockroach-like horror.</desc>
+  <defs>
+    <linearGradient id="shell" x1=".15" y1="0" x2=".8" y2="1"><stop stop-color="#9d8e48"/><stop offset=".22" stop-color="#494621"/><stop offset=".52" stop-color="#15140d"/><stop offset=".79" stop-color="#451815"/><stop offset="1" stop-color="#090706"/></linearGradient>
+    <radialGradient id="eye"><stop stop-color="#fff4ad"/><stop offset=".28" stop-color="#dcaa3f"/><stop offset=".54" stop-color="#a22019"/><stop offset="1" stop-color="#180302"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="grain"><feTurbulence baseFrequency=".65" numOctaves="3" seed="9"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+  </defs>
+  <rect width="900" height="1200" fill="#050604"/>
+  <ellipse cx="451" cy="1085" rx="325" ry="65" fill="#000" opacity=".8"/>
+  <g fill="none" stroke-linecap="round">
+    <g stroke="#100d08" stroke-width="47"><path d="M319 490 143 406 25 267M301 632 117 647 18 752M328 780 185 903 121 1087M579 490l177-84 119-139M598 632l184 15 100 105M570 780l144 123 64 184"/></g>
+    <g stroke="#776d35" stroke-width="15"><path d="M319 490 143 406 25 267M301 632 117 647 18 752M328 780 185 903 121 1087M579 490l177-84 119-139M598 632l184 15 100 105M570 780l144 123 64 184"/></g>
+    <g stroke="#342f18" stroke-width="12"><path d="m144 406 25 86M117 647l41 73M185 903l79 36M756 406l-25 86M782 647l-41 73M714 903l-78 36"/></g>
+    <path d="M391 250C320 98 243 46 166 16M507 250C581 103 665 48 749 9" stroke="#8a7e42" stroke-width="10"/>
+  </g>
+  <g filter="url(#grain)">
+    <path d="M323 284c-67 88-74 221-11 293l90 51 103-14 80-69c43-114 3-223-74-284z" fill="url(#shell)" stroke="#090704" stroke-width="24"/>
+    <path d="M307 533c-58 171-20 388 142 543 156-158 196-376 139-544l-139 51z" fill="url(#shell)" stroke="#080604" stroke-width="26"/>
+    <path d="M449 584v444M349 654h199M333 754h229M349 858h199M383 959h135" fill="none" stroke="#a06931" stroke-opacity=".48" stroke-width="12"/>
+    <path d="M308 526c-58 105-70 294-19 423l92-54 42-304zM590 527c59 108 70 293 19 423l-91-55-44-304z" fill="#4f1714" opacity=".8"/>
+    <path d="M326 293c25-104 194-127 241-24l-32 127-87 64-91-58z" fill="#242011" stroke="#080604" stroke-width="22"/>
+    <path d="m380 399 68 98 72-102-13 143-58 40-64-38z" fill="#731b16"/>
+    <g fill="url(#eye)" stroke="#150604" stroke-width="10" filter="url(#glow)">
+      <ellipse cx="362" cy="340" rx="34" ry="22"/><ellipse cx="535" cy="336" rx="34" ry="22"/>
+      <ellipse cx="392" cy="277" rx="24" ry="17"/><ellipse cx="506" cy="274" rx="24" ry="17"/>
+    </g>
+    <path d="m397 413-106 71 132-19M499 411l108 68-133-15" fill="none" stroke="#c0aa68" stroke-width="19" stroke-linecap="round"/>
+    <path d="M304 589 216 632l64 45-76 44 105 33M594 588l91 43-65 46 77 44-107 34" fill="#18140d" stroke="#776d35" stroke-width="13"/>
+    <path d="M372 1030c19 85 44 132 77 163 34-34 61-81 81-166l-81 46z" fill="#120b08"/>
+    <path d="M310 541c-36 29-66 70-84 119l69 15 70-91zM588 541c36 29 66 70 84 119l-69 15-70-91z" fill="#5d201c" opacity=".7"/>
+  </g>
+  <g fill="#b7a76a" opacity=".4"><circle cx="132" cy="190" r="5"/><circle cx="766" cy="191" r="4"/><circle cx="89" cy="532" r="3"/><circle cx="816" cy="578" r="5"/></g>
+  <rect width="900" height="1200" fill="none" stroke="#000" stroke-width="48" opacity=".75"/>
+</svg>
