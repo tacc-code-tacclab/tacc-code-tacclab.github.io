@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#304737">
+  <title>Talpa Birbona — Un orto, mille guai! | TACC Lab</title>
+  <meta name="description" content="Scava, sgranocchia e scappa! Un allegro gioco nell'orto romagnolo: dieci livelli, una talpa birbona e un contadino sempre più veloce. Gratis, anche su smartphone.">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <header class="topbar"><a href="../../#videogames" class="brand" aria-label="Torna ai giochi di TACC Lab">TACC <span>PLAY</span></a><span class="edition">FATTO PER SCAVARE UN SORRISO</span><button id="sound" class="small-button" aria-label="Attiva audio" aria-pressed="false">♪ Audio spento</button></header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">SALUTI DALL’ORTO ROMAGNOLO</p><h1>Talpa <em>Birbona</em><span class="flower">✿</span></h1></div><p>Un orto. Mille guai.<br><strong>E una fame sotterranea.</strong></p></div>
+    <section class="game-shell" aria-label="Gioco Talpa Birbona">
+      <div class="hud"><div><span class="hud-label">ORTO</span><strong id="level">01 <small>/ 10</small></strong></div><div class="plant-progress"><span class="hud-label">PIANTE MANGIATE</span><strong id="plants">0 / 4</strong><span class="progress-track"><i id="progress"></i></span></div><div><span class="hud-label">PUNTI</span><strong id="score">0</strong></div><div><span class="hud-label">ENERGIA</span><strong id="hearts" aria-label="3 vite">♥ ♥ ♥</strong></div><button id="pause" class="pause" aria-label="Pausa" disabled>Ⅱ</button></div>
+      <div class="playfield" id="playfield">
+        <canvas id="game" width="1100" height="750" aria-label="Orto visto di lato. Muovi la talpa con frecce o WASD, oppure tocca un punto sotto terra." tabindex="0"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="menu-card" id="menu-card">
+            <div class="mascot" aria-hidden="true"></div>
+            <p class="eyebrow" id="panel-kicker">PICCOLA TALPA, GRANDE APPETITO</p>
+            <h2 id="panel-title">Dai, scava!</h2>
+            <p id="panel-text">Mangia le radici di <b>tutte le piante</b> per completare l’orto. Il morso è automatico!</p>
+            <div class="rules" id="rules"><span><b>01</b> Frecce / WASD o tocca la terra.</span><span><b>02</b> Raggiungi le radici colorate.</span><span><b>03</b> Veleno viola? Scava una via nuova!</span></div>
+            <button class="primary" id="play">INIZIA A SCAVARE <span>→</span></button>
+            <button class="secondary" id="restart" hidden>Ricomincia dall’orto 1</button>
+            <p class="menu-note" id="panel-note">10 orti · 3 cuori per orto · nessun conto alla rovescia</p>
+          </div>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+      <div class="game-bottom"><span id="tip">Mangia tutte le radici. Il contadino ti avvisa prima di versare il veleno!</span><button id="help">Come si gioca?</button></div>
+    </section>
+    <div class="mobile-controls" aria-label="Comandi touch"><p>Tocca la terra per andare lì.<br>Oppure tieni premute le frecce.</p><div class="dpad"><button data-dir="0,-1" class="up" aria-label="Scava in alto">▲</button><button data-dir="-1,0" class="left" aria-label="Scava a sinistra">◀</button><button data-dir="0,1" class="down" aria-label="Scava in basso">▼</button><button data-dir="1,0" class="right" aria-label="Scava a destra">▶</button></div></div>
+    <section class="crop-section"><div><p class="eyebrow">IL MENU DELLA BIRBONA</p><h2>Dieci buoni motivi per scavare.</h2><p>Ogni radice ha il suo valore. Completa l’orto e ricevi 100 punti per ogni cuore rimasto.</p></div><div class="crop-list" id="crop-list"></div></section>
+    <footer><span>Un piccolo gioco di TACC Lab. Personaggi originali, guai di fantasia.</span><a href="roblox/Talpa_Birbona_Roblox_V1.rbxlx" download>Scarica la versione Roblox ↗</a></footer>
+  </main>
+  <script src="core.js?v=1"></script><script src="game.js?v=1"></script>
+</body>
+</html>
