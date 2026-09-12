@@ -58,6 +58,10 @@ local creaturesFolder = Instance.new("Folder")
 creaturesFolder.Name = "HumanFacedCreatures"
 creaturesFolder.Parent = generated
 
+local infestationFolder = Instance.new("Folder")
+infestationFolder.Name = "SchemaInfestation"
+infestationFolder.Parent = generated
+
 local remotes = ReplicatedStorage:FindFirstChild("BertrandaRemotes") or Instance.new("Folder")
 remotes.Name = "BertrandaRemotes"
 remotes.Parent = ReplicatedStorage
@@ -228,9 +232,48 @@ end
 local creatureData = {}
 local bossModel = nil
 local bossAlive = false
-local bossMaxHealth = 1900
+local MAX_SCHEMAS = 5
+local schema = 1
+local baseBossHealth = 1900
+local bossMaxHealth = baseBossHealth
 local bossHealth = bossMaxHealth
 local roundId = 0
+
+local schemaColors = {
+    Color3.fromRGB(89, 255, 241),
+    Color3.fromRGB(202, 255, 85),
+    Color3.fromRGB(255, 59, 189),
+    Color3.fromRGB(255, 92, 132),
+    Color3.fromRGB(124, 255, 230)
+}
+local growthPositions = {
+    Vector3.new(-112, 2, -48), Vector3.new(-78, 2, 22), Vector3.new(-26, 2, 20),
+    Vector3.new(27, 2, 19), Vector3.new(76, 2, 22), Vector3.new(111, 2, -43),
+    Vector3.new(-104, 2, 42), Vector3.new(-62, 2, -21), Vector3.new(0, 2, -5),
+    Vector3.new(61, 2, -20), Vector3.new(103, 2, 42), Vector3.new(-29, 2, 72),
+    Vector3.new(29, 2, 72), Vector3.new(-28, 2, -79), Vector3.new(29, 2, -79),
+    Vector3.new(80, 2, 73), Vector3.new(-80, 2, 73), Vector3.new(111, 2, 21)
+}
+local growthCursor = 0
+
+local function addSchemaInfestation(currentSchema)
+    if currentSchema <= 1 then return end
+    local color = schemaColors[currentSchema]
+    for index = 1, currentSchema + 1 do
+        growthCursor += 1
+        local position = growthPositions[(growthCursor - 1) % #growthPositions + 1]
+        local pod = ball("Schema" .. currentSchema .. "Growth" .. index, Vector3.new(5 + currentSchema * 0.35, 7 + currentSchema * 0.55, 5 + currentSchema * 0.35), CFrame.new(position), color, Enum.Material.Neon, infestationFolder)
+        pod.CanCollide = true
+        pod.CanTouch = true
+        for spike = 1, 4 do
+            local angle = spike / 4 * math.pi * 2
+            makePart("GrowthSpike", Vector3.new(0.7, 0.7, 5), CFrame.new(position + Vector3.new(math.cos(angle) * 3.2, 1.4, math.sin(angle) * 3.2)) * CFrame.Angles(math.rad(68), -angle, 0), color, Enum.Material.Neon, infestationFolder, false)
+        end
+    end
+    Lighting.FogColor = Color3.fromRGB(10 + currentSchema * 6, 18 + currentSchema * 3, 31 + currentSchema * 5)
+    colour.TintColor = currentSchema % 2 == 0 and Color3.fromRGB(218, 255, 245) or Color3.fromRGB(255, 218, 244)
+    stateEvent:FireAllClients("schema", currentSchema, MAX_SCHEMAS)
+end
 
 local function setCreature(model, kind, health, speed, damage, y)
     model:SetAttribute("CreatureType", kind)
@@ -247,6 +290,7 @@ local function setCreature(model, kind, health, speed, damage, y)
 end
 
 local function createBoss()
+    bossMaxHealth = math.floor(baseBossHealth * (1 + (schema - 1) * 0.4))
     local model = Instance.new("Model")
     model.Name = "Bertranda_WomanSpider"
     model.Parent = creaturesFolder
@@ -272,13 +316,14 @@ local function createBoss()
         end
     end
 
+    model:ScaleTo(1 + (schema - 1) * 0.055)
     model:PivotTo(CFrame.new(89, 2, -61))
-    setCreature(model, "boss", bossMaxHealth, 8, 16, 2)
+    setCreature(model, "boss", bossMaxHealth, 8 * (1 + (schema - 1) * 0.055), 16 * (1 + (schema - 1) * 0.07), 2)
     bossModel = model
     bossHealth = bossMaxHealth
     bossAlive = true
     stateEvent:FireAllClients("boss", bossHealth, bossMaxHealth)
-    stateEvent:FireAllClients("caption", "Bertranda kept her human face. Destroy everything beneath it.")
+    stateEvent:FireAllClients("caption", "SCHEMA " .. schema .. "/" .. MAX_SCHEMAS .. " · Bertranda has returned in a stronger body.")
     return model
 end
 
@@ -445,13 +490,26 @@ local function destroyCreature(model, player)
                 end)
             end
         end
-        stateEvent:FireAllClients("win")
+        local clearedSchema = schema
+        local finalSchema = clearedSchema >= MAX_SCHEMAS
+        stateEvent:FireAllClients(finalSchema and "win" or "schemaClear", clearedSchema, MAX_SCHEMAS)
         local completedRound = roundId
-        task.delay(12, function()
-            if roundId ~= completedRound then return end
-            roundId += 1
-            createBoss()
-        end)
+        if not finalSchema then
+            task.delay(4.2, function()
+                if roundId ~= completedRound then return end
+                schema = clearedSchema + 1
+                roundId += 1
+                addSchemaInfestation(schema)
+                createBoss()
+                for index = 1, math.min(8, 4 + schema) do
+                    spawnCreature(index % 3 == 0 and "bat" or index % 3 == 1 and "roach" or "snake")
+                end
+                for _, participant in ipairs(Players:GetPlayers()) do
+                    local humanoid = participant.Character and participant.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.Health > 0 then humanoid.Health = humanoid.MaxHealth end
+                end
+            end)
+        end
     else
         explosion(position + Vector3.new(0, data.kind == "bat" and 0 or 2, 0), data.kind == "snake" and 1.05 or 0.82)
         model:Destroy()
@@ -511,8 +569,8 @@ RunService.Heartbeat:Connect(function(dt)
     for model in pairs(creatureData) do
         if model ~= bossModel and model.Parent and model:GetAttribute("Alive") then count += 1 end
     end
-    if spawnClock <= 0 and count < 16 then
-        spawnClock = 1.05 + math.random() * 0.8
+    if spawnClock <= 0 and count < 12 + schema then
+        spawnClock = math.max(0.68, 1.14 - schema * 0.075) + math.random() * 0.72
         local roll = math.random()
         spawnCreature(roll < 0.38 and "roach" or roll < 0.69 and "bat" or "snake")
     end
@@ -559,8 +617,9 @@ local function prepareCharacter(player, character)
     player:SetAttribute("BertrandaKills", 0)
     task.wait(1)
     stateEvent:FireClient(player, "boss", bossHealth, bossMaxHealth)
+    stateEvent:FireClient(player, "schema", schema, MAX_SCHEMAS)
     stateEvent:FireClient(player, "kills", 0)
-    stateEvent:FireClient(player, "caption", "Human faces. Insect bodies. Hold fire and aim for the head.")
+    stateEvent:FireClient(player, "caption", "Destroy all five bodies. R reloads; E or F controls the weapon light.")
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -685,7 +744,7 @@ local healthText = label("HealthValue", "100", UDim2.fromOffset(42, 25), UDim2.n
 healthText.TextXAlignment = Enum.TextXAlignment.Right
 
 local ammoPanel = frame("AmmoPanel", UDim2.fromOffset(190, 72), UDim2.new(1, -212, 1, -94), dark, 0.16)
-local gunTitle = label("GunTitle", "SALT-ARC · MAGNETIC", UDim2.new(1, -18, 0, 16), UDim2.fromOffset(9, 7), 11, green, ammoPanel)
+local gunTitle = label("GunTitle", "AIM ASSIST · LIGHT ON", UDim2.new(1, -18, 0, 16), UDim2.fromOffset(9, 7), 10, green, ammoPanel)
 gunTitle.TextXAlignment = Enum.TextXAlignment.Right
 local ammoText = label("Ammo", "32 / ∞", UDim2.new(1, -18, 0, 38), UDim2.fromOffset(9, 24), 31, amber, ammoPanel)
 ammoText.TextXAlignment = Enum.TextXAlignment.Right
@@ -782,7 +841,7 @@ local flashlight = Instance.new("SpotLight")
 flashlight.Name = "BrightHouseLight"
 flashlight.Face = Enum.NormalId.Front
 flashlight.Angle = 78
-flashlight.Brightness = 5.2
+flashlight.Brightness = 7.5
 flashlight.Range = 75
 flashlight.Color = Color3.fromRGB(214, 255, 248)
 flashlight.Shadows = true
@@ -821,7 +880,14 @@ local function updateAmmo()
 end
 
 local function reload()
-    if reloading or ammo >= magazine then return end
+    if reloading then return end
+    if ammo >= magazine then
+        ammoText.Text = "MAG FULL · R OK"
+        task.delay(0.7, function()
+            if not reloading and ammo >= magazine then updateAmmo() end
+        end)
+        return
+    end
     reloading = true
     firing = false
     ammoText.Text = "RELOAD"
@@ -949,9 +1015,10 @@ UserInputService.InputBegan:Connect(function(input, processed)
         firing = true
     elseif input.KeyCode == Enum.KeyCode.R then
         reload()
-    elseif input.KeyCode == Enum.KeyCode.F then
+    elseif input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.F then
         lightOn = not lightOn
         flashlight.Enabled = lightOn
+        gunTitle.Text = "AIM ASSIST · LIGHT " .. (lightOn and "ON" or "OFF")
     end
 end)
 
@@ -994,6 +1061,16 @@ stateEvent.OnClientEvent:Connect(function(kind, a, b)
         killsText.Text = tostring(a or 0) .. " VERMIN DESTROYED"
     elseif kind == "caption" then
         captionMessage(tostring(a))
+    elseif kind == "schemaClear" then
+        firing = false
+        objectiveText.Text = "SCHEMA " .. tostring(a or 1) .. " CLEARED"
+        winTitle.Text = "SCHEMA " .. tostring(a or 1) .. " / " .. tostring(b or 5) .. " CLEARED"
+        winSub.Text = "THE HOUSE IS REBUILDING BERTRANDA"
+        winOverlay.Visible = true
+        task.delay(3.9, function() winOverlay.Visible = false end)
+    elseif kind == "schema" then
+        objectiveText.Text = "SCHEMA " .. tostring(a or 1) .. " / " .. tostring(b or 5) .. " · ELIMINATE BERTRANDA"
+        winOverlay.Visible = false
     elseif kind == "hit" then
         crossH.BackgroundColor3 = a and Color3.fromRGB(255, 243, 128) or red
         crossV.BackgroundColor3 = crossH.BackgroundColor3
@@ -1018,9 +1095,10 @@ stateEvent.OnClientEvent:Connect(function(kind, a, b)
         task.delay(0.3, function() damageFlash.BackgroundColor3 = Color3.fromRGB(172, 15, 8) end)
     elseif kind == "win" then
         firing = false
-        objectiveText.Text = "BERTRANDA DESTROYED"
+        objectiveText.Text = "ALL FIVE BERTRANDAS DESTROYED"
+        winTitle.Text = "ALL FIVE BODIES TERMINATED"
+        winSub.Text = "BERTRANDA HAS NOWHERE LEFT TO RETURN"
         winOverlay.Visible = true
-        task.delay(8, function() winOverlay.Visible = false end)
     end
 end)
 

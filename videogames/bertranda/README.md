@@ -4,7 +4,7 @@ An original fast first-person horror shooter for desktop and mobile browsers. Be
 
 ## Objective
 
-Keep moving, survive the continuous swarm and destroy Bertranda. Her health bar is visible from the beginning and she becomes faster in three phases. Human faces are weak points. Every defeated creature detonates with light, fragments, sound and camera shake; Bertranda triggers a larger chain explosion.
+Keep moving, survive the continuous swarm and destroy all five incarnations of Bertranda. Killing the spider boss clears the current schema instead of ending the game: the house changes colour, gains more solid infestation growths and repopulates with a stronger Bertranda and a larger opening swarm. The fifth kill completes the run. Human faces are weak points. Every defeated creature detonates with light, fragments, sound and camera shake.
 
 The default **Deep** graphics preset uses the full fluorescent cyan, lime and magenta horror treatment at a performance-conscious resolution. Choose **Light** for fewer dynamic lights, particles and simultaneous enemies, or **Ultra** for maximum density. The rifle now fires clearly visible travelling plasma bolts, while magnetic aim assist gently pulls near-center shots onto unobstructed enemies.
 
@@ -15,11 +15,11 @@ The default **Deep** graphics preset uses the full fluorescent cyan, lime and ma
 - Left click or `Space`: full-auto fire
 - `Shift`: sprint
 - `R`: reload
-- `F`: toggle the light
+- `E` or `F`: toggle the brighter weapon light, with visible ON/OFF feedback
 - `P` or `Esc`: pause
 - Smartphone/tablet: analogue movement, drag-to-aim, FIRE, RUN, reload and LIGHT buttons
 
-On the title screen, choose **Light**, **Deep** (default) or **Ultra** under Graphics. Story and Frenzy have also been rebalanced with slower, less damaging vermin and a more vulnerable Bertranda.
+On the title screen, choose **Light**, **Deep** (default) or **Ultra** under Graphics. Story and Frenzy retain their easier early balance, while each schema increases Bertranda's health, size, speed, swarm density and spawn rate. Pressing `R` with a full magazine now confirms that the key is working instead of failing silently.
 
 ## Contents
 

@@ -12,10 +12,10 @@
 - Mouse or touchscreen to aim
 - Hold left mouse or `Space` to fire
 - `R` to reload
-- `F` to toggle the strong weapon light
+- `E` or `F` to toggle the stronger weapon light
 - Mobile includes dedicated FIRE and reload buttons
 
-Aim at the human heads for extra damage and eliminate Bertranda. A forgiving magnetic cone nudges near-center shots onto visible faces, and every shot now launches a fluorescent cyan travelling bolt with a lime trail. Cockroaches, bats and snakes spawn continuously, attack the players and explode into loud chitin fragments when destroyed. Enemy density, speed, damage and boss health are reduced for a faster, smoother fight.
+Aim at the human heads for extra damage and eliminate all five incarnations of Bertranda. Killing the boss clears the current schema; after a short transition the house gains more solid neon growths, the swarm returns and a larger, tougher Bertranda appears. Only schema five ends the run. A forgiving magnetic cone nudges near-center shots onto visible faces, and every shot launches a fluorescent cyan travelling bolt with a lime trail. Pressing `R` with a full magazine now gives visible confirmation instead of appearing broken.
 
 ## Human faces and sound
 

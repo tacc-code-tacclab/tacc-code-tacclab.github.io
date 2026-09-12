@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>BERTRANDA — Human Vermin</title>
-  <meta name="description" content="A frantic original first-person horror shooter. Blast human-faced vermin through a decaying house and destroy Bertranda, the woman in the spider body.">
+  <meta name="description" content="A frantic five-schema first-person horror shooter. Blast human-faced vermin and destroy every increasingly powerful incarnation of Bertranda.">
   <meta name="theme-color" content="#071017">
   <meta property="og:type" content="website">
   <meta property="og:title" content="BERTRANDA — Human Vermin">
-  <meta property="og:description" content="The face is still hers. Everything beneath it has eight legs. Kill Bertranda before the house fills with human-faced vermin.">
+  <meta property="og:description" content="The face is still hers. Everything beneath it has eight legs. Clear five escalating infestations and stop Bertranda's final return.">
   <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/bertranda/">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=3">
+  <link rel="stylesheet" href="game.css?v=4">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -37,7 +37,7 @@
         <p class="eyebrow">An original horror shooter</p>
         <h1 id="game-title"><span>BER</span>TRANDA</h1>
         <p class="subtitle">HUMAN VERMIN</p>
-        <p class="story">Bertranda kept her face. The rest of her became a spider. Fight through swarms of cockroaches, bats and snakes wearing stolen human faces, then put an end to her transformation.</p>
+        <p class="story">Bertranda kept her face. The rest of her became a spider. Hunt her through five increasingly infested forms of the house; each rebirth brings more growths, more vermin and a tougher body.</p>
 
         <div class="settings-row">
           <fieldset>
@@ -65,7 +65,7 @@
         </div>
 
         <div class="controls-summary" aria-label="Controls">
-          <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>F</b> LIGHT</span>
+          <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>E / F</b> LIGHT</span>
         </div>
         <div class="title-foot">
           <a href="../../#videogames">← All games</a>
@@ -79,11 +79,11 @@
       <div class="objective-card">
         <span>OBJECTIVE</span>
         <strong id="objective-text">ELIMINATE BERTRANDA</strong>
-        <small id="wave-text">WAVE 1 · 0 VERMIN DESTROYED</small>
+        <small id="wave-text">SCHEMA 1 / 5 · 0 VERMIN DESTROYED</small>
       </div>
 
       <div id="boss-wrap" class="boss-wrap">
-        <div><span>BERTRANDA</span><small id="boss-phase">THE MOTHER BELOW</small></div>
+        <div><span>BERTRANDA</span><small id="boss-phase">SCHEMA 1 · THE MOTHER BELOW</small></div>
         <i><b id="boss-fill"></b></i>
       </div>
 
@@ -101,7 +101,7 @@
       <aside class="weapon-panel" aria-label="Weapon status">
         <span>SALT-ARC RIFLE</span>
         <strong><b id="ammo-text">32</b><small> / ∞</small></strong>
-        <em id="weapon-state">MAGNETIC AIM · FULL AUTO</em>
+        <em id="weapon-state">AUTO · LIGHT ON · E/F</em>
       </aside>
 
       <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
@@ -115,7 +115,7 @@
       <button id="touch-fire" class="touch-button fire" type="button">FIRE</button>
       <button id="touch-run" class="touch-button run" type="button">RUN</button>
       <button id="touch-reload" class="touch-button reload" type="button">R</button>
-      <button id="touch-torch" class="touch-button torch" type="button">LIGHT</button>
+      <button id="touch-torch" class="touch-button torch" type="button">LIGHT ON</button>
     </section>
 
     <section id="pause-screen" class="screen modal" hidden aria-labelledby="pause-title">
@@ -124,7 +124,7 @@
         <h2 id="pause-title">PAUSED</h2>
         <p>The faces will begin moving again when you return.</p>
         <button id="resume-button" class="primary" type="button">RETURN TO FIRE</button>
-        <button id="restart-button" class="secondary" type="button">RESTART MASSACRE</button>
+        <button id="restart-button" class="secondary" type="button">RESTART FROM SCHEMA 1</button>
         <a class="secondary" href="../../#videogames">LEAVE HOUSE</a>
       </div>
     </section>
@@ -142,10 +142,10 @@
 
     <section id="win-screen" class="screen modal win-screen" hidden aria-labelledby="win-title">
       <div class="modal-card">
-        <p class="eyebrow">BERTRANDA TERMINATED</p>
+        <p class="eyebrow">ALL INCARNATIONS TERMINATED</p>
         <h2 id="win-title">THE FACE IS QUIET</h2>
-        <p id="win-copy">The spider body has stopped. The stolen faces burn with it.</p>
-        <div class="results"><span>TIME <strong id="final-time">00:00</strong></span><span>KILLS <strong id="final-kills">0</strong></span></div>
+        <p id="win-copy">All five bodies have stopped. Bertranda has nowhere left to return.</p>
+        <div class="results"><span>TIME <strong id="final-time">00:00</strong></span><span>KILLS <strong id="final-kills">0</strong></span><span>SCHEMAS <strong>5 / 5</strong></span></div>
         <button id="again-button" class="primary" type="button">PLAY AGAIN</button>
         <a class="secondary" href="roblox/Bertranda.rbxlx" download>DOWNLOAD ROBLOX PLACE</a>
         <a class="secondary" href="../../#videogames">ALL GAMES</a>
@@ -158,6 +158,6 @@
 
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
-  <script src="game.js?v=3"></script>
+  <script src="game.js?v=4"></script>
 </body>
 </html>

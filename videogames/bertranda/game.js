@@ -6,6 +6,14 @@
   const lerp = (a, b, amount) => a + (b - a) * amount;
   const TAU = Math.PI * 2;
   const IS_TOUCH = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  const MAX_SCHEMAS = 5;
+  const SCHEMA_THEMES = [
+    { name: "THE BOARDING HOUSE", background: 0x071017, sky: 0x9cfff4, ground: 0x31072e, moon: 0xff69c7 },
+    { name: "THE BLOOMING CELLAR", background: 0x06151b, sky: 0x68fff0, ground: 0x39104a, moon: 0xcaff55 },
+    { name: "THE BROOD CORRIDOR", background: 0x14081b, sky: 0xff8bd5, ground: 0x092d32, moon: 0x59fff1 },
+    { name: "THE ACID NURSERY", background: 0x0a180b, sky: 0xd7ff79, ground: 0x35062d, moon: 0xff3bbd },
+    { name: "BERTRANDA'S NEST", background: 0x180616, sky: 0xff71c9, ground: 0x06343b, moon: 0xcaff55 }
+  ];
 
   const ui = {
     host: $("#render-host"),
@@ -64,8 +72,13 @@
   let wallMesh;
   let flashlight;
   let flashlightHalo;
+  let hemisphereLight;
+  let ambientLight;
+  let moonLight;
   let gameState = "title";
   let elapsed = 0;
+  let schemaElapsed = 0;
+  let schema = 1;
   let sessionId = 0;
   let captionUntil = 0;
   let dangerUntil = 0;
@@ -78,6 +91,7 @@
   let lastKillAt = -20;
   let hudTimer = 0;
   let aimLockUntil = 0;
+  let baseColliderCount = 0;
 
   const flickerLights = [];
   const propColliders = [];
@@ -87,6 +101,8 @@
   const effects = [];
   const projectiles = [];
   const pickups = [];
+  const infestationProps = [];
+  const infestationMaterials = [];
   const faceTextures = {};
   const raycaster = new THREE.Raycaster();
   const aimPoint = new THREE.Vector2(0, 0);
@@ -95,6 +111,9 @@
   const boltGeometry = new THREE.OctahedronGeometry(0.12, 0);
   const blastGeometry = new THREE.IcosahedronGeometry(0.55, 1);
   const blastRingGeometry = new THREE.RingGeometry(0.25, 0.34, 18);
+  const growthGeometry = new THREE.DodecahedronGeometry(0.52, 0);
+  const growthRingGeometry = new THREE.TorusGeometry(0.56, 0.08, 6, 14);
+  const growthSpikeGeometry = new THREE.ConeGeometry(0.1, 0.72, 5);
 
   const controls = {
     keys: new Set(),
@@ -620,6 +639,85 @@
     });
   }
 
+  function clearInfestation() {
+    infestationProps.forEach((group) => scene.remove(group));
+    infestationProps.length = 0;
+    infestationMaterials.forEach((material) => material.dispose());
+    infestationMaterials.length = 0;
+    propColliders.length = baseColliderCount;
+  }
+
+  function addInfestationForSchema(currentSchema) {
+    if (currentSchema <= 1) return;
+    const colors = [0xff3bbd, 0x59fff1, 0xcaff55, 0xff5c9f];
+    const color = colors[(currentSchema - 2) % colors.length];
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 1.35 + currentSchema * 0.16,
+      roughness: 0.42,
+      metalness: 0.08,
+      flatShading: true
+    });
+    infestationMaterials.push(material);
+    const playerSpawn = worldFromCell(3, 16);
+    const bossSpawn = worldFromCell(21, 10);
+    const wanted = currentSchema + 1;
+    let placed = 0;
+    let attempt = 0;
+    while (placed < wanted && attempt < floorCells.length) {
+      const cell = floorCells[((currentSchema - 1) * 41 + attempt * 29) % floorCells.length];
+      const world = worldFromCell(cell.x, cell.z);
+      attempt += 1;
+      if (Math.hypot(world.x - playerSpawn.x, world.z - playerSpawn.z) < 7) continue;
+      if (Math.hypot(world.x - bossSpawn.x, world.z - bossSpawn.z) < 6) continue;
+      if (!circleFree(world.x, world.z, 0.72)) continue;
+
+      const group = new THREE.Group();
+      const pod = new THREE.Mesh(growthGeometry, material);
+      pod.position.y = 0.55;
+      pod.scale.set(0.72 + currentSchema * 0.04, 1.15 + currentSchema * 0.09, 0.72 + currentSchema * 0.04);
+      pod.rotation.set(attempt * 0.17, attempt * 0.31, attempt * 0.11);
+      group.add(pod);
+      const ring = new THREE.Mesh(growthRingGeometry, material);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.12;
+      group.add(ring);
+      for (let spikeIndex = 0; spikeIndex < 4; spikeIndex += 1) {
+        const spike = new THREE.Mesh(growthSpikeGeometry, material);
+        const angle = spikeIndex / 4 * TAU + attempt * 0.2;
+        spike.position.set(Math.cos(angle) * 0.48, 0.32, Math.sin(angle) * 0.48);
+        spike.rotation.z = Math.PI / 2;
+        spike.rotation.y = -angle;
+        group.add(spike);
+      }
+      group.position.set(world.x, 0, world.z);
+      group.userData.phase = attempt * 0.7;
+      scene.add(group);
+      infestationProps.push(group);
+      addCollider(world.x, world.z, 1.25, 1.25);
+      placed += 1;
+    }
+  }
+
+  function applySchemaLook() {
+    if (!scene) return;
+    const theme = SCHEMA_THEMES[schema - 1];
+    scene.background.setHex(theme.background);
+    scene.fog.color.setHex(theme.background);
+    if (hemisphereLight) {
+      hemisphereLight.color.setHex(theme.sky);
+      hemisphereLight.groundColor.setHex(theme.ground);
+    }
+    if (ambientLight) ambientLight.color.setHex(theme.sky);
+    if (moonLight) moonLight.color.setHex(theme.moon);
+    flickerLights.forEach((entry) => {
+      entry.light.color.setHSL((schema * 0.13 + entry.index * 0.19) % 1, 1, 0.66);
+    });
+    document.body.dataset.schema = String(schema);
+    applyQuality();
+  }
+
   function buildWeapon() {
     const root = new THREE.Group();
     const dark = new THREE.MeshStandardMaterial({ color: 0x071923, roughness: 0.36, metalness: 0.76 });
@@ -808,17 +906,27 @@
   }
 
   function difficultyConfig() {
-    if (settings.difficulty === "quiet") return { bossHp: 520, damage: 0.5, cap: 8, interval: 2.2, speed: 0.78 };
-    if (settings.difficulty === "nightmare") return { bossHp: 1120, damage: 1.05, cap: 20, interval: 1, speed: 1.02 };
-    return { bossHp: 780, damage: 0.72, cap: 14, interval: 1.55, speed: 0.88 };
+    const base = settings.difficulty === "quiet"
+      ? { bossHp: 620, damage: 0.5, cap: 8, interval: 2.2, speed: 0.78 }
+      : settings.difficulty === "nightmare"
+        ? { bossHp: 1280, damage: 1.05, cap: 20, interval: 1, speed: 1.02 }
+        : { bossHp: 900, damage: 0.72, cap: 14, interval: 1.55, speed: 0.88 };
+    const escalation = schema - 1;
+    return {
+      bossHp: Math.round(base.bossHp * (1 + escalation * 0.42)),
+      damage: base.damage * (1 + escalation * 0.07),
+      cap: base.cap + escalation,
+      interval: Math.max(0.66, base.interval / (1 + escalation * 0.11)),
+      speed: base.speed * (1 + escalation * 0.06)
+    };
   }
 
   function effectiveEnemyCap() {
     const config = difficultyConfig();
     let cap = config.cap;
-    if (settings.quality === "low") cap = Math.min(cap, 8);
-    if (settings.quality === "deep") cap = Math.min(cap, IS_TOUCH ? 11 : 14);
-    if (settings.quality === "high" && IS_TOUCH) cap = Math.min(cap, 15);
+    if (settings.quality === "low") cap = Math.min(cap, 7 + schema);
+    if (settings.quality === "deep") cap = Math.min(cap, IS_TOUCH ? 10 + schema : 13 + schema);
+    if (settings.quality === "high" && IS_TOUCH) cap = Math.min(cap, 14 + schema);
     return cap;
   }
 
@@ -1175,13 +1283,28 @@
     player.torch = !player.torch;
     audio.tone(player.torch ? 580 : 270, 0.07, 0.055, "square", player.torch ? 70 : -40);
     ui.touchTorch.classList.toggle("pressed", player.torch);
+    ui.touchTorch.textContent = player.torch ? "LIGHT ON" : "LIGHT OFF";
+    showCaption(player.torch ? "WEAPON LIGHT ON · E/F" : "WEAPON LIGHT OFF · E/F", 1.25);
+    updateHud();
   }
 
-  function startReload() {
-    if (gameState !== "playing" || weapon.reload > 0 || weapon.ammo >= weapon.magazine) return;
+  function startReload(showFeedback) {
+    if (gameState !== "playing") return;
+    if (weapon.reload > 0) {
+      if (showFeedback) showCaption("RELOAD ALREADY IN PROGRESS", 1.1);
+      return;
+    }
+    if (weapon.ammo >= weapon.magazine) {
+      if (showFeedback) {
+        showCaption("MAGAZINE FULL · R IS WORKING", 1.35);
+        audio.tone(640, 0.05, 0.035, "square", 40);
+      }
+      return;
+    }
     weapon.reload = 1.12;
     controls.fire = false;
     ui.reticle.classList.add("reloading");
+    showCaption("RELOADING SALT CELLS", 1.15);
     audio.reload();
   }
 
@@ -1343,17 +1466,18 @@
     if (!boss.alive) return;
     boss.alive = false;
     boss.hp = 0;
-    gameState = "winning";
+    gameState = "transitioning";
     controls.fire = false;
-    ui.objective.textContent = "BERTRANDA DESTROYED";
-    showDanger("DIRECT HIT — BERTRANDA DOWN", 3);
+    const finalSchema = schema >= MAX_SCHEMAS;
+    ui.objective.textContent = finalSchema ? "ALL BERTRANDAS DESTROYED" : "SCHEMA " + schema + " CLEARED";
+    showDanger(finalSchema ? "FINAL BODY DESTROYED" : "BERTRANDA DOWN · THE HOUSE IS SHIFTING", 3);
     const token = sessionId;
     const base = new THREE.Vector3(boss.x, 1.15, boss.z);
     boss.model.visible = false;
     explosionAt(base.clone(), 2.55, 0xff3bbd, true);
     [140, 300, 470, 650, 820].forEach((delay, index) => {
       setTimeout(() => {
-        if (sessionId !== token || gameState !== "winning") return;
+        if (sessionId !== token || gameState !== "transitioning") return;
         const offset = new THREE.Vector3((Math.random() - 0.5) * 4.6, Math.random() * 2 + 0.25, (Math.random() - 0.5) * 4.6);
         explosionAt(base.clone().add(offset), 1.1 + index * 0.18, index % 2 ? 0x59fff1 : 0xcaff55, true);
       }, delay);
@@ -1365,8 +1489,80 @@
       }, 80 + index * 42);
     });
     setTimeout(() => {
-      if (sessionId === token && gameState === "winning") finishWin();
+      if (sessionId !== token || gameState !== "transitioning") return;
+      if (finalSchema) finishWin();
+      else beginNextSchema();
     }, 1700);
+  }
+
+  function configureBossForSchema() {
+    const config = difficultyConfig();
+    boss.maxHp = config.bossHp;
+    boss.hp = boss.maxHp;
+    boss.phase = 1;
+    boss.alive = true;
+    boss.path = [];
+    boss.pathIndex = 0;
+    boss.repath = 0;
+    boss.attackCooldown = 1.35;
+    boss.webCooldown = Math.max(2.1, 3.65 - schema * 0.24);
+    boss.gait = 0;
+    const bossSpawn = worldFromCell(21, 10);
+    boss.x = bossSpawn.x;
+    boss.z = bossSpawn.z;
+    boss.model.position.set(boss.x, 0.08, boss.z);
+    boss.model.rotation.set(0, Math.PI, 0);
+    boss.model.scale.setScalar(1 + (schema - 1) * 0.055);
+    boss.model.visible = true;
+  }
+
+  function spawnOpeningSwarm() {
+    const base = settings.difficulty === "quiet" ? 3 : settings.difficulty === "nightmare" ? 5 : 4;
+    const count = Math.min(effectiveEnemyCap(), base + Math.min(3, schema - 1));
+    for (let i = 0; i < count; i += 1) {
+      spawnCreature(i % 3 === 0 ? "bat" : i % 3 === 1 ? "snake" : "roach", true);
+    }
+  }
+
+  function clearBetweenSchemas() {
+    enemies.forEach((enemy) => {
+      scene.remove(enemy.model);
+      disposeGroup(enemy.model);
+    });
+    enemies.length = 0;
+    projectiles.forEach((projectile) => {
+      scene.remove(projectile.mesh);
+      disposeGroup(projectile.mesh);
+    });
+    projectiles.length = 0;
+  }
+
+  function beginNextSchema() {
+    clearBetweenSchemas();
+    schema += 1;
+    schemaElapsed = 0;
+    wave = 1;
+    spawnTimer = 1.7;
+    screenShake = 0.12;
+    setPlayerSpawn();
+    weapon.ammo = weapon.magazine;
+    weapon.reload = 0;
+    weapon.cooldown = 0;
+    weapon.recoil = 0;
+    controls.fire = false;
+    addInfestationForSchema(schema);
+    applySchemaLook();
+    configureBossForSchema();
+    spawnOpeningSwarm();
+    gameState = "playing";
+    ui.objective.textContent = "SCHEMA " + schema + " / " + MAX_SCHEMAS + " · KILL BERTRANDA";
+    ui.reticle.classList.remove("reloading", "hit", "locked");
+    ui.touchTorch.classList.add("pressed");
+    ui.touchTorch.textContent = "LIGHT ON";
+    audio.resetMusic();
+    updateHud();
+    showDanger("SCHEMA " + schema + " / " + MAX_SCHEMAS, 2.6);
+    showCaption(SCHEMA_THEMES[schema - 1].name + " · BERTRANDA HAS A STRONGER BODY", 4.2);
   }
 
   function damagePlayer(amount) {
@@ -1571,7 +1767,7 @@
   }
 
   function updateSpawning(dt) {
-    wave = 1 + Math.floor(elapsed / 24);
+    wave = 1 + Math.floor(schemaElapsed / 24);
     spawnTimer -= dt;
     if (spawnTimer > 0) return;
     const config = difficultyConfig();
@@ -1579,7 +1775,7 @@
     spawnTimer = Math.max(0.42, config.interval / phaseBoost) * (0.78 + Math.random() * 0.48);
     spawnCreature();
     if (settings.difficulty === "nightmare" && boss.phase === 3 && Math.random() < 0.32) spawnCreature();
-    if (wave > 1 && Math.floor(elapsed) % 24 < 2) showDanger("WAVE " + wave + " — MORE FACES", 1.5);
+    if (wave > 1 && Math.floor(schemaElapsed) % 24 < 2) showDanger("SCHEMA " + schema + " · WAVE " + wave + " — MORE FACES", 1.5);
   }
 
   function animateHouse() {
@@ -1592,9 +1788,14 @@
       rift.glow.intensity = 0.5 + Math.sin(elapsed * 3.1 + rift.phase) * 0.18;
       rift.group.scale.setScalar(0.96 + Math.sin(elapsed * 2.2 + rift.phase) * 0.04);
     });
-    const beam = settings.quality === "low" ? 5.8 : settings.quality === "deep" ? 5.45 : 5.2;
+    infestationProps.forEach((group) => {
+      const pulse = 0.96 + Math.sin(elapsed * 2.8 + group.userData.phase) * 0.045;
+      group.scale.setScalar(pulse);
+      group.rotation.y = Math.sin(elapsed * 0.35 + group.userData.phase) * 0.08;
+    });
+    const beam = settings.quality === "low" ? 8.4 : settings.quality === "deep" ? 8 : 7.6;
     flashlight.intensity = player.torch ? beam : 0;
-    flashlightHalo.intensity = player.torch && settings.quality !== "low" ? 0.68 : 0;
+    flashlightHalo.intensity = player.torch && settings.quality !== "low" ? 0.92 : 0;
   }
 
   function updateHud() {
@@ -1603,10 +1804,11 @@
     ui.healthFill.style.transform = "scaleX(" + healthRatio + ")";
     ui.healthText.textContent = String(Math.ceil(player.health));
     ui.bossFill.style.transform = "scaleX(" + bossRatio + ")";
-    ui.bossPhase.textContent = boss.phase === 1 ? "THE MOTHER BELOW" : boss.phase === 2 ? "SHELL SPLIT OPEN" : "FACE LOST · BERSERK";
+    const phaseText = boss.phase === 1 ? "THE MOTHER BELOW" : boss.phase === 2 ? "SHELL SPLIT OPEN" : "FACE LOST · BERSERK";
+    ui.bossPhase.textContent = "SCHEMA " + schema + " · " + phaseText;
     ui.ammo.textContent = String(weapon.ammo).padStart(2, "0");
-    ui.weaponState.textContent = weapon.reload > 0 ? "RELOADING " + Math.ceil(weapon.reload * 10) / 10 + "s" : weapon.ammo <= 5 ? "LOW · PRESS R" : "MAGNETIC AIM · FULL AUTO";
-    ui.wave.textContent = "WAVE " + wave + " · " + kills + (kills === 1 ? " VERMIN DESTROYED" : " VERMIN DESTROYED");
+    ui.weaponState.textContent = weapon.reload > 0 ? "RELOADING " + Math.ceil(weapon.reload * 10) / 10 + "s" : weapon.ammo <= 5 ? "LOW · PRESS R" : "AUTO · LIGHT " + (player.torch ? "ON" : "OFF") + " · E/F";
+    ui.wave.textContent = "SCHEMA " + schema + " / " + MAX_SCHEMAS + " · WAVE " + wave + " · " + kills + " VERMIN DESTROYED";
     const activeStreak = elapsed - lastKillAt < 3.2 ? streak : 0;
     ui.streak.textContent = activeStreak > 1 ? activeStreak + "× DETONATION STREAK" : "MOVE · AIM · DETONATE";
     ui.prompt.textContent = weapon.reload > 0 ? "RELOADING SALT CELLS" : "";
@@ -1667,7 +1869,10 @@
   function resetSession() {
     sessionId += 1;
     clearSessionObjects();
+    clearInfestation();
     elapsed = 0;
+    schemaElapsed = 0;
+    schema = 1;
     wave = 1;
     kills = 0;
     streak = 0;
@@ -1685,27 +1890,12 @@
     weapon.recoil = 0;
     controls.fire = false;
     ui.reticle.classList.remove("reloading", "hit", "locked");
-    const config = difficultyConfig();
-    boss.maxHp = config.bossHp;
-    boss.hp = boss.maxHp;
-    boss.phase = 1;
-    boss.alive = true;
-    boss.path = [];
-    boss.pathIndex = 0;
-    boss.repath = 0;
-    boss.attackCooldown = 1.2;
-    boss.webCooldown = 3.4;
-    boss.gait = 0;
-    const bossSpawn = worldFromCell(21, 10);
-    boss.x = bossSpawn.x;
-    boss.z = bossSpawn.z;
-    boss.model.position.set(boss.x, 0.08, boss.z);
-    boss.model.rotation.set(0, Math.PI, 0);
-    boss.model.visible = true;
-    const initialEnemies = settings.difficulty === "quiet" ? 3 : settings.difficulty === "nightmare" ? 5 : 4;
-    for (let i = 0; i < initialEnemies; i += 1) {
-      spawnCreature(i % 3 === 0 ? "bat" : i % 3 === 1 ? "snake" : "roach", true);
-    }
+    ui.touchTorch.classList.add("pressed");
+    ui.touchTorch.textContent = "LIGHT ON";
+    applySchemaLook();
+    configureBossForSchema();
+    spawnOpeningSwarm();
+    ui.objective.textContent = "SCHEMA 1 / " + MAX_SCHEMAS + " · KILL BERTRANDA";
     updateHud();
     audio.resetMusic();
   }
@@ -1724,8 +1914,8 @@
     ui.touch.hidden = !IS_TOUCH;
     gameState = "playing";
     resetSession();
-    showDanger("BERTRANDA IS IN THE HOUSE", 2.4);
-    showCaption("Every face is human. Everything else is hungry. Fire.", 4.6);
+    showDanger("SCHEMA 1 / " + MAX_SCHEMAS + " · BERTRANDA IS IN THE HOUSE", 2.7);
+    showCaption("Destroy all five bodies. R reloads · E or F controls the weapon light.", 4.8);
     if (!IS_TOUCH) requestPointer();
   }
 
@@ -1763,11 +1953,12 @@
 
   function bindKeyboardAndMouse() {
     window.addEventListener("keydown", (event) => {
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code) && gameState === "playing") event.preventDefault();
+      const typedKey = typeof event.key === "string" ? event.key.toLowerCase() : "";
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyR", "KeyE", "KeyF"].includes(event.code) && gameState === "playing") event.preventDefault();
       controls.keys.add(event.code);
       if (event.code === "Space" && gameState === "playing") controls.fire = true;
-      if (event.code === "KeyR" && !event.repeat) startReload();
-      if (event.code === "KeyF" && !event.repeat) toggleTorch();
+      if ((event.code === "KeyR" || typedKey === "r") && !event.repeat) startReload(true);
+      if ((event.code === "KeyE" || event.code === "KeyF" || typedKey === "e" || typedKey === "f") && !event.repeat) toggleTorch();
       if (event.code === "KeyP" && !event.repeat) {
         if (gameState === "playing") pauseGame();
         else if (gameState === "paused") resumeGame();
@@ -1884,7 +2075,7 @@
     }, () => {
       controls.runTouch = false;
     });
-    ui.touchReload.addEventListener("click", startReload);
+    ui.touchReload.addEventListener("click", () => startReload(true));
     ui.touchTorch.addEventListener("click", toggleTorch);
   }
 
@@ -1895,10 +2086,10 @@
     if (settings.quality === "high") ratio = Math.min(devicePixelRatio, IS_TOUCH ? 1.35 : 1.75);
     renderer.setPixelRatio(ratio);
     renderer.setSize(innerWidth, innerHeight, false);
-    renderer.toneMappingExposure = settings.quality === "low" ? 1.46 : settings.quality === "deep" ? 1.55 : 1.62;
+    renderer.toneMappingExposure = (settings.quality === "low" ? 1.46 : settings.quality === "deep" ? 1.55 : 1.62) + (schema - 1) * 0.025;
     document.body.dataset.quality = settings.quality;
     if (!scene) return;
-    scene.fog.density = settings.quality === "low" ? 0.012 : settings.quality === "deep" ? 0.0155 : 0.018;
+    scene.fog.density = (settings.quality === "low" ? 0.012 : settings.quality === "deep" ? 0.0155 : 0.018) + (schema - 1) * 0.00035;
     flickerLights.forEach((entry) => {
       entry.light.visible = settings.quality === "high" || settings.quality === "deep" && entry.index % 2 === 0 || settings.quality === "low" && entry.index % 3 === 0;
     });
@@ -1937,21 +2128,22 @@
     scene.add(camera);
     clock = new THREE.Clock();
 
-    const hemisphere = new THREE.HemisphereLight(0x9cfff4, 0x31072e, 0.84);
-    scene.add(hemisphere);
-    const ambient = new THREE.AmbientLight(0x81aeb0, 0.34);
-    scene.add(ambient);
-    const moon = new THREE.DirectionalLight(0xff69c7, 0.46);
-    moon.position.set(-20, 18, -12);
-    scene.add(moon);
+    hemisphereLight = new THREE.HemisphereLight(0x9cfff4, 0x31072e, 0.84);
+    scene.add(hemisphereLight);
+    ambientLight = new THREE.AmbientLight(0x81aeb0, 0.34);
+    scene.add(ambientLight);
+    moonLight = new THREE.DirectionalLight(0xff69c7, 0.46);
+    moonLight.position.set(-20, 18, -12);
+    scene.add(moonLight);
 
     buildHouse();
+    baseColliderCount = propColliders.length;
     buildWeapon();
-    flashlight = new THREE.SpotLight(0xd6fff8, 5.45, 52, Math.PI / 4.9, 0.5, 1.15);
+    flashlight = new THREE.SpotLight(0xd6fff8, 8, 56, Math.PI / 4.65, 0.46, 1.1);
     flashlight.position.set(0.12, -0.06, 0.05);
     flashlight.target.position.set(0, -0.03, -3);
     camera.add(flashlight, flashlight.target);
-    flashlightHalo = new THREE.PointLight(0xcaff55, 0.68, 8, 2);
+    flashlightHalo = new THREE.PointLight(0xcaff55, 0.92, 9, 2);
     flashlightHalo.position.set(0, 0, -0.25);
     camera.add(flashlightHalo);
 
@@ -1979,6 +2171,7 @@
     const dt = Math.min(0.034, clock.getDelta());
     if (gameState === "playing") {
       elapsed += dt;
+      schemaElapsed += dt;
       audio.updateMusic();
       updatePlayer(dt);
       updateWeapon(dt);
@@ -1995,9 +2188,10 @@
         updateHud();
       }
     } else {
-      if (gameState === "winning" || gameState === "dying") {
+      if (gameState === "transitioning" || gameState === "dying") {
         elapsed += dt;
         updateEffects(dt);
+        if (gameState === "transitioning") audio.updateMusic();
       }
       animateHouse();
     }
