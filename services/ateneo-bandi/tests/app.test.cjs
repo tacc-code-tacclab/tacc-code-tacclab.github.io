@@ -16,6 +16,20 @@ for (const code of ['BIO18','BIO/18','BIOS-14/A','05/BIOS-14','05/I1','genetica'
 assert(engine.matches(mol,{sector:'biologia molecolare o genetica'},now));
 assert(engine.matches(genetics,{sector:'BIO11, BIO18'},now));
 assert(!engine.matches(clinical,{sector:'BIO11 o BIO18'},now));
+for (const input of ['genetica e biologia molecolare','Biologia molecolare e genetica','BIO11 e BIO18','genetica & biologia molecolare']) {
+ for (const field of ['sector','query']) {
+  assert(engine.matches(mol,{[field]:input},now),input);
+  assert(engine.matches(genetics,{[field]:input},now),input);
+  assert(!engine.matches(clinical,{[field]:input},now),input);
+  assert(!engine.matches(pharmacology,{[field]:input},now),input);
+ }
+}
+for (const field of ['sector','query']) {
+ assert(engine.matches(clinical,{[field]:'Biochimica clinica e biologia molecolare clinica'},now));
+ assert(!engine.matches(mol,{[field]:'Biochimica clinica e biologia molecolare clinica'},now));
+ assert(engine.matches(mol,{[field]:'BIOS-08/A — Biologia molecolare'},now));
+}
+assert(!engine.matches(genetics,{query:'genetica e astronomia'},now));
 assert(!engine.matches({...mol,role:'Professore associato'},{role:'Professore ordinario'},now));
 assert(!engine.matches(mol,{region:'Lombardia'},now));
 assert(engine.matches(mol,{institution:'UNIPD',city:'Padova',region:'Veneto'},now));

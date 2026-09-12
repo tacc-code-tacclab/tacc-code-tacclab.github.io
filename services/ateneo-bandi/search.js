@@ -18,7 +18,19 @@
     catalog.oldSC.forEach(sc => [sc.code, sc.name].forEach(k => {
       catalog.sectors.filter(s => s.oldSC.includes(sc.code)).forEach(s => add(k, { gsd: s.gsd, broad: true }));
     }));
-    function alternatives(q) { return normalize(q).split(/\s+(?:o|or)\s+|[,;|]/).map(x => x.trim()).filter(Boolean); }
+    const termCode = q => compact(q.split(' — ')[0]);
+    function alternatives(input) {
+      const q = normalize(input);
+      // Preserve official names containing conjunctions or commas as one discipline.
+      if (codeMap.has(termCode(q))) return [q];
+      return q.split(/\s+(?:o|or)\s+|[,;|]/).map(x=>x.trim()).filter(Boolean).flatMap(part=>{
+        if (codeMap.has(termCode(part))) return [part];
+        const joined = part.split(/\s+(?:e|ed|and)\s+|\s*&\s*/).map(x=>x.trim());
+        // An enumeration of recognised disciplines means any of those disciplines.
+        // Arbitrary free-text phrases retain their usual keyword semantics.
+        return joined.length>1 && joined.every(x=>codeMap.has(termCode(x))) ? joined : [part];
+      });
+    }
     function sectorMatch(call, input) {
       if (!input) return true;
       return alternatives(input).some(q => {
@@ -37,7 +49,7 @@
       if (!input) return true;
       const haystack = normalize([call.title, call.description, call.institution, call.institutionLabel, call.city, call.region, call.role, call.sector, ...(call.aliases || [])].join(' '));
       return alternatives(input).some(q => {
-        if (codeMap.has(compact(q))) return sectorMatch(call, q);
+        if (codeMap.has(termCode(q))) return sectorMatch(call, q);
         return q.split(/\s+/).every(word => codeMap.has(compact(word)) ? sectorMatch(call, word) : haystack.includes(word));
       });
     }

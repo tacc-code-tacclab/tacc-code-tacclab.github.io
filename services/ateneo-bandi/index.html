@@ -11,7 +11,7 @@
     <meta property="og:url" content="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
     <link rel="canonical" href="https://tacc-code-tacclab.github.io/services/ateneo-bandi/" />
     <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="style.css?v=3" />
+    <link rel="stylesheet" href="style.css?v=4" />
     <script>
       (() => {
         let saved; try { saved = localStorage.getItem("theme"); } catch {}
@@ -19,8 +19,8 @@
         document.documentElement.dataset.theme = saved || preferred;
       })();
     </script>
-    <script src="search.js?v=2" defer></script>
-    <script src="app.js?v=4" defer></script>
+    <script src="search.js?v=3" defer></script>
+    <script src="app.js?v=5" defer></script>
     <title>Ateneo Bandi — TACC Lab Services</title>
   </head>
   <body>
@@ -68,7 +68,7 @@
             <span>Parole chiave, settore o codice SSD</span>
             <span class="query-wrap"><span aria-hidden="true">⌕</span><input id="query" name="query" type="search" autocomplete="off" placeholder="es. biologia molecolare, genetica, INFO-01/A" /></span>
           </label>
-          <label class="sector-picker"><span>Disciplina · SSD, GSD o settore concorsuale (anche vecchi codici)</span><input id="sector" name="sector" list="sector-options" placeholder="es. BIO11, BIOS-08/A, genetica o 05/I1" autocomplete="off" /><datalist id="sector-options"></datalist><small>Puoi combinare discipline con “o”: biologia molecolare o genetica.</small></label>
+          <label class="sector-picker"><span>Disciplina · SSD, GSD o settore concorsuale (anche vecchi codici)</span><input id="sector" name="sector" list="sector-options" placeholder="es. BIO11, BIOS-08/A, genetica" autocomplete="off" /><datalist id="sector-options"></datalist><small>Puoi scrivere “genetica e biologia molecolare”: cerchiamo almeno una delle discipline riconosciute. Ruolo, territorio e parole chiave restringono ulteriormente i risultati.</small></label>
           <p id="catalog-summary" class="catalog-summary"></p>
           <div class="filters-grid">
             <label><span>Tipo di posizione</span><select id="role" name="role"><option value="">Tutti i ruoli</option><option>Incarico post-doc</option><option>Contratto di ricerca</option><option>Assegno di ricerca</option><option>RTT / Ricercatore TD</option><option>RTT</option><option>RTD-A</option><option>RTD-B</option><option>Ricercatore PNRR</option><option>Incarico di ricerca</option><option>Professore associato</option><option>Professore ordinario</option><option>Dottorato</option><option>Tecnologo</option></select></label>
@@ -85,6 +85,7 @@
         </form>
         <div class="quick-searches" aria-label="Ricerche di esempio">
           <span>Prova:</span>
+          <button type="button" data-preset='{"sector":"genetica o biologia molecolare"}'>Genetica e molecolare · tutti i ruoli</button>
           <button type="button" data-preset='{"region":"Emilia-Romagna","role":"RTT / Ricercatore TD"}'>RTT in Emilia-Romagna</button>
           <button type="button" data-preset='{"sector":"BIO11 o BIO18","role":"Professore ordinario"}'>Ordinari · molecolare o genetica</button>
           <button type="button" data-preset='{"sector":"INFO-01/A o IINF-05/A"}'>Informatica</button>
@@ -109,6 +110,7 @@
             <div><p class="step">03 · VALUTA</p><h2><span id="result-count">0</span> opportunità trovate</h2></div>
             <p id="result-summary" aria-live="polite">Applica i filtri per iniziare.</p>
           </div>
+          <div id="active-filters" class="active-filters" role="group" aria-label="Filtri attivi, clicca per rimuovere"></div>
           <div class="notice" id="data-notice" hidden></div><details class="coverage-panel"><summary>Copertura e ultimo controllo delle fonti</summary><div id="coverage-details"></div></details>
           <div class="cards" id="cards" aria-live="polite" aria-busy="true"></div>
           <button class="load-more" id="load-more" type="button" hidden>Mostra altri risultati</button>

@@ -48,13 +48,38 @@
       <div class="call-bottom"><span class="source">Fonte: MUR · Bandi</span><a class="official" href="${safeUrl(c.url)}" target="_blank" rel="noopener">Verifica il bando ufficiale ↗</a></div>`;
     return a;
   }
+  function filterChips(f) {
+    const labels={query:'Parole chiave',sector:'Disciplina',role:'Ruolo',region:'Regione',city:'Città',institution:'Ateneo',status:'Stato'};
+    const wrap=el('active-filters'); wrap.replaceChildren();
+    Object.entries(labels).forEach(([key,label])=>{
+      if (!f[key] || key==='status' && f.status==='all') return;
+      const value=el(key).tagName==='SELECT' ? el(key).selectedOptions[0].textContent : f[key];
+      const b=document.createElement('button');b.type='button';b.className='filter-chip';b.textContent=`${label}: ${value} ×`;
+      b.setAttribute('aria-label',`Rimuovi filtro ${label.toLowerCase()}: ${value}`);
+      b.addEventListener('click',()=>{el(key).value=key==='status'?'all':'';if(key==='region')el('city').value='';cities();render();});
+      wrap.append(b);
+    });
+  }
+  function emptyState(f) {
+    const fragment=el('empty-template').content.cloneNode(true),box=fragment.querySelector('.empty');
+    const choices=[];
+    if(f.role)choices.push({values:{...f,role:''},label:'Mostra gli altri ruoli',explain:`Il filtro «${f.role}» esclude bandi presenti per altri ruoli.`});
+    if(f.region||f.city||f.institution)choices.push({values:{...f,region:'',city:'',institution:''},label:'Cerca in tutta Italia',explain:'Con gli stessi argomenti e lo stesso ruolo ci sono risultati fuori dal territorio o dall’ente selezionato.'});
+    if(f.query&&f.sector)choices.push({values:{...f,query:''},label:'Cerca solo la disciplina',explain:'Parole chiave e Disciplina sono due filtri cumulativi: il bando deve soddisfarli entrambi.'});
+    const useful=choices.map(c=>({...c,count:state.calls.filter(x=>state.engine.matches(x,c.values)).length})).filter(c=>c.count);
+    if(useful.length)box.querySelector('p').textContent=useful[0].explain;
+    useful.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='ghost';b.textContent=`${c.label} (${c.count})`;b.addEventListener('click',()=>{setFilters(c.values);render();});box.append(b);});
+    const p=document.createElement('p');p.className='small-text';p.textContent='Nessuna corrispondenza nell’indice MUR con questi filtri. Questo non certifica l’assenza di bandi negli albi dei singoli atenei.';box.append(p);
+    return fragment;
+  }
   function render(reset = true) {
     if (!state.engine) return;
     if (reset) state.visible = 12;
     const f = currentFilters();
     state.filtered = S.sortCalls(state.calls.filter(c => state.engine.matches(c,f)),f.sort);
     const cards = el('cards'); cards.replaceChildren(...state.filtered.slice(0,state.visible).map(card)); cards.setAttribute('aria-busy','false');
-    if (!state.filtered.length) cards.append(el('empty-template').content.cloneNode(true));
+    if (!state.filtered.length) cards.append(emptyState(f));
+    filterChips(f);
     el('result-count').textContent = state.filtered.length;
     const active = state.filtered.filter(c => S.isActive(c)).length, expired = state.filtered.filter(c => S.isExpired(c)).length;
     el('result-summary').textContent = `${active} aperti · ${expired} scaduti/chiusi${state.filtered.length-active-expired ? ` · ${state.filtered.length-active-expired} da verificare`:''}`;
