@@ -1840,12 +1840,15 @@ h3 {
 }
 .bertranda-art::after { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(245, 236, 190, .055) 3px 4px), radial-gradient(ellipse, transparent 43%, rgba(0, 0, 0, .56)); content: ""; opacity: .45; }
 .bertranda-art img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.66) contrast(1.12) brightness(.8); transition: transform .8s ease, filter .8s ease; }
+.bertranda-art img.bertranda-face-layer { position: absolute; right: -2%; bottom: -12%; z-index: 1; width: 54%; height: 108%; object-fit: contain; filter: drop-shadow(0 1.4rem 1.6rem #000) saturate(.72) contrast(1.15) brightness(.92); }
 .bertranda-preview:hover .bertranda-art img { transform: scale(1.055); filter: saturate(.8) contrast(1.18) brightness(.9); }
+.bertranda-preview:hover .bertranda-art img.bertranda-face-layer { transform: translateY(-2%) scale(1.04); filter: drop-shadow(0 1.7rem 2rem #000) saturate(.85) contrast(1.2) brightness(1); }
 .bertranda-preview .game-route i { background: #4e4a2c; }
 .bertranda-preview .game-route i::after { background: #bd9f43; box-shadow: 0 0 8px rgba(219, 184, 72, .55); }
 
 @media (prefers-reduced-motion: reduce) {
   .bertranda-preview:hover .bertranda-art img { transform: none; filter: saturate(.66) contrast(1.12) brightness(.8); }
+  .bertranda-preview:hover .bertranda-art img.bertranda-face-layer { transform: none; filter: drop-shadow(0 1.4rem 1.6rem #000) saturate(.72) contrast(1.15) brightness(.92); }
 }
 
 .deepbite-showcase { border-color: #087fbb; background: #03182f; }

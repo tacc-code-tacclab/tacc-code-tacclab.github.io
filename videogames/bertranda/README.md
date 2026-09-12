@@ -1,30 +1,32 @@
-# BERTRANDA — The Carapace Below
+# BERTRANDA — Human Vermin
 
-An original short first-person horror game for desktop and mobile browsers. It uses the broad grammar of house-stalking horror—exploration, a proximity detector, hiding and pursuit—but has its own story, map, creature, objectives, code and artwork.
+An original fast first-person horror shooter for desktop and mobile browsers. Bertranda has a clearly human woman's face on a giant spider body; the creatures flooding her boarding house are cockroaches, bats and snakes with their own stolen human faces.
 
-## Premise
+## Objective
 
-Bertranda catalogued an unmarked box of insects. By 2:13 a.m. she was no longer entirely human. The player must use the Chitinometer to find and cauterise five moulting nests, hide from Bertranda when she hunts, then escape through the front door.
+Keep moving, survive the continuous swarm and destroy Bertranda. Her health bar is visible from the beginning and she becomes faster in three phases. Human faces are weak points. Every defeated creature detonates with light, fragments, sound and camera shake; Bertranda triggers a larger chain explosion.
 
 ## Controls
 
-- `WASD` or arrow keys: move
-- Mouse: look
-- `Shift`: run
-- Hold `E`: cauterise a nest
-- Tap `E`: use a wardrobe or the front door
-- `F`: torch
-- `Esc`: pause
-- Smartphone/tablet: analogue movement, drag-to-look and dedicated action, run and torch buttons
+- `WASD` or arrow keys: move in the expected direction
+- Mouse: aim
+- Left click or `Space`: full-auto fire
+- `Shift`: sprint
+- `R`: reload
+- `F`: toggle the light
+- `P` or `Esc`: pause
+- Smartphone/tablet: analogue movement, drag-to-aim, FIRE, RUN, reload and LIGHT buttons
 
 ## Contents
 
-- `index.html`, `game.css`, `game.js`: browser game
-- `assets/*.svg`: original scalable horror illustrations and detector art
-- `roblox/Bertranda.rbxlx`: self-contained Roblox Studio place that builds its own house, objectives, creature and HUD when Play is pressed
+- `index.html`, `game.css`, `game.js`: browser shooter
+- `assets/bertranda-face-v2.png`: Bertranda's generated human face texture
+- `assets/roach-face-v2.png`, `bat-face-v2.png`, `snake-face-v2.png`: generated human face textures for the swarm
+- `assets/*.svg`: original scalable horror illustrations
+- `roblox/Bertranda.rbxlx`: self-contained Roblox Studio shooter that builds its house, creatures, gun, HUD and boss encounter at runtime
 
-No package installation or build step is required. The browser edition shares the repository's local Three.js runtime. The Roblox edition uses only Roblox primitives and scripts, so it does not require paid models or external assets.
+No package installation or build step is required. The browser edition shares the repository's local Three.js runtime. Its baroque background loop is synthesized in Web Audio from an original note pattern, so no copyrighted recording or MIDI arrangement is bundled.
 
 ## Originality
 
-BERTRANDA is not affiliated with MATILDA, Red Cap Games, Roald Dahl, Roblox, or any other game or publisher. No third-party story, dialogue, level, character model, texture, sound or code is included.
+BERTRANDA is an independent original game. It is not affiliated with MATILDA, Red Cap Games, Roald Dahl, Roblox, Bach rights holders, or any other game or publisher. No third-party character, level, story, recording, model or game code is included.

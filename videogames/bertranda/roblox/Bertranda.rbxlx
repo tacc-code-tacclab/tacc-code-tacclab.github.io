@@ -14,12 +14,12 @@
     <Properties>
       <bool name="Archivable">true</bool>
       <string name="Name">Lighting</string>
-      <float name="Brightness">1</float>
-      <Color3 name="Ambient"><R>0.0352941</R><G>0.0431373</G><B>0.0313725</B></Color3>
-      <Color3 name="OutdoorAmbient"><R>0.0196078</R><G>0.0235294</G><B>0.0196078</B></Color3>
-      <float name="FogEnd">170</float>
-      <float name="FogStart">12</float>
-      <Color3 name="FogColor"><R>0.0313725</R><G>0.0392157</G><B>0.027451</B></Color3>
+      <float name="Brightness">2.5</float>
+      <Color3 name="Ambient"><R>0.235294</R><G>0.25098</G><B>0.172549</B></Color3>
+      <Color3 name="OutdoorAmbient"><R>0.117647</R><G>0.129412</G><B>0.0941176</B></Color3>
+      <float name="FogEnd">310</float>
+      <float name="FogStart">55</float>
+      <Color3 name="FogColor"><R>0.0862745</R><G>0.105882</G><B>0.0705882</B></Color3>
       <token name="Technology">3</token>
       <float name="ClockTime">2.13</float>
     </Properties>
@@ -36,16 +36,16 @@
       <Properties>
         <bool name="Archivable">true</bool>
         <bool name="Disabled">false</bool>
-        <string name="Name">BertrandaServer</string>
-        <ProtectedString name="Source"><![CDATA[-- BERTRANDA — The Carapace Below
--- Original self-building Roblox horror place.
+        <string name="Name">BertrandaShooterServer</string>
+        <ProtectedString name="Source"><![CDATA[-- BERTRANDA: HUMAN VERMIN
+-- Self-building, server-authoritative Roblox horror shooter.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local PathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
 
 local old = workspace:FindFirstChild("BertrandaGenerated")
 if old then old:Destroy() end
@@ -54,435 +54,520 @@ local generated = Instance.new("Folder")
 generated.Name = "BertrandaGenerated"
 generated.Parent = workspace
 
+local creaturesFolder = Instance.new("Folder")
+creaturesFolder.Name = "HumanFacedCreatures"
+creaturesFolder.Parent = generated
+
 local remotes = ReplicatedStorage:FindFirstChild("BertrandaRemotes") or Instance.new("Folder")
 remotes.Name = "BertrandaRemotes"
 remotes.Parent = ReplicatedStorage
 remotes:ClearAllChildren()
 
+local fireEvent = Instance.new("RemoteEvent")
+fireEvent.Name = "Fire"
+fireEvent.Parent = remotes
+
 local stateEvent = Instance.new("RemoteEvent")
 stateEvent.Name = "State"
 stateEvent.Parent = remotes
-local scareEvent = Instance.new("RemoteEvent")
-scareEvent.Name = "Scare"
-scareEvent.Parent = remotes
-
-local sealedValue = Instance.new("IntValue")
-sealedValue.Name = "SealedCount"
-sealedValue.Value = 0
-sealedValue.Parent = generated
 
 Lighting.ClockTime = 2.13
-Lighting.Brightness = 1
-Lighting.Ambient = Color3.fromRGB(9, 11, 8)
-Lighting.OutdoorAmbient = Color3.fromRGB(4, 5, 4)
-Lighting.FogColor = Color3.fromRGB(8, 10, 7)
-Lighting.FogStart = 12
-Lighting.FogEnd = 170
+Lighting.Brightness = 2.5
+Lighting.Ambient = Color3.fromRGB(60, 64, 44)
+Lighting.OutdoorAmbient = Color3.fromRGB(30, 33, 24)
+Lighting.FogColor = Color3.fromRGB(22, 27, 18)
+Lighting.FogStart = 55
+Lighting.FogEnd = 310
 
-local colour = Lighting:FindFirstChild("BertrandaColour") or Instance.new("ColorCorrectionEffect")
+local colour = Instance.new("ColorCorrectionEffect")
 colour.Name = "BertrandaColour"
-colour.Brightness = -0.11
-colour.Contrast = 0.19
-colour.Saturation = -0.32
-colour.TintColor = Color3.fromRGB(213, 203, 145)
+colour.Brightness = 0.07
+colour.Contrast = 0.13
+colour.Saturation = -0.18
+colour.TintColor = Color3.fromRGB(239, 229, 174)
 colour.Parent = Lighting
-local bloom = Lighting:FindFirstChild("BertrandaBloom") or Instance.new("BloomEffect")
+
+local bloom = Instance.new("BloomEffect")
 bloom.Name = "BertrandaBloom"
-bloom.Intensity = 0.28
-bloom.Size = 19
-bloom.Threshold = 1.2
+bloom.Intensity = 0.34
+bloom.Size = 24
+bloom.Threshold = 1.05
 bloom.Parent = Lighting
-local atmosphere = Lighting:FindFirstChild("BertrandaAtmosphere") or Instance.new("Atmosphere")
+
+local atmosphere = Instance.new("Atmosphere")
 atmosphere.Name = "BertrandaAtmosphere"
-atmosphere.Density = 0.22
-atmosphere.Haze = 1.4
-atmosphere.Color = Color3.fromRGB(103, 105, 72)
-atmosphere.Decay = Color3.fromRGB(18, 15, 12)
+atmosphere.Density = 0.11
+atmosphere.Haze = 0.7
+atmosphere.Color = Color3.fromRGB(125, 132, 85)
+atmosphere.Decay = Color3.fromRGB(42, 31, 22)
 atmosphere.Parent = Lighting
 
-local function makePart(name, size, cframe, color, material, parent, collide)
-    local p = Instance.new("Part")
-    p.Name = name
-    p.Size = size
-    p.CFrame = cframe
-    p.Color = color
-    p.Material = material or Enum.Material.WoodPlanks
-    p.Anchored = true
-    p.CanCollide = collide ~= false
-    p.CastShadow = true
-    p.TopSurface = Enum.SurfaceType.Smooth
-    p.BottomSurface = Enum.SurfaceType.Smooth
-    p.Parent = parent or generated
-    return p
+local function makePart(name, size, cframe, color, material, parent, collide, transparency)
+    local item = Instance.new("Part")
+    item.Name = name
+    item.Size = size
+    item.CFrame = cframe
+    item.Color = color
+    item.Material = material or Enum.Material.SmoothPlastic
+    item.Anchored = true
+    item.CanCollide = collide == true
+    item.CanQuery = true
+    item.CanTouch = collide == true
+    item.CastShadow = true
+    item.TopSurface = Enum.SurfaceType.Smooth
+    item.BottomSurface = Enum.SurfaceType.Smooth
+    item.Transparency = transparency or 0
+    item.Parent = parent or generated
+    return item
 end
 
-local CELL = 12
-local W, H = 25, 19
-local originX = -(W * CELL) / 2
-local originZ = -(H * CELL) / 2
-local grid = {}
-for z = 1, H do
-    grid[z] = {}
-    for x = 1, W do
-        grid[z][x] = (x == 1 or z == 1 or x == W or z == H)
-    end
+local function ball(name, size, cframe, color, material, parent)
+    local item = makePart(name, size, cframe, color, material, parent, false)
+    item.Shape = Enum.PartType.Ball
+    return item
 end
 
-local function wallV(x, z1, z2, openings)
-    openings = openings or {}
-    for z = z1, z2 do
-        if not table.find(openings, z) then grid[z + 1][x + 1] = true end
-    end
-end
-local function wallH(z, x1, x2, openings)
-    openings = openings or {}
-    for x = x1, x2 do
-        if not table.find(openings, x) then grid[z + 1][x + 1] = true end
-    end
-end
-wallV(8, 1, 7, {3})
-wallV(16, 1, 7, {4})
-wallH(8, 1, 23, {4, 12, 20})
-wallV(10, 9, 17, {11, 16})
-wallV(18, 9, 17, {12, 16})
-wallH(13, 1, 9, {4})
-wallH(14, 11, 23, {14, 21})
-
-local function worldCell(cx, cz, y)
-    return Vector3.new(originX + (cx + 0.5) * CELL, y or 0, originZ + (cz + 0.5) * CELL)
+local function beamBetween(name, a, b, thickness, color, parent)
+    local midpoint = (a + b) / 2
+    local length = (b - a).Magnitude
+    local cf = CFrame.lookAt(midpoint, b) * CFrame.Angles(0, math.rad(90), 0)
+    return makePart(name, Vector3.new(length, thickness, thickness), cf, color, Enum.Material.Metal, parent, false)
 end
 
-local house = Instance.new("Model")
+local house = Instance.new("Folder")
 house.Name = "BoardingHouse"
 house.Parent = generated
-local wallColour = Color3.fromRGB(63, 61, 41)
-for z = 0, H - 1 do
-    for x = 0, W - 1 do
-        if grid[z + 1][x + 1] then
-            local p = worldCell(x, z, 8)
-            local shade = ((x * 17 + z * 13) % 14) - 7
-            makePart("Wall", Vector3.new(CELL, 16, CELL), CFrame.new(p), Color3.fromRGB(63 + shade, 61 + shade, 41 + math.floor(shade / 2)), Enum.Material.Concrete, house)
-        end
+
+makePart("Floor", Vector3.new(260, 2, 190), CFrame.new(0, -1, 0), Color3.fromRGB(73, 61, 38), Enum.Material.WoodPlanks, house, true)
+makePart("Ceiling", Vector3.new(260, 2, 190), CFrame.new(0, 32, 0), Color3.fromRGB(65, 68, 46), Enum.Material.Plaster, house, true)
+
+local wallColour = Color3.fromRGB(116, 108, 70)
+makePart("NorthWall", Vector3.new(260, 32, 3), CFrame.new(0, 15, -95), wallColour, Enum.Material.Plaster, house, true)
+makePart("SouthWall", Vector3.new(260, 32, 3), CFrame.new(0, 15, 95), wallColour, Enum.Material.Plaster, house, true)
+makePart("WestWall", Vector3.new(3, 32, 190), CFrame.new(-130, 15, 0), wallColour, Enum.Material.Plaster, house, true)
+makePart("EastWall", Vector3.new(3, 32, 190), CFrame.new(130, 15, 0), wallColour, Enum.Material.Plaster, house, true)
+
+local partitions = {
+    {Vector3.new(3, 25, 54), CFrame.new(-48, 11.5, -66)},
+    {Vector3.new(3, 25, 58), CFrame.new(-48, 11.5, 62)},
+    {Vector3.new(3, 25, 52), CFrame.new(46, 11.5, -68)},
+    {Vector3.new(3, 25, 60), CFrame.new(46, 11.5, 60)},
+    {Vector3.new(54, 25, 3), CFrame.new(-100, 11.5, 8)},
+    {Vector3.new(55, 25, 3), CFrame.new(100, 11.5, 8)},
+    {Vector3.new(48, 25, 3), CFrame.new(0, 11.5, -36)},
+    {Vector3.new(48, 25, 3), CFrame.new(0, 11.5, 45)}
+}
+for index, def in ipairs(partitions) do
+    makePart("Partition" .. index, def[1], def[2], wallColour, Enum.Material.Plaster, house, true)
+end
+
+local wood = Color3.fromRGB(73, 43, 25)
+for index, position in ipairs({
+    Vector3.new(-84, 2, -62), Vector3.new(-82, 2, 57), Vector3.new(78, 2, -62),
+    Vector3.new(80, 2, 57), Vector3.new(-18, 2, -67), Vector3.new(18, 2, 66)
+}) do
+    makePart("Table" .. index, Vector3.new(16, 2, 8), CFrame.new(position + Vector3.new(0, 5, 0)), wood, Enum.Material.WoodPlanks, house, true)
+    for _, offset in ipairs({Vector3.new(-6, 2, -2), Vector3.new(6, 2, -2), Vector3.new(-6, 2, 2), Vector3.new(6, 2, 2)}) do
+        makePart("Leg", Vector3.new(1, 8, 1), CFrame.new(position + offset), wood, Enum.Material.WoodPlanks, house, true)
     end
 end
-makePart("Floor", Vector3.new(W * CELL, 1, H * CELL), CFrame.new(0, -0.5, 0), Color3.fromRGB(31, 26, 18), Enum.Material.WoodPlanks, house)
-makePart("Ceiling", Vector3.new(W * CELL, 1, H * CELL), CFrame.new(0, 16.5, 0), Color3.fromRGB(36, 37, 27), Enum.Material.Concrete, house)
 
-local lampCells = {{4,4},{12,4},{20,4},{4,10},{14,10},{21,11},{5,16},{14,16},{21,16}}
-for i, c in ipairs(lampCells) do
-    local position = worldCell(c[1], c[2], 15.2)
-    local fixture = makePart("Lamp", Vector3.new(1.2, 0.35, 1.2), CFrame.new(position), Color3.fromRGB(112, 94, 48), Enum.Material.Metal, house, false)
+for index, position in ipairs({
+    Vector3.new(-92, 27, -72), Vector3.new(-93, 27, 62), Vector3.new(-20, 27, -65),
+    Vector3.new(20, 27, -65), Vector3.new(91, 27, -72), Vector3.new(91, 27, 62),
+    Vector3.new(-84, 27, 0), Vector3.new(0, 27, 5), Vector3.new(85, 27, 0)
+}) do
+    local fixture = ball("Lamp" .. index, Vector3.new(2.2, 2.2, 2.2), CFrame.new(position), Color3.fromRGB(244, 205, 108), Enum.Material.Neon, house)
     local light = Instance.new("PointLight")
-    light.Brightness = i % 4 == 0 and 1.1 or 1.7
-    light.Range = 33
-    light.Color = i % 4 == 0 and Color3.fromRGB(169, 190, 113) or Color3.fromRGB(229, 192, 103)
+    light.Color = index % 3 == 0 and Color3.fromRGB(203, 236, 141) or Color3.fromRGB(255, 211, 123)
+    light.Brightness = 2.7
+    light.Range = 54
     light.Shadows = true
     light.Parent = fixture
 end
 
-local function makeTable(cx, cz)
-    local center = worldCell(cx, cz, 0)
-    makePart("TableTop", Vector3.new(7.2, 0.6, 4.2), CFrame.new(center + Vector3.new(0, 3.2, 0)), Color3.fromRGB(72, 47, 29), Enum.Material.WoodPlanks, house)
-    for _, offset in ipairs({Vector3.new(-2.8,1.5,-1.3),Vector3.new(2.8,1.5,-1.3),Vector3.new(-2.8,1.5,1.3),Vector3.new(2.8,1.5,1.3)}) do
-        makePart("TableLeg", Vector3.new(0.55, 3, 0.55), CFrame.new(center + offset), Color3.fromRGB(42, 27, 19), Enum.Material.Wood, house)
-    end
-end
-makeTable(5,4)
-makeTable(13,3)
-makeTable(14,10)
-makeTable(21,16)
-
-local spawnPosition = worldCell(3, 16, 1)
 local spawn = Instance.new("SpawnLocation")
-spawn.Name = "NightSpawn"
-spawn.Size = Vector3.new(5, 0.3, 5)
-spawn.CFrame = CFrame.new(spawnPosition)
-spawn.Transparency = 1
-spawn.CanCollide = false
+spawn.Name = "ArmedEntry"
+spawn.Size = Vector3.new(10, 1, 10)
+spawn.CFrame = CFrame.new(-108, 1, 73)
+spawn.Color = Color3.fromRGB(103, 119, 58)
+spawn.Material = Enum.Material.Neon
+spawn.Transparency = 0.2
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Parent = generated
 
-local hiddenReturn = {}
-local wardrobes = Instance.new("Folder")
-wardrobes.Name = "Wardrobes"
-wardrobes.Parent = generated
-local wardrobeDefs = {{6,5,0},{14,6,180},{3,10,90},{15,16,-90},{21,10,180}}
-for index, def in ipairs(wardrobeDefs) do
-    local position = worldCell(def[1], def[2], 5)
-    local cabinet = makePart("Wardrobe" .. index, Vector3.new(6.4, 10, 3), CFrame.new(position) * CFrame.Angles(0, math.rad(def[3]), 0), Color3.fromRGB(47, 30, 19), Enum.Material.WoodPlanks, wardrobes)
-    local prompt = Instance.new("ProximityPrompt")
-    prompt.ActionText = "Hide inside"
-    prompt.ObjectText = "Wardrobe"
-    prompt.KeyboardKeyCode = Enum.KeyCode.E
-    prompt.HoldDuration = 0.2
-    prompt.MaxActivationDistance = 10
-    prompt.RequiresLineOfSight = false
-    prompt.Parent = cabinet
-    prompt.Triggered:Connect(function(player)
-        local character = player.Character
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        if player:GetAttribute("BertrandaHidden") then
-            player:SetAttribute("BertrandaHidden", false)
-            root.Anchored = false
-            if hiddenReturn[player] then root.CFrame = hiddenReturn[player] end
-            hiddenReturn[player] = nil
-            prompt.ActionText = "Hide inside"
-            stateEvent:FireClient(player, "caption", "You leave the wardrobe. The corridor is still breathing.")
-        else
-            hiddenReturn[player] = root.CFrame
-            player:SetAttribute("BertrandaHidden", true)
-            root.CFrame = cabinet.CFrame * CFrame.new(0, 0, 0.35)
-            root.Anchored = true
-            prompt.ActionText = "Leave"
-            stateEvent:FireClient(player, "caption", "Breathe through your mouth. Quietly.")
-        end
-    end)
-end
+local faceTexture = "rbxasset://textures/face.png"
 
-local nestsFolder = Instance.new("Folder")
-nestsFolder.Name = "Nests"
-nestsFolder.Parent = generated
-local nestDefs = {{3,2},{12,2},{21,2},{4,11},{14,11}}
-local enemyAwake = false
-local doorPrompt
-local door
-
-local function makeNest(index, cx, cz)
-    local model = Instance.new("Model")
-    model.Name = "Nest" .. index
-    model:SetAttribute("Active", true)
-    model.Parent = nestsFolder
-    local center = worldCell(cx, cz, 0.7)
-    local core = makePart("Core", Vector3.new(2.2, 1.3, 2.2), CFrame.new(center), Color3.fromRGB(105, 39, 26), Enum.Material.Neon, model, false)
-    core.Shape = Enum.PartType.Ball
-    for i = 1, 8 do
-        local angle = (i / 8) * math.pi * 2
-        local egg = makePart("Egg", Vector3.new(1.2 + (i % 3) * 0.35, 2.3 + (i % 2) * 0.6, 1.2 + (i % 3) * 0.35), CFrame.new(center + Vector3.new(math.cos(angle) * 2.3, 0.65, math.sin(angle) * 2.3)), i % 3 == 0 and Color3.fromRGB(116, 36, 26) or Color3.fromRGB(103, 94, 44), i % 3 == 0 and Enum.Material.Neon or Enum.Material.SmoothPlastic, model, false)
-        egg.Shape = Enum.PartType.Ball
+local function addHumanFace(model, localCFrame, size, skin, hair, faceName)
+    local head = ball(faceName or "HumanFace", size, localCFrame, skin, Enum.Material.SmoothPlastic, model)
+    local decal = Instance.new("Decal")
+    decal.Name = "ReplaceWithHorrorFaceTexture"
+    decal.Texture = faceTexture
+    decal.Face = Enum.NormalId.Front
+    decal.Parent = head
+    if hair then
+        local hairPart = ball("Hair", Vector3.new(size.X * 1.03, size.Y * 0.52, size.Z * 1.02), localCFrame * CFrame.new(0, size.Y * 0.35, size.Z * 0.08), hair, Enum.Material.SmoothPlastic, model)
+        hairPart.CanQuery = false
     end
-    local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(201, 144, 55)
-    light.Brightness = 1.4
-    light.Range = 13
-    light.Parent = core
-    local prompt = Instance.new("ProximityPrompt")
-    prompt.ActionText = "Cauterise moult"
-    prompt.ObjectText = "Moulting nest"
-    prompt.KeyboardKeyCode = Enum.KeyCode.E
-    prompt.HoldDuration = 1.5
-    prompt.MaxActivationDistance = 10
-    prompt.RequiresLineOfSight = true
-    prompt.Parent = core
-    prompt.Triggered:Connect(function(player)
-        if not model:GetAttribute("Active") then return end
-        model:SetAttribute("Active", false)
-        prompt.Enabled = false
-        for _, item in ipairs(model:GetDescendants()) do
-            if item:IsA("BasePart") then
-                item.Color = Color3.fromRGB(36, 12, 9)
-                item.Material = Enum.Material.Slate
-                item.Transparency = 0.2
-            elseif item:IsA("Light") then item.Enabled = false end
-        end
-        sealedValue.Value += 1
-        enemyAwake = true
-        stateEvent:FireAllClients("count", sealedValue.Value)
-        if sealedValue.Value == 1 then
-            stateEvent:FireAllClients("caption", "Something unfolded upstairs. Bertranda is awake.")
-        elseif sealedValue.Value < 5 then
-            stateEvent:FireAllClients("caption", tostring(5 - sealedValue.Value) .. " nests remain. She is getting faster.")
-        else
-            doorPrompt.Enabled = true
-            door.Color = Color3.fromRGB(58, 75, 39)
-            door.CanCollide = false
-            stateEvent:FireAllClients("caption", "Five marks broken. The front door is open.")
-        end
-    end)
-end
-for index, def in ipairs(nestDefs) do makeNest(index, def[1], def[2]) end
-
-local exitPosition = worldCell(1, 16, 7)
-door = makePart("FrontDoor", Vector3.new(1, 13, 9), CFrame.new(originX + CELL + 0.2, 6.5, exitPosition.Z), Color3.fromRGB(51, 30, 19), Enum.Material.WoodPlanks, generated)
-doorPrompt = Instance.new("ProximityPrompt")
-doorPrompt.ActionText = "Escape"
-doorPrompt.ObjectText = "Front door — sealed"
-doorPrompt.KeyboardKeyCode = Enum.KeyCode.E
-doorPrompt.HoldDuration = 0.4
-doorPrompt.MaxActivationDistance = 11
-doorPrompt.RequiresLineOfSight = false
-doorPrompt.Enabled = false
-doorPrompt.Parent = door
-doorPrompt.Triggered:Connect(function(player)
-    if sealedValue.Value < 5 then return end
-    doorPrompt.ObjectText = "Front door"
-    stateEvent:FireClient(player, "win", "The nests are ash. Beneath the floor, Bertranda is learning to moult again.")
-end)
-
-local creature = Instance.new("Model")
-creature.Name = "Bertranda"
-creature.Parent = generated
-local root = makePart("Root", Vector3.new(2, 2, 2), CFrame.new(worldCell(21, 6, 3.2)), Color3.fromRGB(0, 0, 0), Enum.Material.SmoothPlastic, creature, false)
-root.Transparency = 1
-creature.PrimaryPart = root
-local shellColour = Color3.fromRGB(58, 54, 25)
-local lightShell = Color3.fromRGB(105, 94, 40)
-local fleshColour = Color3.fromRGB(87, 23, 18)
-
-local function creatureBall(name, size, offset, color, material)
-    local p = makePart(name, size, root.CFrame * CFrame.new(offset), color, material or Enum.Material.SmoothPlastic, creature, false)
-    p.Shape = Enum.PartType.Ball
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = root
-    weld.Part1 = p
-    weld.Parent = p
-    return p
-end
-creatureBall("Abdomen", Vector3.new(6.2, 9.2, 5.2), Vector3.new(0, 3.3, 0.4), shellColour)
-creatureBall("Thorax", Vector3.new(6.9, 6.7, 5.4), Vector3.new(0, 8.2, 0), lightShell)
-creatureBall("Head", Vector3.new(5.2, 4.4, 4.5), Vector3.new(0, 12.1, -1.1), shellColour)
-for _, side in ipairs({-1, 1}) do
-    for pair = 0, 2 do
-        local upper = makePart("Leg", Vector3.new(0.7, 0.7, 7.8 + pair), root.CFrame * CFrame.new(side * (4.6 + pair * 0.9), 9 - pair * 2.6, pair * 1.1) * CFrame.Angles(0, math.rad(side * (36 + pair * 9)), math.rad(side * 17)), lightShell, Enum.Material.SmoothPlastic, creature, false)
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = root
-        weld.Part1 = upper
-        weld.Parent = upper
-        local lower = makePart("Leg", Vector3.new(0.5, 0.5, 8.4), root.CFrame * CFrame.new(side * (9 + pair), 6.5 - pair * 2.4, pair * 2.1) * CFrame.Angles(0, math.rad(side * (58 + pair * 5)), math.rad(side * 34)), shellColour, Enum.Material.SmoothPlastic, creature, false)
-        local weld2 = Instance.new("WeldConstraint")
-        weld2.Part0 = root
-        weld2.Part1 = lower
-        weld2.Parent = lower
-    end
-    for eyeIndex = 0, 1 do
-        local eye = creatureBall("Eye", Vector3.new(0.8, 0.8, 0.8), Vector3.new(side * (1.2 + eyeIndex * 0.42), 12.5 + eyeIndex * 1.1, -3.15 + eyeIndex * 0.5), Color3.fromRGB(255, 199, 69), Enum.Material.Neon)
+    local red = Color3.fromRGB(255, 46, 25)
+    local eyeY = size.Y * 0.08
+    local eyeZ = -size.Z * 0.51
+    for _, side in ipairs({-1, 1}) do
+        local eye = ball("HumanEye", Vector3.new(size.X * 0.12, size.Y * 0.1, 0.12), localCFrame * CFrame.new(side * size.X * 0.2, eyeY, eyeZ), red, Enum.Material.Neon, model)
+        eye.CanQuery = false
         local light = Instance.new("PointLight")
-        light.Color = Color3.fromRGB(231, 96, 35)
+        light.Color = red
         light.Brightness = 0.5
-        light.Range = 7
+        light.Range = 5
         light.Parent = eye
     end
-    local antenna = makePart("Antenna", Vector3.new(0.28, 0.28, 10), root.CFrame * CFrame.new(side * 2.3, 16.2, -3.5) * CFrame.Angles(math.rad(-29), math.rad(side * 19), math.rad(side * 24)), lightShell, Enum.Material.SmoothPlastic, creature, false)
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = root
-    weld.Part1 = antenna
-    weld.Parent = antenna
-end
-local creatureLight = Instance.new("PointLight")
-creatureLight.Color = Color3.fromRGB(122, 35, 22)
-creatureLight.Brightness = 0.7
-creatureLight.Range = 18
-creatureLight.Parent = root
-
-for _, p in ipairs(creature:GetDescendants()) do
-    if p:IsA("BasePart") then p.Transparency = 1 end
+    return head
 end
 
-local waypoints = {}
-local waypointIndex = 1
-local pathTimer = 0
-local targetPlayer
-local attacked = {}
+local creatureData = {}
+local bossModel = nil
+local bossAlive = false
+local bossMaxHealth = 2600
+local bossHealth = bossMaxHealth
+local roundId = 0
 
-local function livingRoot(player)
-    if player:GetAttribute("BertrandaHidden") then return nil end
-    local character = player.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    local characterRoot = character and character:FindFirstChild("HumanoidRootPart")
-    if humanoid and humanoid.Health > 0 and characterRoot then return characterRoot, humanoid end
-    return nil
+local function setCreature(model, kind, health, speed, damage, y)
+    model:SetAttribute("CreatureType", kind)
+    model:SetAttribute("Health", health)
+    model:SetAttribute("MaxHealth", health)
+    model:SetAttribute("Alive", true)
+    creatureData[model] = {
+        kind = kind,
+        speed = speed,
+        damage = damage,
+        attackAt = 0,
+        y = y
+    }
 end
 
-local function nearestPlayer()
-    local bestPlayer, bestRoot, bestDistance
+local function createBoss()
+    local model = Instance.new("Model")
+    model.Name = "Bertranda_WomanSpider"
+    model.Parent = creaturesFolder
+    local root = makePart("Root", Vector3.new(2, 2, 2), CFrame.new(0, 2, 0), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
+    root.CanQuery = false
+    model.PrimaryPart = root
+
+    local shell = Color3.fromRGB(49, 42, 18)
+    local shellLight = Color3.fromRGB(105, 91, 37)
+    ball("Abdomen", Vector3.new(11, 7, 14), CFrame.new(0, 5, 3), shell, Enum.Material.Metal, model)
+    ball("Thorax", Vector3.new(9, 6, 9), CFrame.new(0, 5, -3.5), shellLight, Enum.Material.Metal, model)
+    addHumanFace(model, CFrame.new(0, 9.4, -7.2), Vector3.new(6.4, 7.2, 3.3), Color3.fromRGB(194, 157, 128), Color3.fromRGB(19, 14, 11), "BertrandaHumanFace")
+
+    for _, side in ipairs({-1, 1}) do
+        for pair = 1, 4 do
+            local z = -5 + (pair - 1) * 3.4
+            local hip = Vector3.new(side * 3.2, 5, z)
+            local knee = Vector3.new(side * (8 + pair), 4.4, z + (pair - 2.5) * 1.5)
+            local foot = Vector3.new(side * (14 + pair * 0.8), 0.9, z + (pair - 2.5) * 2.4)
+            beamBetween("SpiderLegUpper", hip, knee, 1.05, shellLight, model)
+            beamBetween("SpiderLegLower", knee, foot, 0.72, shell, model)
+            ball("SpiderFoot", Vector3.new(1, 1, 1), CFrame.new(foot), Color3.fromRGB(112, 32, 20), Enum.Material.Neon, model)
+        end
+    end
+
+    model:PivotTo(CFrame.new(89, 2, -61))
+    setCreature(model, "boss", bossMaxHealth, 9, 22, 2)
+    bossModel = model
+    bossHealth = bossMaxHealth
+    bossAlive = true
+    stateEvent:FireAllClients("boss", bossHealth, bossMaxHealth)
+    stateEvent:FireAllClients("caption", "Bertranda kept her human face. Destroy everything beneath it.")
+    return model
+end
+
+local function createRoach(position)
+    local model = Instance.new("Model")
+    model.Name = "HumanFacedCockroach"
+    model.Parent = creaturesFolder
+    local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
+    root.CanQuery = false
+    model.PrimaryPart = root
+    ball("Shell", Vector3.new(4.5, 2.2, 7), CFrame.new(0, 2, 1), Color3.fromRGB(83, 42, 22), Enum.Material.Metal, model)
+    addHumanFace(model, CFrame.new(0, 3.2, -3), Vector3.new(3.4, 3.8, 1.8), Color3.fromRGB(177, 128, 98), nil, "CockroachHumanFace")
+    for _, side in ipairs({-1, 1}) do
+        for pair = 1, 3 do
+            local z = -1.5 + pair * 1.5
+            beamBetween("RoachLeg", Vector3.new(side * 1.5, 2, z), Vector3.new(side * 4.1, 0.6, z + (pair - 2) * 1.2), 0.35, Color3.fromRGB(126, 65, 30), model)
+        end
+    end
+    model:PivotTo(CFrame.new(position.X, 1, position.Z))
+    setCreature(model, "roach", 90, 16, 8, 1)
+    return model
+end
+
+local function createBat(position)
+    local model = Instance.new("Model")
+    model.Name = "HumanFacedBat"
+    model.Parent = creaturesFolder
+    local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
+    root.CanQuery = false
+    model.PrimaryPart = root
+    ball("Body", Vector3.new(3, 4.5, 3), CFrame.new(0, 0, 0), Color3.fromRGB(55, 38, 60), Enum.Material.Fabric, model)
+    addHumanFace(model, CFrame.new(0, 0.6, -2), Vector3.new(3.3, 3.8, 1.8), Color3.fromRGB(202, 196, 189), Color3.fromRGB(184, 185, 190), "BatHumanFace")
+    for _, side in ipairs({-1, 1}) do
+        local wing = makePart("BatWing", Vector3.new(8, 0.35, 5), CFrame.new(side * 5, 0.4, 0) * CFrame.Angles(0, side * math.rad(12), side * math.rad(13)), Color3.fromRGB(83, 39, 67), Enum.Material.Fabric, model, false)
+        wing.CanQuery = true
+    end
+    model:PivotTo(CFrame.new(position.X, 11, position.Z))
+    setCreature(model, "bat", 70, 20, 7, 11)
+    return model
+end
+
+local function createSnake(position)
+    local model = Instance.new("Model")
+    model.Name = "HumanFacedSnake"
+    model.Parent = creaturesFolder
+    local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
+    root.CanQuery = false
+    model.PrimaryPart = root
+    local green = Color3.fromRGB(75, 94, 35)
+    for index = 1, 9 do
+        local segment = ball("SnakeSegment", Vector3.new(3.6 - index * 0.14, 2.2, 3.8), CFrame.new(math.sin(index) * 1.2, 1.4, index * 2.25), green, Enum.Material.Slate, model)
+        segment.CanQuery = true
+    end
+    addHumanFace(model, CFrame.new(0, 3.2, -2.3), Vector3.new(3.7, 4.5, 2), Color3.fromRGB(185, 154, 107), nil, "SnakeHumanFace")
+    model:PivotTo(CFrame.new(position.X, 1, position.Z))
+    setCreature(model, "snake", 125, 13, 12, 1)
+    return model
+end
+
+local spawnPoints = {
+    Vector3.new(-111, 1, -73), Vector3.new(108, 1, -71), Vector3.new(108, 1, 70),
+    Vector3.new(-111, 1, 14), Vector3.new(7, 1, -77), Vector3.new(16, 1, 75)
+}
+
+local function spawnCreature(kind)
+    local point = spawnPoints[math.random(1, #spawnPoints)]
+    if kind == "roach" then return createRoach(point) end
+    if kind == "bat" then return createBat(point) end
+    return createSnake(point)
+end
+
+local function livingTarget()
+    local bestRoot, bestHumanoid, bestDistance
     for _, player in ipairs(Players:GetPlayers()) do
-        local characterRoot = livingRoot(player)
-        if characterRoot then
-            local distance = (characterRoot.Position - root.Position).Magnitude
+        local character = player.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if root and humanoid and humanoid.Health > 0 then
+            local distance = 0
+            if bossModel and bossModel.PrimaryPart then distance = (root.Position - bossModel.PrimaryPart.Position).Magnitude end
             if not bestDistance or distance < bestDistance then
-                bestPlayer, bestRoot, bestDistance = player, characterRoot, distance
+                bestRoot, bestHumanoid, bestDistance = root, humanoid, distance
             end
         end
     end
-    return bestPlayer, bestRoot, bestDistance
+    return bestRoot, bestHumanoid
 end
 
-local function revealCreature()
-    for _, p in ipairs(creature:GetDescendants()) do
-        if p:IsA("BasePart") then p.Transparency = p.Name == "Root" and 1 or 0 end
+local function nearestTarget(position)
+    local bestRoot, bestHumanoid, bestDistance
+    for _, player in ipairs(Players:GetPlayers()) do
+        local character = player.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if root and humanoid and humanoid.Health > 0 then
+            local distance = (root.Position - position).Magnitude
+            if not bestDistance or distance < bestDistance then
+                bestRoot, bestHumanoid, bestDistance = root, humanoid, distance
+            end
+        end
     end
+    return bestRoot, bestHumanoid, bestDistance
 end
 
-local function computePath(target)
-    local path = PathfindingService:CreatePath({AgentRadius = 3.2, AgentHeight = 13, AgentCanJump = false, WaypointSpacing = 5})
-    local ok = pcall(function() path:ComputeAsync(root.Position, target.Position) end)
-    if ok and path.Status == Enum.PathStatus.Success then
-        waypoints = path:GetWaypoints()
-        waypointIndex = math.min(2, #waypoints)
-    else
-        waypoints = {{Position = target.Position}}
-        waypointIndex = 1
+local function explosion(position, scale)
+    local blast = Instance.new("Explosion")
+    blast.Position = position
+    blast.BlastRadius = 8 * scale
+    blast.BlastPressure = 0
+    blast.DestroyJointRadiusPercent = 0
+    blast.Parent = workspace
+
+    local core = ball("ExplosionCore", Vector3.new(2, 2, 2), CFrame.new(position), Color3.fromRGB(255, 129, 42), Enum.Material.Neon, generated)
+    core.CanQuery = false
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 164, 64)
+    light.Brightness = 8 * scale
+    light.Range = 32 * scale
+    light.Parent = core
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxasset://sounds/Rocket shot.wav"
+    sound.Volume = math.min(2, 0.9 + scale * 0.35)
+    sound.PlaybackSpeed = math.max(0.55, 1.05 - scale * 0.12)
+    sound.Parent = core
+    sound:Play()
+    TweenService:Create(core, TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Size = Vector3.new(16, 16, 16) * scale,
+        Transparency = 1
+    }):Play()
+    Debris:AddItem(core, 1.4)
+
+    for index = 1, math.floor(12 + scale * 7) do
+        local shard = makePart("ChitinShard", Vector3.new(0.35, 0.3, math.random(8, 22) / 10), CFrame.new(position) * CFrame.Angles(math.random(), math.random(), math.random()), index % 3 == 0 and Color3.fromRGB(255, 154, 48) or Color3.fromRGB(67, 34, 18), index % 3 == 0 and Enum.Material.Neon or Enum.Material.Metal, generated, false)
+        shard.Anchored = false
+        shard.CanCollide = false
+        shard.AssemblyLinearVelocity = Vector3.new(math.random(-50, 50), math.random(18, 62), math.random(-50, 50)) * scale
+        shard.AssemblyAngularVelocity = Vector3.new(math.random(-18, 18), math.random(-18, 18), math.random(-18, 18))
+        Debris:AddItem(shard, 2.2)
     end
+    stateEvent:FireAllClients("explosion", position, scale)
 end
 
-RunService.Heartbeat:Connect(function(dt)
-    if not enemyAwake then return end
-    if root.Transparency == 1 then revealCreature() end
-    local player, characterRoot, distance = nearestPlayer()
-    if not player or not characterRoot then return end
-    targetPlayer = player
-    pathTimer -= dt
-    if pathTimer <= 0 then
-        pathTimer = 0.62
-        computePath(characterRoot)
-    end
-    local waypoint = waypoints[waypointIndex]
-    local destination = waypoint and waypoint.Position or characterRoot.Position
-    local flatTarget = Vector3.new(destination.X, root.Position.Y, destination.Z)
-    local delta = flatTarget - root.Position
-    if delta.Magnitude < 2.2 and waypointIndex < #waypoints then
-        waypointIndex += 1
-        waypoint = waypoints[waypointIndex]
-        destination = waypoint.Position
-        flatTarget = Vector3.new(destination.X, root.Position.Y, destination.Z)
-        delta = flatTarget - root.Position
-    end
-    if delta.Magnitude > 0.05 then
-        local speed = 12.3 + sealedValue.Value * 0.78
-        local step = math.min(delta.Magnitude, speed * dt)
-        local newPosition = root.Position + delta.Unit * step
-        creature:PivotTo(CFrame.lookAt(newPosition, newPosition + Vector3.new(delta.X, 0, delta.Z)))
-    end
-    if distance and distance < 6 and not attacked[player] then
-        attacked[player] = true
-        scareEvent:FireClient(player)
-        task.delay(0.65, function()
-            local _, humanoid = livingRoot(player)
-            if humanoid then humanoid.Health = 0 end
-            attacked[player] = nil
+local function destroyCreature(model, player)
+    local data = creatureData[model]
+    if not data or not model:GetAttribute("Alive") then return end
+    model:SetAttribute("Alive", false)
+    creatureData[model] = nil
+    local position = model.PrimaryPart and model.PrimaryPart.Position or Vector3.new()
+    if data.kind == "boss" then
+        bossAlive = false
+        bossHealth = 0
+        stateEvent:FireAllClients("boss", 0, bossMaxHealth)
+        explosion(position + Vector3.new(0, 5, 0), 3.2)
+        for index = 1, 6 do
+            task.delay(index * 0.16, function()
+                explosion(position + Vector3.new(math.random(-12, 12), math.random(1, 12), math.random(-12, 12)), 1.1 + index * 0.12)
+            end)
+        end
+        model:Destroy()
+        for other in pairs(creatureData) do
+            if other.Parent and other ~= model and other:GetAttribute("Alive") then
+                task.delay(math.random() * 0.8, function()
+                    if other.Parent then destroyCreature(other, player) end
+                end)
+            end
+        end
+        stateEvent:FireAllClients("win")
+        local completedRound = roundId
+        task.delay(12, function()
+            if roundId ~= completedRound then return end
+            roundId += 1
+            createBoss()
         end)
+    else
+        explosion(position + Vector3.new(0, data.kind == "bat" and 0 or 2, 0), data.kind == "snake" and 1.05 or 0.82)
+        model:Destroy()
+        if player then
+            local total = (player:GetAttribute("BertrandaKills") or 0) + 1
+            player:SetAttribute("BertrandaKills", total)
+            stateEvent:FireClient(player, "kills", total)
+        end
+    end
+end
+
+local function creatureFromPart(part)
+    local cursor = part
+    while cursor and cursor ~= creaturesFolder do
+        if cursor:IsA("Model") and creatureData[cursor] then return cursor end
+        cursor = cursor.Parent
+    end
+    return nil
+end
+
+local lastShot = {}
+fireEvent.OnServerEvent:Connect(function(player, origin, direction)
+    if typeof(origin) ~= "Vector3" or typeof(direction) ~= "Vector3" or direction.Magnitude < 0.8 then return end
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if not root or not humanoid or humanoid.Health <= 0 or (origin - root.Position).Magnitude > 12 then return end
+    local now = os.clock()
+    if now - (lastShot[player] or 0) < 0.075 then return end
+    lastShot[player] = now
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {player.Character}
+    params.IgnoreWater = true
+    local result = workspace:Raycast(origin, direction.Unit * 320, params)
+    if not result then return end
+    local model = creatureFromPart(result.Instance)
+    if not model or not model:GetAttribute("Alive") then return end
+    local data = creatureData[model]
+    local weak = string.find(result.Instance.Name, "HumanFace") ~= nil
+    local damage = weak and 48 or 27
+    local health = math.max(0, (model:GetAttribute("Health") or 0) - damage)
+    model:SetAttribute("Health", health)
+    stateEvent:FireClient(player, "hit", weak)
+    if data.kind == "boss" then
+        bossHealth = health
+        stateEvent:FireAllClients("boss", bossHealth, bossMaxHealth)
+    end
+    if health <= 0 then destroyCreature(model, player) end
+end)
+
+local spawnClock = 0
+RunService.Heartbeat:Connect(function(dt)
+    if not bossAlive then return end
+    spawnClock -= dt
+    local count = 0
+    for model in pairs(creatureData) do
+        if model ~= bossModel and model.Parent and model:GetAttribute("Alive") then count += 1 end
+    end
+    if spawnClock <= 0 and count < 24 then
+        spawnClock = 0.72 + math.random() * 0.65
+        local roll = math.random()
+        spawnCreature(roll < 0.38 and "roach" or roll < 0.69 and "bat" or "snake")
+    end
+
+    for model, data in pairs(creatureData) do
+        if model.Parent and model.PrimaryPart and model:GetAttribute("Alive") then
+            local current = model.PrimaryPart.Position
+            local targetRoot, humanoid, distance = nearestTarget(current)
+            if targetRoot and humanoid then
+                local target = Vector3.new(targetRoot.Position.X, data.y, targetRoot.Position.Z)
+                local flatCurrent = Vector3.new(current.X, data.y, current.Z)
+                local delta = target - flatCurrent
+                if delta.Magnitude > 0.05 then
+                    local speed = data.speed
+                    if data.kind == "boss" then
+                        local ratio = bossHealth / bossMaxHealth
+                        speed *= ratio < 0.33 and 1.65 or ratio < 0.66 and 1.32 or 1
+                    end
+                    local step = math.min(delta.Magnitude, speed * dt)
+                    local nextPosition = flatCurrent + delta.Unit * step
+                    model:PivotTo(CFrame.lookAt(nextPosition, nextPosition + delta.Unit))
+                end
+                local attackRange = data.kind == "boss" and 10 or data.kind == "bat" and 10 or 6
+                if distance and distance < attackRange and os.clock() >= data.attackAt then
+                    data.attackAt = os.clock() + (data.kind == "boss" and 0.7 or 0.9)
+                    humanoid:TakeDamage(data.damage)
+                    local targetPlayer = Players:GetPlayerFromCharacter(humanoid.Parent)
+                    if targetPlayer then stateEvent:FireClient(targetPlayer, "hurt") end
+                end
+            end
+        end
     end
 end)
 
 local function prepareCharacter(player, character)
-    player:SetAttribute("BertrandaHidden", false)
-    hiddenReturn[player] = nil
     local humanoid = character:WaitForChild("Humanoid", 8)
     if humanoid then
-        humanoid.WalkSpeed = 16
+        humanoid.WalkSpeed = 22
         humanoid.JumpPower = 0
         humanoid.UseJumpPower = true
+        humanoid.MaxHealth = 100
+        humanoid.Health = 100
     end
+    player:SetAttribute("BertrandaKills", 0)
     task.wait(1)
-    stateEvent:FireClient(player, "count", sealedValue.Value)
-    stateEvent:FireClient(player, "caption", "Five nests. Trust the needle. Do not let Bertranda hear you run.")
+    stateEvent:FireClient(player, "boss", bossHealth, bossMaxHealth)
+    stateEvent:FireClient(player, "kills", 0)
+    stateEvent:FireClient(player, "caption", "Human faces. Insect bodies. Hold fire and aim for the head.")
 end
 
 Players.PlayerAdded:Connect(function(player)
     player.CameraMode = Enum.CameraMode.LockFirstPerson
     player.CharacterAdded:Connect(function(character) prepareCharacter(player, character) end)
 end)
+
 for _, player in ipairs(Players:GetPlayers()) do
     player.CameraMode = Enum.CameraMode.LockFirstPerson
     if player.Character then task.spawn(prepareCharacter, player, player.Character) end
@@ -490,9 +575,14 @@ for _, player in ipairs(Players:GetPlayers()) do
 end
 
 Players.PlayerRemoving:Connect(function(player)
-    hiddenReturn[player] = nil
-    attacked[player] = nil
-end)]]></ProtectedString>
+    lastShot[player] = nil
+end)
+
+roundId += 1
+createBoss()
+for index = 1, 7 do
+    spawnCreature(index % 3 == 0 and "bat" or index % 3 == 1 and "roach" or "snake")
+end]]></ProtectedString>
       </Properties>
     </Item>
   </Item>
@@ -503,7 +593,7 @@ end)]]></ProtectedString>
       <token name="CameraMode">1</token>
       <float name="CameraMaxZoomDistance">0.5</float>
       <float name="CameraMinZoomDistance">0.5</float>
-      <float name="CharacterWalkSpeed">16</float>
+      <float name="CharacterWalkSpeed">22</float>
       <bool name="EnableMouseLockOption">false</bool>
     </Properties>
     <Item class="StarterPlayerScripts" referent="RBX6">
@@ -512,27 +602,35 @@ end)]]></ProtectedString>
         <Properties>
           <bool name="Archivable">true</bool>
           <bool name="Disabled">false</bool>
-          <string name="Name">BertrandaClient</string>
-          <ProtectedString name="Source"><![CDATA[-- BERTRANDA — client HUD, detector, torch and mobile controls.
+          <string name="Name">BertrandaShooterClient</string>
+          <ProtectedString name="Source"><![CDATA[-- BERTRANDA: HUMAN VERMIN
+-- First-person blaster, responsive HUD, touch fire and original baroque-style pulse.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 player.CameraMode = Enum.CameraMode.LockFirstPerson
 local remotes = ReplicatedStorage:WaitForChild("BertrandaRemotes")
+local fireEvent = remotes:WaitForChild("Fire")
 local stateEvent = remotes:WaitForChild("State")
-local scareEvent = remotes:WaitForChild("Scare")
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "BertrandaHUD"
+gui.Name = "BertrandaShooterHUD"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
-gui.DisplayOrder = 30
+gui.DisplayOrder = 40
 gui.Parent = player:WaitForChild("PlayerGui")
+
+local bone = Color3.fromRGB(245, 232, 193)
+local amber = Color3.fromRGB(244, 169, 53)
+local red = Color3.fromRGB(213, 54, 37)
+local green = Color3.fromRGB(174, 203, 94)
+local dark = Color3.fromRGB(10, 14, 8)
 
 local function frame(name, size, position, color, transparency, parent)
     local item = Instance.new("Frame")
@@ -556,221 +654,312 @@ local function label(name, text, size, position, textSize, color, parent)
     item.Font = Enum.Font.Code
     item.TextSize = textSize
     item.TextColor3 = color
+    item.TextStrokeTransparency = 0.45
+    item.TextStrokeColor3 = Color3.new()
     item.TextXAlignment = Enum.TextXAlignment.Left
     item.TextWrapped = true
     item.Parent = parent or gui
     return item
 end
 
-local bone = Color3.fromRGB(229, 220, 181)
-local dim = Color3.fromRGB(151, 143, 103)
-local amber = Color3.fromRGB(224, 188, 76)
-local mould = Color3.fromRGB(141, 158, 85)
-local rust = Color3.fromRGB(169, 50, 38)
+local objective = frame("Objective", UDim2.fromOffset(340, 76), UDim2.fromOffset(22, 22), dark, 0.18)
+local objectiveTitle = label("ObjectiveTitle", "OBJECTIVE", UDim2.new(1, -20, 0, 18), UDim2.fromOffset(12, 8), 12, amber, objective)
+objectiveTitle.TextXAlignment = Enum.TextXAlignment.Left
+local objectiveText = label("ObjectiveText", "ELIMINATE BERTRANDA", UDim2.new(1, -20, 0, 30), UDim2.fromOffset(12, 28), 21, bone, objective)
+objectiveText.Font = Enum.Font.Antique
+local killsText = label("Kills", "0 VERMIN DESTROYED", UDim2.new(1, -20, 0, 15), UDim2.fromOffset(12, 56), 11, green, objective)
 
-local objectivePanel = frame("Objective", UDim2.fromOffset(430, 90), UDim2.fromOffset(20, 20), Color3.fromRGB(5, 8, 5), 0.22)
-local objectiveStripe = frame("Stripe", UDim2.fromOffset(4, 90), UDim2.fromOffset(0, 0), amber, 0, objectivePanel)
-label("Kicker", "OBJECTIVE", UDim2.new(1, -25, 0, 18), UDim2.fromOffset(17, 10), 12, dim, objectivePanel)
-local objectiveText = label("Text", "Find and cauterise the first moulting nest", UDim2.new(1, -25, 0, 36), UDim2.fromOffset(17, 29), 18, bone, objectivePanel)
-objectiveText.Font = Enum.Font.Garamond
-local countText = label("Count", "0 / 5 SEALED", UDim2.new(1, -25, 0, 18), UDim2.fromOffset(17, 66), 11, mould, objectivePanel)
+local bossPanel = frame("BossPanel", UDim2.new(0.42, 0, 0, 61), UDim2.new(0.29, 0, 0, 22), Color3.fromRGB(29, 10, 8), 0.12)
+local bossTitle = label("BossTitle", "BERTRANDA · WOMAN/SPIDER", UDim2.new(1, -20, 0, 24), UDim2.fromOffset(10, 5), 17, bone, bossPanel)
+bossTitle.TextXAlignment = Enum.TextXAlignment.Center
+bossTitle.Font = Enum.Font.Antique
+local bossBack = frame("BossBack", UDim2.new(1, -20, 0, 12), UDim2.fromOffset(10, 38), Color3.fromRGB(54, 20, 14), 0, bossPanel)
+local bossFill = frame("BossFill", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), red, 0, bossBack)
 
-local detector = frame("Detector", UDim2.fromOffset(252, 78), UDim2.new(0, 20, 1, -98), Color3.fromRGB(7, 9, 6), 0.14)
-local detectorStroke = Instance.new("UIStroke")
-detectorStroke.Color = Color3.fromRGB(100, 93, 53)
-detectorStroke.Transparency = 0.28
-detectorStroke.Parent = detector
-label("Name", "CHITINOMETER", UDim2.fromOffset(220, 18), UDim2.fromOffset(13, 9), 11, dim, detector)
-local rangeText = label("Range", "SEARCHING", UDim2.fromOffset(220, 24), UDim2.fromOffset(13, 26), 16, bone, detector)
-local bars = {}
-for i = 1, 5 do
-    local bar = frame("Bar" .. i, UDim2.fromOffset(26, 5 + i * 3), UDim2.fromOffset(13 + (i - 1) * 32, 68 - (5 + i * 3)), Color3.fromRGB(49, 51, 29), 0, detector)
-    table.insert(bars, bar)
-end
+local healthPanel = frame("HealthPanel", UDim2.fromOffset(250, 62), UDim2.new(0, 22, 1, -84), dark, 0.16)
+label("Vitals", "VITALS", UDim2.new(1, -20, 0, 15), UDim2.fromOffset(10, 7), 11, bone, healthPanel)
+local healthBack = frame("HealthBack", UDim2.new(1, -56, 0, 13), UDim2.fromOffset(10, 31), Color3.fromRGB(55, 28, 18), 0, healthPanel)
+local healthFill = frame("HealthFill", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), amber, 0, healthBack)
+local healthText = label("HealthValue", "100", UDim2.fromOffset(42, 25), UDim2.new(1, -46, 0, 24), 18, bone, healthPanel)
+healthText.TextXAlignment = Enum.TextXAlignment.Right
 
-local crossH = frame("CrossH", UDim2.fromOffset(18, 2), UDim2.new(0.5, -9, 0.5, -1), bone, 0.18)
-local crossV = frame("CrossV", UDim2.fromOffset(2, 18), UDim2.new(0.5, -1, 0.5, -9), bone, 0.18)
-local caption = label("Caption", "", UDim2.new(0.72, 0, 0, 70), UDim2.new(0.14, 0, 0.72, 0), 22, bone)
+local ammoPanel = frame("AmmoPanel", UDim2.fromOffset(190, 72), UDim2.new(1, -212, 1, -94), dark, 0.16)
+local gunTitle = label("GunTitle", "SALT-ARC RIFLE", UDim2.new(1, -18, 0, 16), UDim2.fromOffset(9, 7), 11, bone, ammoPanel)
+gunTitle.TextXAlignment = Enum.TextXAlignment.Right
+local ammoText = label("Ammo", "32 / ∞", UDim2.new(1, -18, 0, 38), UDim2.fromOffset(9, 24), 31, amber, ammoPanel)
+ammoText.TextXAlignment = Enum.TextXAlignment.Right
+ammoText.Font = Enum.Font.Antique
+
+local crossH = frame("CrossHorizontal", UDim2.fromOffset(27, 2), UDim2.new(0.5, -13, 0.5, -1), bone, 0.12)
+local crossV = frame("CrossVertical", UDim2.fromOffset(2, 27), UDim2.new(0.5, -1, 0.5, -13), bone, 0.12)
+local caption = label("Caption", "", UDim2.new(0.72, 0, 0, 58), UDim2.new(0.14, 0, 0.72, 0), 20, bone)
 caption.TextXAlignment = Enum.TextXAlignment.Center
 caption.TextYAlignment = Enum.TextYAlignment.Center
-caption.Font = Enum.Font.Garamond
+caption.Font = Enum.Font.Antique
 caption.TextTransparency = 1
 
-local danger = label("Danger", "SHE HEARD THAT", UDim2.new(0.7, 0, 0, 55), UDim2.new(0.15, 0, 0.1, 0), 34, rust)
+local danger = label("Danger", "", UDim2.new(0.8, 0, 0, 70), UDim2.new(0.1, 0, 0.17, 0), 39, Color3.fromRGB(255, 75, 48))
 danger.TextXAlignment = Enum.TextXAlignment.Center
 danger.Font = Enum.Font.Antique
 danger.TextTransparency = 1
 
-local torchLabel = label("Torch", "F  TORCH", UDim2.fromOffset(130, 30), UDim2.new(1, -150, 1, -50), 13, dim)
-torchLabel.TextXAlignment = Enum.TextXAlignment.Right
+local damageFlash = frame("DamageFlash", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.fromRGB(172, 15, 8), 1)
+damageFlash.ZIndex = 60
 
-local scanlines = frame("Scanlines", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.new(), 1)
-scanlines.ZIndex = 100
-for y = 0, 1, 0.006 do
-    local line = frame("Line", UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, y, 0), Color3.fromRGB(255, 255, 230), 0.96, scanlines)
-    line.ZIndex = 100
-end
+local fireButton = Instance.new("TextButton")
+fireButton.Name = "FireButton"
+fireButton.Size = UDim2.fromOffset(104, 104)
+fireButton.Position = UDim2.new(1, -128, 1, -135)
+fireButton.AnchorPoint = Vector2.new(0, 0)
+fireButton.BackgroundColor3 = Color3.fromRGB(151, 42, 25)
+fireButton.BackgroundTransparency = 0.2
+fireButton.BorderSizePixel = 0
+fireButton.Text = "FIRE"
+fireButton.TextColor3 = bone
+fireButton.TextSize = 23
+fireButton.Font = Enum.Font.Antique
+fireButton.Visible = UserInputService.TouchEnabled
+fireButton.Parent = gui
+local fireCorner = Instance.new("UICorner")
+fireCorner.CornerRadius = UDim.new(1, 0)
+fireCorner.Parent = fireButton
 
-local captionSerial = 0
-local function showCaption(text, seconds)
-    captionSerial += 1
-    local serial = captionSerial
-    caption.Text = text
-    TweenService:Create(caption, TweenInfo.new(0.25), {TextTransparency = 0}):Play()
-    task.delay(seconds or 3.8, function()
-        if serial == captionSerial then TweenService:Create(caption, TweenInfo.new(0.6), {TextTransparency = 1}):Play() end
-    end)
-end
+local reloadButton = Instance.new("TextButton")
+reloadButton.Name = "ReloadButton"
+reloadButton.Size = UDim2.fromOffset(62, 62)
+reloadButton.Position = UDim2.new(1, -205, 1, -173)
+reloadButton.BackgroundColor3 = Color3.fromRGB(65, 71, 36)
+reloadButton.BackgroundTransparency = 0.25
+reloadButton.BorderSizePixel = 0
+reloadButton.Text = "R"
+reloadButton.TextColor3 = bone
+reloadButton.TextSize = 19
+reloadButton.Font = Enum.Font.Code
+reloadButton.Visible = UserInputService.TouchEnabled
+reloadButton.Parent = gui
+local reloadCorner = Instance.new("UICorner")
+reloadCorner.CornerRadius = UDim.new(1, 0)
+reloadCorner.Parent = reloadButton
 
-local function setCount(count)
-    countText.Text = tostring(count) .. " / 5 SEALED"
-    objectiveText.Text = count < 5 and ("Find and cauterise moulting nest " .. tostring(count + 1)) or "Reach the front door and escape"
-end
-
-local winOverlay = frame("Win", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.fromRGB(5, 8, 5), 0.04)
+local winOverlay = frame("WinOverlay", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.fromRGB(8, 12, 6), 0.08)
 winOverlay.Visible = false
 winOverlay.ZIndex = 80
-local winTitle = label("Title", "DAWN HAS TEETH", UDim2.new(0.8, 0, 0, 100), UDim2.new(0.1, 0, 0.35, 0), 55, bone, winOverlay)
+local winTitle = label("WinTitle", "BERTRANDA TERMINATED", UDim2.new(1, 0, 0, 100), UDim2.new(0, 0, 0.37, 0), 55, Color3.fromRGB(255, 217, 112), winOverlay)
 winTitle.TextXAlignment = Enum.TextXAlignment.Center
 winTitle.Font = Enum.Font.Antique
 winTitle.ZIndex = 81
-local winCopy = label("Copy", "", UDim2.new(0.65, 0, 0, 90), UDim2.new(0.175, 0, 0.5, 0), 20, dim, winOverlay)
-winCopy.TextXAlignment = Enum.TextXAlignment.Center
-winCopy.Font = Enum.Font.Garamond
-winCopy.ZIndex = 81
+local winSub = label("WinSub", "THE HUMAN FACES ARE QUIET", UDim2.new(1, 0, 0, 50), UDim2.new(0, 0, 0.51, 0), 20, bone, winOverlay)
+winSub.TextXAlignment = Enum.TextXAlignment.Center
+winSub.ZIndex = 81
 
-local torch
-local torchOn = true
-local function prepareCharacter(character)
-    local head = character:WaitForChild("Head", 8)
-    local humanoid = character:WaitForChild("Humanoid", 8)
-    if not head or not humanoid then return end
-    if torch then torch:Destroy() end
-    torch = Instance.new("SpotLight")
-    torch.Name = "PlayerTorch"
-    torch.Angle = 78
-    torch.Brightness = 4
-    torch.Range = 62
-    torch.Face = Enum.NormalId.Front
-    torch.Color = Color3.fromRGB(244, 220, 165)
-    torch.Shadows = true
-    torch.Enabled = torchOn
-    torch.Parent = head
-    humanoid.WalkSpeed = 16
-end
-if player.Character then task.spawn(prepareCharacter, player.Character) end
-player.CharacterAdded:Connect(prepareCharacter)
+local camera = workspace.CurrentCamera
+local viewModel = Instance.new("Model")
+viewModel.Name = "SaltArcViewModel"
+viewModel.Parent = camera
 
-local running = false
-local function setRun(value)
-    running = value
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid then humanoid.WalkSpeed = value and 24 or 16 end
+local gunBody = Instance.new("Part")
+gunBody.Name = "Blaster"
+gunBody.Size = Vector3.new(0.45, 0.42, 1.45)
+gunBody.Color = Color3.fromRGB(35, 42, 30)
+gunBody.Material = Enum.Material.Metal
+gunBody.Anchored = true
+gunBody.CanCollide = false
+gunBody.CastShadow = false
+gunBody.Parent = viewModel
+
+local barrel = Instance.new("Part")
+barrel.Name = "Barrel"
+barrel.Size = Vector3.new(0.22, 0.22, 1.25)
+barrel.Color = Color3.fromRGB(168, 135, 57)
+barrel.Material = Enum.Material.Metal
+barrel.Anchored = true
+barrel.CanCollide = false
+barrel.CastShadow = false
+barrel.Parent = viewModel
+
+local flashlight = Instance.new("SpotLight")
+flashlight.Name = "BrightHouseLight"
+flashlight.Face = Enum.NormalId.Front
+flashlight.Angle = 78
+flashlight.Brightness = 4
+flashlight.Range = 75
+flashlight.Color = Color3.fromRGB(255, 231, 174)
+flashlight.Shadows = true
+flashlight.Parent = barrel
+
+local shotSound = Instance.new("Sound")
+shotSound.SoundId = "rbxasset://sounds/Rocket shot.wav"
+shotSound.Volume = 0.34
+shotSound.PlaybackSpeed = 1.45
+shotSound.Parent = gunBody
+
+local notePool = {}
+for index = 1, 5 do
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+    sound.Volume = 0.045
+    sound.Parent = SoundService
+    table.insert(notePool, sound)
 end
-local function toggleTorch()
-    torchOn = not torchOn
-    if torch then torch.Enabled = torchOn end
-    torchLabel.Text = torchOn and "F  TORCH" or "F  TORCH OFF"
-    torchLabel.TextColor3 = torchOn and dim or rust
+local baroqueSteps = {1, 1.19, 1.5, 1.33, 1.19, 1.5, 2, 1.5, 1, 1.33, 1.68, 1.5, 1.33, 1.68, 2.24, 1.68}
+local noteIndex = 1
+local noteClock = 0
+
+local firing = false
+local ammo = 32
+local magazine = 32
+local reloading = false
+local shotClock = 0
+local recoil = 0
+local shake = 0
+local lightOn = true
+
+local function updateAmmo()
+    ammoText.Text = string.format("%02d / ∞", ammo)
+    ammoText.TextColor3 = ammo <= 5 and red or amber
+end
+
+local function reload()
+    if reloading or ammo >= magazine then return end
+    reloading = true
+    firing = false
+    ammoText.Text = "RELOAD"
+    task.delay(1.1, function()
+        ammo = magazine
+        reloading = false
+        updateAmmo()
+    end)
+end
+
+local function shoot()
+    if reloading then return end
+    if ammo <= 0 then reload() return end
+    ammo -= 1
+    updateAmmo()
+    local currentCamera = workspace.CurrentCamera
+    if not currentCamera then return end
+    fireEvent:FireServer(currentCamera.CFrame.Position, currentCamera.CFrame.LookVector)
+    shotSound:Play()
+    recoil = math.min(1, recoil + 0.55)
+    shake = math.max(shake, 0.03)
+    crossH.BackgroundColor3 = amber
+    crossV.BackgroundColor3 = amber
+    task.delay(0.06, function()
+        crossH.BackgroundColor3 = bone
+        crossV.BackgroundColor3 = bone
+    end)
+    if ammo <= 0 then task.delay(0.08, reload) end
 end
 
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then setRun(true) end
-    if input.KeyCode == Enum.KeyCode.F then toggleTorch() end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then setRun(false) end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.Space then
+        firing = true
+    elseif input.KeyCode == Enum.KeyCode.R then
+        reload()
+    elseif input.KeyCode == Enum.KeyCode.F then
+        lightOn = not lightOn
+        flashlight.Enabled = lightOn
+    end
 end)
 
-if UserInputService.TouchEnabled then
-    objectivePanel.Size = UDim2.fromOffset(300, 82)
-    objectiveText.TextSize = 15
-    detector.Position = UDim2.new(0, 12, 1, -190)
-    detector.Size = UDim2.fromOffset(205, 72)
-    torchLabel.Visible = false
-    local function mobileButton(name, text, position)
-        local button = Instance.new("TextButton")
-        button.Name = name
-        button.Text = text
-        button.Size = UDim2.fromOffset(78, 78)
-        button.Position = position
-        button.AnchorPoint = Vector2.new(0.5, 0.5)
-        button.BackgroundColor3 = Color3.fromRGB(30, 34, 22)
-        button.BackgroundTransparency = 0.25
-        button.TextColor3 = bone
-        button.TextSize = 13
-        button.Font = Enum.Font.Code
-        button.AutoButtonColor = true
-        button.ZIndex = 40
-        button.Parent = gui
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = button
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = Color3.fromRGB(126, 119, 69)
-        stroke.Parent = button
-        return button
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.Space then firing = false end
+end)
+
+fireButton.MouseButton1Down:Connect(function() firing = true end)
+fireButton.MouseButton1Up:Connect(function() firing = false end)
+reloadButton.Activated:Connect(reload)
+
+local function connectHealth(character)
+    local humanoid = character:WaitForChild("Humanoid", 8)
+    if not humanoid then return end
+    local function update()
+        local ratio = math.clamp(humanoid.Health / math.max(1, humanoid.MaxHealth), 0, 1)
+        healthFill.Size = UDim2.fromScale(ratio, 1)
+        healthText.Text = tostring(math.ceil(humanoid.Health))
     end
-    local runButton = mobileButton("Run", "RUN", UDim2.new(1, -145, 1, -72))
-    local torchButton = mobileButton("Torch", "TORCH", UDim2.new(1, -62, 1, -155))
-    runButton.MouseButton1Down:Connect(function() setRun(true) end)
-    runButton.MouseButton1Up:Connect(function() setRun(false) end)
-    runButton.InputEnded:Connect(function() setRun(false) end)
-    torchButton.Activated:Connect(toggleTorch)
+    humanoid.HealthChanged:Connect(update)
+    update()
+end
+if player.Character then task.spawn(connectHealth, player.Character) end
+player.CharacterAdded:Connect(connectHealth)
+
+local function captionMessage(text)
+    caption.Text = text
+    TweenService:Create(caption, TweenInfo.new(0.18), {TextTransparency = 0}):Play()
+    task.delay(3.4, function()
+        TweenService:Create(caption, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    end)
 end
 
-stateEvent.OnClientEvent:Connect(function(kind, value)
-    if kind == "count" then setCount(value)
-    elseif kind == "caption" then showCaption(value, 4.5)
-    elseif kind == "win" then
-        winCopy.Text = value
-        winOverlay.Visible = true
-        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = 0 end
-    end
-end)
-
-scareEvent.OnClientEvent:Connect(function()
-    danger.TextTransparency = 0
-    danger.Text = "BERTRANDA"
-    local flash = frame("Scare", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.fromRGB(94, 9, 6), 0.02)
-    flash.ZIndex = 75
-    local title = label("Face", "SHE FOUND YOU", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), 64, Color3.fromRGB(248, 222, 166), flash)
-    title.TextXAlignment = Enum.TextXAlignment.Center
-    title.TextYAlignment = Enum.TextYAlignment.Center
-    title.Font = Enum.Font.Antique
-    title.ZIndex = 76
-    local camera = workspace.CurrentCamera
-    if camera then TweenService:Create(camera, TweenInfo.new(0.35), {FieldOfView = 112}):Play() end
-    task.delay(0.62, function()
-        flash:Destroy()
-        danger.TextTransparency = 1
-        if camera then camera.FieldOfView = 70 end
-    end)
-end)
-
-RunService.RenderStepped:Connect(function()
-    local generatedFolder = workspace:FindFirstChild("BertrandaGenerated")
-    local nests = generatedFolder and generatedFolder:FindFirstChild("Nests")
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not nests or not root then return end
-    local nearest = math.huge
-    for _, nest in ipairs(nests:GetChildren()) do
-        if nest:GetAttribute("Active") then
-            local core = nest:FindFirstChild("Core")
-            if core then nearest = math.min(nearest, (core.Position - root.Position).Magnitude) end
+stateEvent.OnClientEvent:Connect(function(kind, a, b)
+    if kind == "boss" then
+        local ratio = math.clamp((a or 0) / math.max(1, b or 1), 0, 1)
+        bossFill.Size = UDim2.fromScale(ratio, 1)
+        bossTitle.Text = ratio < 0.33 and "BERTRANDA · FACE LOST · BERSERK" or ratio < 0.66 and "BERTRANDA · SHELL SPLIT" or "BERTRANDA · WOMAN/SPIDER"
+    elseif kind == "kills" then
+        killsText.Text = tostring(a or 0) .. " VERMIN DESTROYED"
+    elseif kind == "caption" then
+        captionMessage(tostring(a))
+    elseif kind == "hit" then
+        crossH.BackgroundColor3 = a and Color3.fromRGB(255, 243, 128) or red
+        crossV.BackgroundColor3 = crossH.BackgroundColor3
+        task.delay(0.09, function()
+            crossH.BackgroundColor3 = bone
+            crossV.BackgroundColor3 = bone
+        end)
+    elseif kind == "hurt" then
+        damageFlash.BackgroundTransparency = 0.38
+        TweenService:Create(damageFlash, TweenInfo.new(0.35), {BackgroundTransparency = 1}):Play()
+        shake = math.max(shake, 0.38)
+    elseif kind == "explosion" then
+        local position = a
+        local scale = b or 1
+        if typeof(position) == "Vector3" and workspace.CurrentCamera then
+            local distance = (workspace.CurrentCamera.CFrame.Position - position).Magnitude
+            shake = math.max(shake, math.clamp(scale * 2.4 / math.max(5, distance), 0.08, 0.8))
         end
+        damageFlash.BackgroundColor3 = Color3.fromRGB(255, 164, 55)
+        damageFlash.BackgroundTransparency = 0.64
+        TweenService:Create(damageFlash, TweenInfo.new(0.24), {BackgroundTransparency = 1}):Play()
+        task.delay(0.3, function() damageFlash.BackgroundColor3 = Color3.fromRGB(172, 15, 8) end)
+    elseif kind == "win" then
+        firing = false
+        objectiveText.Text = "BERTRANDA DESTROYED"
+        winOverlay.Visible = true
+        task.delay(8, function() winOverlay.Visible = false end)
     end
-    if nearest == math.huge then
-        rangeText.Text = "FRONT DOOR"
-        for _, bar in ipairs(bars) do bar.BackgroundColor3 = amber end
-        return
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    camera = workspace.CurrentCamera
+    if not camera then return end
+    shotClock -= dt
+    if firing and shotClock <= 0 then
+        shotClock = 0.09
+        shoot()
     end
-    local level = nearest < 15 and 5 or nearest < 30 and 4 or nearest < 50 and 3 or nearest < 75 and 2 or nearest < 100 and 1 or 0
-    rangeText.Text = nearest < 15 and "CRITICAL" or nearest < 30 and "VERY CLOSE" or nearest < 50 and "NEAR" or nearest < 75 and "TRACE" or "SEARCHING"
-    for index, bar in ipairs(bars) do bar.BackgroundColor3 = index <= level and amber or Color3.fromRGB(49, 51, 29) end
-end)]]></ProtectedString>
+    recoil = math.max(0, recoil - dt * 6.5)
+    shake = math.max(0, shake - dt * (1.4 + shake * 7))
+    if shake > 0 then
+        camera.CFrame = camera.CFrame * CFrame.new((math.random() - 0.5) * shake, (math.random() - 0.5) * shake, 0) * CFrame.Angles(0, 0, (math.random() - 0.5) * shake * 0.04)
+    end
+    gunBody.CFrame = camera.CFrame * CFrame.new(0.62, -0.55 - recoil * 0.12, -1.28 + recoil * 0.17) * CFrame.Angles(-0.04 + recoil * 0.16, -0.04, 0)
+    viewModel.Parent = camera
+    barrel.CFrame = camera.CFrame * CFrame.new(0.62, -0.48 - recoil * 0.12, -2.05 + recoil * 0.17)
+
+    noteClock -= dt
+    if noteClock <= 0 then
+        noteClock = 60 / 132 / 2
+        local sound = notePool[(noteIndex - 1) % #notePool + 1]
+        sound.PlaybackSpeed = baroqueSteps[(noteIndex - 1) % #baroqueSteps + 1]
+        sound:Play()
+        noteIndex += 1
+    end
+end)
+
+updateAmmo()]]></ProtectedString>
         </Properties>
       </Item>
     </Item>
