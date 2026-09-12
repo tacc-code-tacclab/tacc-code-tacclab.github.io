@@ -22,7 +22,7 @@
   const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
   const index = (c,r) => r*COLS+c;
   class Game {
-    constructor(level=1, score=0) { this.start(level, score); }
+    constructor(level=1, score=0, options={}) { this.assist=Boolean(options.assist); this.start(level, score); }
     start(level=1, score=0) {
       this.level = clamp(level,1,LAST_LEVEL); this.score=score; this.startScore=score;
       this.status='playing'; this.time=0; this.health=3; this.invulnerable=0;
@@ -38,6 +38,10 @@
       this.difficulty={interval:Math.max(2.8,7.5-(level-1)*.45), warning:Math.max(1.4,2.8-(level-1)*.12),
         floodStep:Math.max(.32,.68-(level-1)*.034), farmerSpeed:4.5+level*.65};
       this.farmer={x:6.5, mode:'waiting', target:1, clock:level===1?6:Math.max(.6,2.5-(level-2)*.24), previous:-1};
+      if(this.assist) {
+        this.difficulty.interval*=1.3; this.difficulty.warning+=1;
+        this.difficulty.floodStep*=1.35; this.difficulty.farmerSpeed*=.85; this.farmer.clock+=3;
+      }
       this.dig(this.player.x,this.player.y);
     }
     random() { this.randomState=(this.randomState*16807)%2147483647; return this.randomState/2147483647; }

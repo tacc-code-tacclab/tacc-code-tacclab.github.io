@@ -4,6 +4,16 @@ Un piccolo gioco originale nell'orto romagnolo. Dieci livelli, dieci colture, mo
 
 ## Obiettivo e comandi
 
+### Aggiornamento web mobile V2
+
+Su telefono basta toccare una pianta in superficie oppure vicino alla sua radice: la talpa raggiunge il bersaglio automaticamente. Toccare la terra o trascinare cambia la direzione; **Ferma** interrompe subito il percorso. Le radici hanno bersagli più grandi e le frecce da tenere premute sono facoltative, con icone grafiche e aree di tocco da 54–62 px.
+
+La modalità comoda viene attivata per schermi stretti o dispositivi con puntatore touch: il contadino dà un secondo di preavviso in più e il veleno si propaga più lentamente. La difficoltà cresce comunque nei dieci orti. Queste modifiche riguardano la versione web; il file Roblox V1 rimane disponibile.
+
+La selezione e il menu di pressione prolungata sono bloccati sui comandi tramite `user-select`, la variante `-webkit-user-select`, `-webkit-touch-callout` e gestione dei gesti. [Riferimento MDN per Safari](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/-webkit-touch-callout), [Pointer events](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events).
+
+### Regole
+
 - Mangia le radici colorate di **tutte le piante** per completare un orto. La pianta appassisce, il suo passaggio verso la superficie si apre e ricevi i punti indicati.
 - Il contadino cammina fino a una buca e avvisa prima di versare il veleno viola. Il veleno si propaga soltanto lungo i cunicoli collegati e poi si dissolve. Scava nella terra intatta per trovare una via di fuga.
 - Hai tre cuori per orto. Il contatto con il veleno toglie un cuore, seguito da un breve periodo di protezione. I cuori si ricaricano nel livello successivo.
@@ -42,7 +52,7 @@ python roblox/build_place.py
 ## Verifiche riproducibili
 
 ```sh
-node --test tests/core.test.cjs
+node --test tests/*.test.cjs
 python tests/verify_lua.py
 python roblox/build_place.py
 ```

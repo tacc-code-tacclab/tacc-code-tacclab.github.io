@@ -2,12 +2,18 @@
 (() => {
   'use strict';
   const {Game,CROPS,COLS,ROWS,LAST_LEVEL,SPEED}=TalpaCore;
+  const {pickTarget,targetVector,DirectionState}=TalpaControls;
   const canvas=document.querySelector('#game'), ctx=canvas.getContext('2d');
   const $=id=>document.getElementById(id);
   const W=1100,H=750,CELL=36,GX=46,GY=210;
-  const game=new Game(); let mode='menu', target=null, last=0, visualTime=0, toastUntil=0, biteUntil=0;
+  const comfortable=matchMedia('(any-pointer: coarse), (max-width: 760px)').matches;
+  const game=new Game(1,0,{assist:comfortable}); let mode='menu', target=null, last=0, visualTime=0, toastUntil=0, biteUntil=0;
   let muted=true, audioContext=null, atlasReady=false, particles=[], popups=[], savedBest=0;
-  const held=new Set(), touches=new Map(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const held=new Set(), touches=new DirectionState(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let canvasPointer=null, pointerOrigin=null, dragging=false;
+  const defaultTip='Tocca una pianta o una radice: la talpa va lì da sola. Evita il viola!';
+  $('tip').textContent=defaultTip;
+  if(comfortable)$('panel-note').textContent='10 orti · 3 cuori · più tempo per scappare dal veleno';
   const atlas=new Image(); atlas.src='assets/characters.png';
   try{savedBest=Number(localStorage.getItem('talpa-birbona-best'))||0;}catch{}
   $('play').disabled=true;
@@ -56,10 +62,11 @@
     sprite(crop.sprite,x,GY-width*.47,width,width,false,sway);
     line([[x,GY+3],[x+4,GY+26],[x-3,y-14],[x,y]],'#f5cd96',5);
     for(let j=0;j<4;j++) {const ry=GY+24+(y-GY-30)*j/4;const side=j%2?1:-1;line([[x,ry],[x+side*12,ry+12],[x+side*17,ry+24]],'#e6b782',2.5);}
-    ellipse(x,y,18+Math.sin(t*3+plant.x)*1.4,18,'#f9cb7920');
-    ellipse(x,y,12,13,crop.color);ellipse(x-3,y-4,4,4,'#ffffff65');
+    const rootRadius=comfortable?Math.max(16,Math.min(29,9*W/Math.max(1,canvas.clientWidth))):12;
+    ellipse(x,y,rootRadius+6+Math.sin(t*3+plant.x)*1.4,rootRadius+6,'#f9cb7920');
+    ellipse(x,y,rootRadius,rootRadius+1,crop.color);ellipse(x-rootRadius*.25,y-rootRadius*.35,rootRadius*.32,rootRadius*.32,'#ffffff65');
     line([[x-5,y+12],[x-7,y+19]],'#f0c49b',2);line([[x+4,y+12],[x+7,y+17]],'#f0c49b',2);
-    round(x-21,y+22,42,19,8,'#683d3299');text(crop.points,x,y+36,12,'#ffe8bc');
+    if(!comfortable){round(x-21,y+22,42,19,8,'#683d3299');text(crop.points,x,y+36,12,'#ffe8bc');}
   }
   function draw(t){
     ctx.clearRect(0,0,W,H);landscape(t);ctx.drawImage(terrain,0,0);
@@ -102,6 +109,7 @@
   function toast(message,duration=3){$('toast').textContent=message;$('toast').classList.add('on');toastUntil=visualTime+duration;}
   function emit(event){
     if(event.type==='eat'){
+      if(target?.plantIndex!==undefined&&game.plants[target.plantIndex].eaten){target=null;$('tip').textContent=defaultTip;}
       biteUntil=visualTime+.3;beep('eat');popups.push({text:`+${event.points}`,x:px(event.x),y:py(event.y)-24,start:visualTime,color:'#fff3ac'});
       const crop=CROPS[event.kind];
       for(let i=0;i<(reduced?4:16);i++){particles.push({x:px(event.x),y:i%2?py(event.y):GY-25,vx:(Math.random()-.5)*180,vy:-50-Math.random()*120,start:visualTime,life:.6+Math.random()*.5,size:3+Math.random()*4,color:i%2?crop.color:'#b5d974'});}
@@ -112,20 +120,22 @@
     else if(event.type==='lose'){showSummary();}
     else if(event.type==='dig'&&Math.random()<.3&&!reduced){particles.push({x:px(event.x),y:py(event.y)+8,vx:(Math.random()-.5)*35,vy:-15,start:visualTime,life:.3,size:3,color:'#e2b180'});}
   }
-  function clearInput(){held.clear();touches.clear();target=null;document.querySelectorAll('.dpad .active').forEach(b=>b.classList.remove('active'));game.player.moving=false;}
+  function clearInput(){held.clear();touches.clear();target=null;canvasPointer=null;pointerOrigin=null;dragging=false;document.querySelectorAll('.dpad .active').forEach(b=>b.classList.remove('active'));game.player.moving=false;$('tip').textContent=defaultTip;}
   function hud(){
     const values={level:`${String(game.level).padStart(2,'0')} / ${LAST_LEVEL}`,plants:`${game.total-game.remaining} / ${game.total}`,score:game.score.toLocaleString('it-IT'),hearts:'♥ '.repeat(game.health).trim()+' ♡'.repeat(3-game.health)};
     for(const [id,value] of Object.entries(values))if($(id).textContent!==value)$(id).textContent=value;
     $('hearts').setAttribute('aria-label',`${game.health} vite`);$('progress').style.width=`${(1-game.remaining/game.total)*100}%`;
+    $('stop').disabled=mode!=='playing'||(!target&&!game.player.moving);
   }
   function setPanel(kicker,title,body,button,note){
     clearInput();$('panel-kicker').textContent=kicker;$('panel-title').textContent=title;$('panel-text').textContent=body;$('play').textContent=button;$('panel-note').textContent=note;
-    $('rules').hidden=true;$('overlay').hidden=false;$('pause').disabled=true;$('restart').hidden=mode==='menu';document.body.classList.remove('playing');
+    $('rules').hidden=true;$('overlay').hidden=false;$('pause').disabled=true;$('stop').disabled=true;$('restart').hidden=mode==='menu';document.body.classList.remove('playing');
     $('play').focus({preventScroll:true});
   }
   function begin(){
     clearInput();mode='playing';$('overlay').hidden=true;$('pause').disabled=false;document.body.classList.add('playing');canvas.focus({preventScroll:true});
-    toast(game.level===1?'Cerca le radici colorate: il morso è automatico!':`Orto ${game.level}: ${game.total} piante, contadino più veloce!`,4);
+    if(comfortable)document.querySelector('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
+    toast(game.level===1?'Tocca una pianta: la talpa raggiunge la radice!':`Orto ${game.level}: ${game.total} piante, contadino più veloce!`,4);
   }
   function showSummary(){mode='summary';savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
     if(game.status==='lost')setPanel('IL CONTADINO TI HA BECCATA','Ops, che guaio!','Hai finito i cuori. Evita il viola e scava una nuova via nella terra marrone: il veleno si dissolve dopo pochi secondi.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
@@ -133,13 +143,14 @@
     else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Tutte le piante sono state mangiate. Nel prossimo orto il contadino sarà un po’ più veloce: lascia sempre una via di fuga.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
   }
   function pause(help=false){if(mode!=='playing')return;mode=help?'help':'paused';
-    setPanel(help?'BASTA MUOVERSI. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Frecce / WASD oppure tocca un punto sotto terra. Raggiungi ogni radice colorata per far seccare la pianta. Il contadino versa veleno viola nelle buche: scava nella terra intatta per scappare. Hai 3 cuori.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
+    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta in superficie o la sua radice: la talpa va lì da sola. Tocca la terra per cambiare strada, oppure premi Ferma. Puoi anche tenere premute le frecce. Evita il veleno viola: hai 3 cuori.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
   }
   $('play').addEventListener('click',()=>{
     if(!atlasReady)return;if(mode==='menu')game.start(1,0);else if(mode==='summary'){if(game.status==='won')game.next();else if(game.status==='lost')game.retry();else game.start(1,0);particles=[];popups=[];}
     begin();hud();
   });
   $('restart').addEventListener('click',()=>{game.start(1,0);particles=[];popups=[];begin();hud();});
+  $('stop').addEventListener('click',()=>{clearInput();hud();});
   $('pause').addEventListener('click',()=>pause());$('help').addEventListener('click',()=>{if(mode==='playing')pause(true);else if(mode==='menu')toast('Le radici sono i piccoli bersagli colorati sotto ogni pianta.',5);});
   $('sound').addEventListener('click',()=>{muted=!muted;$('sound').textContent=muted?'♪ Audio spento':'♪ Audio acceso';$('sound').setAttribute('aria-label',muted?'Attiva audio':'Disattiva audio');$('sound').setAttribute('aria-pressed',String(!muted));if(!muted)beep('eat');});
   const keyMap={ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0],ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1]};
@@ -150,22 +161,38 @@
   window.addEventListener('keyup',e=>held.delete(e.key.length===1?e.key.toLowerCase():e.key));
   window.addEventListener('blur',()=>{clearInput();pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause();}});
   function point(e){const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height;
-    if(y<GY&&e.type==='pointerdown')return;target={x:clamp((x-GX)/CELL,.5,COLS-.5),y:clamp((y-GY)/CELL,.5,ROWS-.5)};}
-  let canvasPointer=null;
-  canvas.addEventListener('pointerdown',e=>{if(mode!=='playing')return;e.preventDefault();canvas.focus({preventScroll:true});canvasPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);point(e);});
-  canvas.addEventListener('pointermove',e=>{if(mode==='playing'&&canvasPointer===e.pointerId)point(e);});
-  canvas.addEventListener('pointerup',()=>{canvasPointer=null;});canvas.addEventListener('pointercancel',()=>{canvasPointer=null;target=null;});
-  for(const b of document.querySelectorAll('[data-dir]')){
-    b.addEventListener('pointerdown',e=>{e.preventDefault();if(mode!=='playing')return;target=null;touches.set(e.pointerId,b.dataset.dir.split(',').map(Number));b.setPointerCapture(e.pointerId);b.classList.add('active');});
-    for(const name of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(name,e=>{touches.delete(e.pointerId);b.classList.remove('active');});
-    b.addEventListener('contextmenu',e=>e.preventDefault());
+    const next=pickTarget(game.plants,{x,y},{width:r.width,height:r.height,assist:comfortable||e.pointerType==='touch',dragging});
+    if(next){target=next;$('tip').textContent=next.plantIndex===undefined?'Scavo qui! Tocca una pianta per scegliere la prossima radice.':`Verso le radici: ${CROPS[game.plants[next.plantIndex].kind].name}. Tocca altrove per cambiare strada.`;}}
+  canvas.addEventListener('pointerdown',e=>{if(mode!=='playing'||(e.pointerType==='mouse'&&e.button!==0)||canvasPointer!==null)return;
+    e.preventDefault();canvas.focus({preventScroll:true});canvasPointer=e.pointerId;pointerOrigin={x:e.clientX,y:e.clientY};dragging=false;canvas.setPointerCapture(e.pointerId);point(e);},{passive:false});
+  canvas.addEventListener('pointermove',e=>{if(mode!=='playing'||canvasPointer!==e.pointerId)return;
+    if(Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>8)dragging=true;
+    if(dragging){e.preventDefault();point(e);}},{passive:false});
+  canvas.addEventListener('pointerup',e=>{if(canvasPointer===e.pointerId){canvasPointer=null;pointerOrigin=null;}});
+  for(const event of ['pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(canvasPointer===e.pointerId){canvasPointer=null;pointerOrigin=null;target=null;$('tip').textContent=defaultTip;}});
+  const directionButtons=[...document.querySelectorAll('[data-dir]')];
+  function paintPad(){for(const b of directionButtons)b.classList.toggle('active',touches.active(b));}
+  function releaseDirection(e){touches.release(e.pointerId);paintPad();}
+  for(const b of directionButtons){
+    b.addEventListener('pointerdown',e=>{e.preventDefault();if(mode!=='playing'||(e.pointerType==='mouse'&&e.button!==0))return;
+      target=null;canvasPointer=null;pointerOrigin=null;const [dx,dy]=b.dataset.dir.split(',').map(Number);touches.press(e.pointerId,dx,dy,b);b.setPointerCapture(e.pointerId);paintPad();$('tip').textContent='Tieni premuta una freccia. Quando la lasci, la talpa si ferma.';},{passive:false});
+    b.addEventListener('pointermove',e=>{if(!b.hasPointerCapture(e.pointerId))return;e.preventDefault();const over=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-dir]');
+      if(directionButtons.includes(over)){const [dx,dy]=over.dataset.dir.split(',').map(Number);touches.press(e.pointerId,dx,dy,over);}else touches.release(e.pointerId);paintPad();},{passive:false});
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,releaseDirection);
+  }
+  for(const event of ['pointerup','pointercancel'])window.addEventListener(event,releaseDirection);
+  // Scope Safari's selection/callout guard to the game and buttons; page links remain usable.
+  for(const region of document.querySelectorAll('.game-shell,.mobile-controls,button')){
+    for(const event of ['selectstart','contextmenu','dragstart'])region.addEventListener(event,e=>e.preventDefault());
+  }
+  for(const region of [canvas,document.querySelector('.dpad')]){
+    for(const event of ['touchstart','touchmove'])region.addEventListener(event,e=>e.preventDefault(),{passive:false});
   }
   for(const crop of CROPS){const item=document.createElement('div');item.className='crop';const art=document.createElement('span');art.className='crop-art';art.style.backgroundPosition=`${crop.sprite%4*100/3}% ${Math.floor(crop.sprite/4)*50}%`;art.setAttribute('aria-hidden','true');const name=document.createElement('span');name.className='crop-name';name.textContent=crop.name;const score=document.createElement('strong');score.textContent=`${crop.points} pt`;item.append(art,name,score);$('crop-list').append(item);}
   function loop(now){const dt=Math.min(.06,(now-(last||now))/1000);last=now;visualTime+=dt;
     if(mode==='playing'){
-      let dx=0,dy=0;for(const k of held){dx+=keyMap[k][0];dy+=keyMap[k][1];}for(const v of touches.values()){dx+=v[0];dy+=v[1];}
-      if(target&&dx===0&&dy===0){dx=target.x-game.player.x;dy=target.y-game.player.y;const dist=Math.hypot(dx,dy);
-        if(dist<.04){target=null;dx=dy=0;}else{const strength=Math.min(1,dist/(SPEED*Math.max(dt,.001)));dx=dx/dist*strength;dy=dy/dist*strength;}}
+      let {dx,dy}=touches.vector();for(const k of held){dx+=keyMap[k][0];dy+=keyMap[k][1];}
+      if(target&&dx===0&&dy===0){const vector=targetVector(game.player,target,SPEED,dt);dx=vector.dx;dy=vector.dy;if(vector.arrived){target=null;$('tip').textContent=defaultTip;}}
       game.update(dt,dx,dy);game.takeEvents().forEach(emit);hud();
     }
     particles=particles.filter(p=>visualTime-p.start<p.life);popups=popups.filter(p=>visualTime-p.start<1.4);
