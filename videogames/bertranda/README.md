@@ -6,6 +6,8 @@ An original fast first-person horror shooter for desktop and mobile browsers. Be
 
 Keep moving, survive the continuous swarm and destroy Bertranda. Her health bar is visible from the beginning and she becomes faster in three phases. Human faces are weak points. Every defeated creature detonates with light, fragments, sound and camera shake; Bertranda triggers a larger chain explosion.
 
+The default **Deep** graphics preset uses the full fluorescent cyan, lime and magenta horror treatment at a performance-conscious resolution. Choose **Light** for fewer dynamic lights, particles and simultaneous enemies, or **Ultra** for maximum density. The rifle now fires clearly visible travelling plasma bolts, while magnetic aim assist gently pulls near-center shots onto unobstructed enemies.
+
 ## Controls
 
 - `WASD` or arrow keys: move in the expected direction
@@ -16,6 +18,8 @@ Keep moving, survive the continuous swarm and destroy Bertranda. Her health bar 
 - `F`: toggle the light
 - `P` or `Esc`: pause
 - Smartphone/tablet: analogue movement, drag-to-aim, FIRE, RUN, reload and LIGHT buttons
+
+On the title screen, choose **Light**, **Deep** (default) or **Ultra** under Graphics. Story and Frenzy have also been rebalanced with slower, less damaging vermin and a more vulnerable Bertranda.
 
 ## Contents
 

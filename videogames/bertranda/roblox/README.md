@@ -15,7 +15,7 @@
 - `F` to toggle the strong weapon light
 - Mobile includes dedicated FIRE and reload buttons
 
-Aim at the human heads for extra damage and eliminate Bertranda. Cockroaches, bats and snakes spawn continuously, attack the players and explode into loud chitin fragments when destroyed.
+Aim at the human heads for extra damage and eliminate Bertranda. A forgiving magnetic cone nudges near-center shots onto visible faces, and every shot now launches a fluorescent cyan travelling bolt with a lime trail. Cockroaches, bats and snakes spawn continuously, attack the players and explode into loud chitin fragments when destroyed. Enemy density, speed, damage and boss health are reduced for a faster, smoother fight.
 
 ## Human faces and sound
 

@@ -72,34 +72,34 @@ stateEvent.Name = "State"
 stateEvent.Parent = remotes
 
 Lighting.ClockTime = 2.13
-Lighting.Brightness = 2.5
-Lighting.Ambient = Color3.fromRGB(60, 64, 44)
-Lighting.OutdoorAmbient = Color3.fromRGB(30, 33, 24)
-Lighting.FogColor = Color3.fromRGB(22, 27, 18)
+Lighting.Brightness = 3
+Lighting.Ambient = Color3.fromRGB(57, 84, 91)
+Lighting.OutdoorAmbient = Color3.fromRGB(28, 40, 51)
+Lighting.FogColor = Color3.fromRGB(12, 29, 39)
 Lighting.FogStart = 55
 Lighting.FogEnd = 310
 
 local colour = Instance.new("ColorCorrectionEffect")
 colour.Name = "BertrandaColour"
-colour.Brightness = 0.07
-colour.Contrast = 0.13
-colour.Saturation = -0.18
-colour.TintColor = Color3.fromRGB(239, 229, 174)
+colour.Brightness = 0.1
+colour.Contrast = 0.16
+colour.Saturation = 0.2
+colour.TintColor = Color3.fromRGB(220, 255, 249)
 colour.Parent = Lighting
 
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "BertrandaBloom"
-bloom.Intensity = 0.34
+bloom.Intensity = 0.48
 bloom.Size = 24
-bloom.Threshold = 1.05
+bloom.Threshold = 0.86
 bloom.Parent = Lighting
 
 local atmosphere = Instance.new("Atmosphere")
 atmosphere.Name = "BertrandaAtmosphere"
 atmosphere.Density = 0.11
 atmosphere.Haze = 0.7
-atmosphere.Color = Color3.fromRGB(125, 132, 85)
-atmosphere.Decay = Color3.fromRGB(42, 31, 22)
+atmosphere.Color = Color3.fromRGB(80, 167, 166)
+atmosphere.Decay = Color3.fromRGB(47, 18, 56)
 atmosphere.Parent = Lighting
 
 local function makePart(name, size, cframe, color, material, parent, collide, transparency)
@@ -228,7 +228,7 @@ end
 local creatureData = {}
 local bossModel = nil
 local bossAlive = false
-local bossMaxHealth = 2600
+local bossMaxHealth = 1900
 local bossHealth = bossMaxHealth
 local roundId = 0
 
@@ -254,8 +254,8 @@ local function createBoss()
     root.CanQuery = false
     model.PrimaryPart = root
 
-    local shell = Color3.fromRGB(49, 42, 18)
-    local shellLight = Color3.fromRGB(105, 91, 37)
+    local shell = Color3.fromRGB(49, 20, 76)
+    local shellLight = Color3.fromRGB(38, 194, 179)
     ball("Abdomen", Vector3.new(11, 7, 14), CFrame.new(0, 5, 3), shell, Enum.Material.Metal, model)
     ball("Thorax", Vector3.new(9, 6, 9), CFrame.new(0, 5, -3.5), shellLight, Enum.Material.Metal, model)
     addHumanFace(model, CFrame.new(0, 9.4, -7.2), Vector3.new(6.4, 7.2, 3.3), Color3.fromRGB(194, 157, 128), Color3.fromRGB(19, 14, 11), "BertrandaHumanFace")
@@ -273,7 +273,7 @@ local function createBoss()
     end
 
     model:PivotTo(CFrame.new(89, 2, -61))
-    setCreature(model, "boss", bossMaxHealth, 9, 22, 2)
+    setCreature(model, "boss", bossMaxHealth, 8, 16, 2)
     bossModel = model
     bossHealth = bossMaxHealth
     bossAlive = true
@@ -289,16 +289,16 @@ local function createRoach(position)
     local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
     root.CanQuery = false
     model.PrimaryPart = root
-    ball("Shell", Vector3.new(4.5, 2.2, 7), CFrame.new(0, 2, 1), Color3.fromRGB(83, 42, 22), Enum.Material.Metal, model)
+    ball("Shell", Vector3.new(4.5, 2.2, 7), CFrame.new(0, 2, 1), Color3.fromRGB(151, 26, 85), Enum.Material.Metal, model)
     addHumanFace(model, CFrame.new(0, 3.2, -3), Vector3.new(3.4, 3.8, 1.8), Color3.fromRGB(177, 128, 98), nil, "CockroachHumanFace")
     for _, side in ipairs({-1, 1}) do
         for pair = 1, 3 do
             local z = -1.5 + pair * 1.5
-            beamBetween("RoachLeg", Vector3.new(side * 1.5, 2, z), Vector3.new(side * 4.1, 0.6, z + (pair - 2) * 1.2), 0.35, Color3.fromRGB(126, 65, 30), model)
+            beamBetween("RoachLeg", Vector3.new(side * 1.5, 2, z), Vector3.new(side * 4.1, 0.6, z + (pair - 2) * 1.2), 0.35, Color3.fromRGB(255, 91, 57), model)
         end
     end
     model:PivotTo(CFrame.new(position.X, 1, position.Z))
-    setCreature(model, "roach", 90, 16, 8, 1)
+    setCreature(model, "roach", 70, 13, 6, 1)
     return model
 end
 
@@ -309,14 +309,14 @@ local function createBat(position)
     local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
     root.CanQuery = false
     model.PrimaryPart = root
-    ball("Body", Vector3.new(3, 4.5, 3), CFrame.new(0, 0, 0), Color3.fromRGB(55, 38, 60), Enum.Material.Fabric, model)
+    ball("Body", Vector3.new(3, 4.5, 3), CFrame.new(0, 0, 0), Color3.fromRGB(78, 50, 160), Enum.Material.Fabric, model)
     addHumanFace(model, CFrame.new(0, 0.6, -2), Vector3.new(3.3, 3.8, 1.8), Color3.fromRGB(202, 196, 189), Color3.fromRGB(184, 185, 190), "BatHumanFace")
     for _, side in ipairs({-1, 1}) do
-        local wing = makePart("BatWing", Vector3.new(8, 0.35, 5), CFrame.new(side * 5, 0.4, 0) * CFrame.Angles(0, side * math.rad(12), side * math.rad(13)), Color3.fromRGB(83, 39, 67), Enum.Material.Fabric, model, false)
+        local wing = makePart("BatWing", Vector3.new(8, 0.35, 5), CFrame.new(side * 5, 0.4, 0) * CFrame.Angles(0, side * math.rad(12), side * math.rad(13)), Color3.fromRGB(191, 28, 145), Enum.Material.Fabric, model, false)
         wing.CanQuery = true
     end
     model:PivotTo(CFrame.new(position.X, 11, position.Z))
-    setCreature(model, "bat", 70, 20, 7, 11)
+    setCreature(model, "bat", 55, 16, 5, 11)
     return model
 end
 
@@ -327,14 +327,14 @@ local function createSnake(position)
     local root = makePart("Root", Vector3.new(1, 1, 1), CFrame.new(), Color3.new(), Enum.Material.SmoothPlastic, model, false, 1)
     root.CanQuery = false
     model.PrimaryPart = root
-    local green = Color3.fromRGB(75, 94, 35)
+    local green = Color3.fromRGB(78, 207, 68)
     for index = 1, 9 do
         local segment = ball("SnakeSegment", Vector3.new(3.6 - index * 0.14, 2.2, 3.8), CFrame.new(math.sin(index) * 1.2, 1.4, index * 2.25), green, Enum.Material.Slate, model)
         segment.CanQuery = true
     end
     addHumanFace(model, CFrame.new(0, 3.2, -2.3), Vector3.new(3.7, 4.5, 2), Color3.fromRGB(185, 154, 107), nil, "SnakeHumanFace")
     model:PivotTo(CFrame.new(position.X, 1, position.Z))
-    setCreature(model, "snake", 125, 13, 12, 1)
+    setCreature(model, "snake", 95, 11, 8, 1)
     return model
 end
 
@@ -511,8 +511,8 @@ RunService.Heartbeat:Connect(function(dt)
     for model in pairs(creatureData) do
         if model ~= bossModel and model.Parent and model:GetAttribute("Alive") then count += 1 end
     end
-    if spawnClock <= 0 and count < 24 then
-        spawnClock = 0.72 + math.random() * 0.65
+    if spawnClock <= 0 and count < 16 then
+        spawnClock = 1.05 + math.random() * 0.8
         local roll = math.random()
         spawnCreature(roll < 0.38 and "roach" or roll < 0.69 and "bat" or "snake")
     end
@@ -580,7 +580,7 @@ end)
 
 roundId += 1
 createBoss()
-for index = 1, 7 do
+for index = 1, 5 do
     spawnCreature(index % 3 == 0 and "bat" or index % 3 == 1 and "roach" or "snake")
 end]]></ProtectedString>
       </Properties>
@@ -611,6 +611,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
@@ -626,11 +627,11 @@ gui.IgnoreGuiInset = true
 gui.DisplayOrder = 40
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local bone = Color3.fromRGB(245, 232, 193)
-local amber = Color3.fromRGB(244, 169, 53)
-local red = Color3.fromRGB(213, 54, 37)
-local green = Color3.fromRGB(174, 203, 94)
-local dark = Color3.fromRGB(10, 14, 8)
+local bone = Color3.fromRGB(239, 255, 251)
+local amber = Color3.fromRGB(89, 255, 241)
+local red = Color3.fromRGB(255, 42, 117)
+local green = Color3.fromRGB(202, 255, 85)
+local dark = Color3.fromRGB(4, 15, 21)
 
 local function frame(name, size, position, color, transparency, parent)
     local item = Instance.new("Frame")
@@ -669,11 +670,11 @@ local objectiveText = label("ObjectiveText", "ELIMINATE BERTRANDA", UDim2.new(1,
 objectiveText.Font = Enum.Font.Antique
 local killsText = label("Kills", "0 VERMIN DESTROYED", UDim2.new(1, -20, 0, 15), UDim2.fromOffset(12, 56), 11, green, objective)
 
-local bossPanel = frame("BossPanel", UDim2.new(0.42, 0, 0, 61), UDim2.new(0.29, 0, 0, 22), Color3.fromRGB(29, 10, 8), 0.12)
+local bossPanel = frame("BossPanel", UDim2.new(0.42, 0, 0, 61), UDim2.new(0.29, 0, 0, 22), Color3.fromRGB(34, 6, 35), 0.12)
 local bossTitle = label("BossTitle", "BERTRANDA · WOMAN/SPIDER", UDim2.new(1, -20, 0, 24), UDim2.fromOffset(10, 5), 17, bone, bossPanel)
 bossTitle.TextXAlignment = Enum.TextXAlignment.Center
 bossTitle.Font = Enum.Font.Antique
-local bossBack = frame("BossBack", UDim2.new(1, -20, 0, 12), UDim2.fromOffset(10, 38), Color3.fromRGB(54, 20, 14), 0, bossPanel)
+local bossBack = frame("BossBack", UDim2.new(1, -20, 0, 12), UDim2.fromOffset(10, 38), Color3.fromRGB(61, 8, 49), 0, bossPanel)
 local bossFill = frame("BossFill", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), red, 0, bossBack)
 
 local healthPanel = frame("HealthPanel", UDim2.fromOffset(250, 62), UDim2.new(0, 22, 1, -84), dark, 0.16)
@@ -684,7 +685,7 @@ local healthText = label("HealthValue", "100", UDim2.fromOffset(42, 25), UDim2.n
 healthText.TextXAlignment = Enum.TextXAlignment.Right
 
 local ammoPanel = frame("AmmoPanel", UDim2.fromOffset(190, 72), UDim2.new(1, -212, 1, -94), dark, 0.16)
-local gunTitle = label("GunTitle", "SALT-ARC RIFLE", UDim2.new(1, -18, 0, 16), UDim2.fromOffset(9, 7), 11, bone, ammoPanel)
+local gunTitle = label("GunTitle", "SALT-ARC · MAGNETIC", UDim2.new(1, -18, 0, 16), UDim2.fromOffset(9, 7), 11, green, ammoPanel)
 gunTitle.TextXAlignment = Enum.TextXAlignment.Right
 local ammoText = label("Ammo", "32 / ∞", UDim2.new(1, -18, 0, 38), UDim2.fromOffset(9, 24), 31, amber, ammoPanel)
 ammoText.TextXAlignment = Enum.TextXAlignment.Right
@@ -711,7 +712,7 @@ fireButton.Name = "FireButton"
 fireButton.Size = UDim2.fromOffset(104, 104)
 fireButton.Position = UDim2.new(1, -128, 1, -135)
 fireButton.AnchorPoint = Vector2.new(0, 0)
-fireButton.BackgroundColor3 = Color3.fromRGB(151, 42, 25)
+fireButton.BackgroundColor3 = Color3.fromRGB(190, 18, 124)
 fireButton.BackgroundTransparency = 0.2
 fireButton.BorderSizePixel = 0
 fireButton.Text = "FIRE"
@@ -728,7 +729,7 @@ local reloadButton = Instance.new("TextButton")
 reloadButton.Name = "ReloadButton"
 reloadButton.Size = UDim2.fromOffset(62, 62)
 reloadButton.Position = UDim2.new(1, -205, 1, -173)
-reloadButton.BackgroundColor3 = Color3.fromRGB(65, 71, 36)
+reloadButton.BackgroundColor3 = Color3.fromRGB(24, 108, 102)
 reloadButton.BackgroundTransparency = 0.25
 reloadButton.BorderSizePixel = 0
 reloadButton.Text = "R"
@@ -760,7 +761,7 @@ viewModel.Parent = camera
 local gunBody = Instance.new("Part")
 gunBody.Name = "Blaster"
 gunBody.Size = Vector3.new(0.45, 0.42, 1.45)
-gunBody.Color = Color3.fromRGB(35, 42, 30)
+gunBody.Color = Color3.fromRGB(8, 27, 39)
 gunBody.Material = Enum.Material.Metal
 gunBody.Anchored = true
 gunBody.CanCollide = false
@@ -770,7 +771,7 @@ gunBody.Parent = viewModel
 local barrel = Instance.new("Part")
 barrel.Name = "Barrel"
 barrel.Size = Vector3.new(0.22, 0.22, 1.25)
-barrel.Color = Color3.fromRGB(168, 135, 57)
+barrel.Color = Color3.fromRGB(57, 233, 223)
 barrel.Material = Enum.Material.Metal
 barrel.Anchored = true
 barrel.CanCollide = false
@@ -781,9 +782,9 @@ local flashlight = Instance.new("SpotLight")
 flashlight.Name = "BrightHouseLight"
 flashlight.Face = Enum.NormalId.Front
 flashlight.Angle = 78
-flashlight.Brightness = 4
+flashlight.Brightness = 5.2
 flashlight.Range = 75
-flashlight.Color = Color3.fromRGB(255, 231, 174)
+flashlight.Color = Color3.fromRGB(214, 255, 248)
 flashlight.Shadows = true
 flashlight.Parent = barrel
 
@@ -831,6 +832,94 @@ local function reload()
     end)
 end
 
+local function raycastFilter()
+    local ignored = {viewModel}
+    if player.Character then table.insert(ignored, player.Character) end
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = ignored
+    params.IgnoreWater = true
+    return params
+end
+
+local function magneticDirection(origin, direction)
+    local generated = workspace:FindFirstChild("BertrandaGenerated")
+    local creatures = generated and generated:FindFirstChild("HumanFacedCreatures")
+    if not creatures then return direction.Unit end
+    local bestDirection = direction.Unit
+    local bestScore = 0.955
+    for _, model in ipairs(creatures:GetChildren()) do
+        if model:IsA("Model") and model:GetAttribute("Alive") then
+            local face
+            for _, descendant in ipairs(model:GetDescendants()) do
+                if descendant:IsA("BasePart") and string.find(descendant.Name, "HumanFace") then
+                    face = descendant
+                    break
+                end
+            end
+            if face then
+                local offset = face.Position - origin
+                local distance = offset.Magnitude
+                if distance > 0 and distance < 320 then
+                    local candidate = offset.Unit
+                    local score = direction.Unit:Dot(candidate) - distance / 24000
+                    if score > bestScore then
+                        local result = workspace:Raycast(origin, offset, raycastFilter())
+                        if result and result.Instance:IsDescendantOf(model) then
+                            bestScore = score
+                            bestDirection = candidate
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return bestDirection
+end
+
+local function showBolt(origin, direction)
+    local result = workspace:Raycast(origin, direction.Unit * 320, raycastFilter())
+    local endpoint = result and result.Position or origin + direction.Unit * 180
+    local start = origin + direction.Unit * 1.8
+    local distance = (endpoint - start).Magnitude
+    if distance < 0.5 then return end
+
+    local bolt = Instance.new("Part")
+    bolt.Name = "VisibleSaltArcBolt"
+    bolt.Size = Vector3.new(0.3, 0.3, 4.6)
+    bolt.Color = amber
+    bolt.Material = Enum.Material.Neon
+    bolt.Transparency = 0.04
+    bolt.Anchored = true
+    bolt.CanCollide = false
+    bolt.CanQuery = false
+    bolt.CanTouch = false
+    bolt.CastShadow = false
+    bolt.CFrame = CFrame.lookAt(start, start + direction)
+    bolt.Parent = workspace
+
+    local left = Instance.new("Attachment")
+    left.Position = Vector3.new(-0.15, 0, 2)
+    left.Parent = bolt
+    local right = Instance.new("Attachment")
+    right.Position = Vector3.new(0.15, 0, 2)
+    right.Parent = bolt
+    local trail = Instance.new("Trail")
+    trail.Attachment0 = left
+    trail.Attachment1 = right
+    trail.Color = ColorSequence.new(amber, green)
+    trail.LightEmission = 1
+    trail.Lifetime = 0.12
+    trail.Transparency = NumberSequence.new(0.05, 1)
+    trail.Parent = bolt
+
+    local duration = math.clamp(distance / 520, 0.1, 0.32)
+    TweenService:Create(bolt, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        CFrame = CFrame.lookAt(endpoint, endpoint + direction)
+    }):Play()
+    Debris:AddItem(bolt, duration + 0.18)
+end
+
 local function shoot()
     if reloading then return end
     if ammo <= 0 then reload() return end
@@ -838,7 +927,10 @@ local function shoot()
     updateAmmo()
     local currentCamera = workspace.CurrentCamera
     if not currentCamera then return end
-    fireEvent:FireServer(currentCamera.CFrame.Position, currentCamera.CFrame.LookVector)
+    local origin = currentCamera.CFrame.Position
+    local direction = magneticDirection(origin, currentCamera.CFrame.LookVector)
+    showBolt(origin, direction)
+    fireEvent:FireServer(origin, direction)
     shotSound:Play()
     recoil = math.min(1, recoil + 0.55)
     shake = math.max(shake, 0.03)

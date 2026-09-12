@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>BERTRANDA — Human Vermin</title>
   <meta name="description" content="A frantic original first-person horror shooter. Blast human-faced vermin through a decaying house and destroy Bertranda, the woman in the spider body.">
-  <meta name="theme-color" content="#12170f">
+  <meta name="theme-color" content="#071017">
   <meta property="og:type" content="website">
   <meta property="og:title" content="BERTRANDA — Human Vermin">
   <meta property="og:description" content="The face is still hers. Everything beneath it has eight legs. Kill Bertranda before the house fills with human-faced vermin.">
@@ -13,7 +13,7 @@
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=2">
+  <link rel="stylesheet" href="game.css?v=3">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -49,11 +49,11 @@
             </div>
           </fieldset>
           <fieldset>
-            <legend>Image</legend>
+            <legend>Graphics</legend>
             <div class="segmented" data-setting="quality">
-              <button type="button" data-value="low">Low</button>
-              <button type="button" data-value="auto" class="selected">Auto</button>
-              <button type="button" data-value="high">High</button>
+              <button type="button" data-value="low">Light</button>
+              <button type="button" data-value="deep" class="selected">Deep</button>
+              <button type="button" data-value="high">Ultra</button>
             </div>
           </fieldset>
         </div>
@@ -101,7 +101,7 @@
       <aside class="weapon-panel" aria-label="Weapon status">
         <span>SALT-ARC RIFLE</span>
         <strong><b id="ammo-text">32</b><small> / ∞</small></strong>
-        <em id="weapon-state">READY · FULL AUTO</em>
+        <em id="weapon-state">MAGNETIC AIM · FULL AUTO</em>
       </aside>
 
       <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
@@ -158,6 +158,6 @@
 
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
-  <script src="game.js?v=2"></script>
+  <script src="game.js?v=3"></script>
 </body>
 </html>
