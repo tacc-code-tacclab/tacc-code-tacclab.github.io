@@ -26,6 +26,14 @@
     Object.entries(f).forEach(([k,v]) => { if (v && !(k==='status' && v==='active') && !(k==='sort' && v==='deadline')) p.set(k,v); });
     return `${location.pathname}${p.size ? '?'+p : ''}`;
   }
+  function sectorMarkup(c) {
+    if (c.sectorCodes?.length || !c.groupCodes?.length) return `<p class="sector">${escape(c.sector || c.gsd || 'Settore da verificare nel bando')}</p>`;
+    const query = el('sector').value.trim() || el('query').value.trim();
+    const groups = c.groupCodes.map(code => ({code, name:state.catalog.groups.find(g=>g.code===code)?.name || ''}));
+    if (query) groups.sort((a,b)=>Number(state.engine.sectorMatch({groupCodes:[b.code],sector:b.name},query))-Number(state.engine.sectorMatch({groupCodes:[a.code],sector:a.name},query)));
+    const labels = groups.map(g=>`${g.code} — ${g.name}`);
+    return `<p class="sector">${escape(labels.slice(0,3).join(' · '))}</p>${labels.length>3 ? `<details class="sector-details"><summary>Bando multidisciplinare · mostra tutti i ${labels.length} GSD</summary><p>${escape(labels.join(' · '))}</p></details>` : ''}`;
+  }
   function card(c) {
     const active = S.isActive(c), expired = S.isExpired(c), n = S.daysLeft(c);
     const label = active ? (n <= 1 ? 'Scadenza vicina' : `${n} giorni`) : expired ? 'Scaduto / chiuso' : 'Stato da verificare';
@@ -33,7 +41,7 @@
     const place = [c.city,c.region].filter(Boolean).join(', ') || 'Sede da verificare nel bando';
     a.innerHTML = `<div class="call-top"><div class="badges"><span class="badge status ${active?'':'expired'}">${label}</span><span class="badge">${escape(c.role)}</span></div><span class="deadline">Scadenza · ${c.deadlineAt ? formatInstant(c.deadlineAt) : formatDay(c.deadline)} (Italia)</span></div>
       <h3>${escape(c.title)}</h3><div class="call-meta"><span>⌂ ${escape(c.institution)}</span><span>⌖ ${escape(place)}</span><span>Pubblicato ${formatDay(c.published)}</span></div>
-      <p class="sector">${escape(c.sector || c.gsd || 'Settore da verificare nel bando')}</p>
+      ${sectorMarkup(c)}
       ${c.aliases?.length ? `<p class="code-aliases">Codici equivalenti: ${escape(c.aliases.filter(x => /\d/.test(x)).join(' · '))}</p>`:''}
       ${c.locationNote ? `<p class="small-text">${escape(c.locationNote)}</p>`:''}
       ${c.detailVerified === false ? '<p class="small-text">Scheda importata dalla lista MUR; dettaglio non verificato nell’ultimo controllo.</p>':''}
