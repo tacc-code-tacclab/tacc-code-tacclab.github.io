@@ -2,6 +2,11 @@ name: Update Ateneo Bandi
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/update-ateneo-bandi.yml"
+      - "services/ateneo-bandi/scripts/**"
   schedule:
     - cron: "17 5 * * *"
 

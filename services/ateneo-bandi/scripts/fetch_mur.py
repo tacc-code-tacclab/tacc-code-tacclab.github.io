@@ -81,7 +81,7 @@ def infer_role(page_title: str, title: str) -> str:
 
 def find_search_pages(session: requests.Session) -> list[str]:
     soup = BeautifulSoup(get(session, BASE).text, "html.parser")
-    pages = {urljoin(BASE, a.get("href")) for a in soup.select("a[href]") if ".php" in (a.get("href") or "")}
+    pages = {urljoin(BASE, a.get("href")).replace("http://bandi.mur.gov.it/", BASE) for a in soup.select("a[href]") if ".php" in (a.get("href") or "")}
     pages.add(urljoin(BASE, "jobs.php/public/cercaJobs"))
     return sorted(pages)
 
@@ -101,7 +101,7 @@ def run_search(session: requests.Session, page: str) -> set[str]:
         params.setdefault("azione", "cerca")
         action = urljoin(page, form.get("action") or page)
         soup = BeautifulSoup(get(session, action, params=params).text, "html.parser")
-    return {urljoin(page, a["href"]) for a in soup.select("a[href]") if DETAIL_RE.search(a["href"])}
+    return {urljoin(page, a["href"]).replace("http://bandi.mur.gov.it/", BASE) for a in soup.select("a[href]") if DETAIL_RE.search(a["href"])}
 
 def parse_detail(session: requests.Session, url: str) -> dict | None:
     soup = BeautifulSoup(get(session, url).text, "html.parser")
