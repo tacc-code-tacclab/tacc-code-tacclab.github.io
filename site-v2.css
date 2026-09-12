@@ -1780,6 +1780,28 @@ h3 {
   }
 }
 
+/* BERTRANDA 2 — five realms degrading from verdigris to inferno. */
+.bertranda2-showcase {
+  border-color: #6c282b;
+  background: #080707;
+  box-shadow: 0 30px 95px rgba(30, 0, 4, .46), 0 0 0 1px rgba(255, 54, 41, .08);
+}
+.bertranda2-showcase .game-copy { background: radial-gradient(circle at 8% 13%, rgba(74, 181, 106, .18), transparent 35%), radial-gradient(circle at 92% 86%, rgba(222, 36, 27, .2), transparent 39%), #090707; }
+.bertranda2-showcase .game-kicker { color: #8cd89e; }
+.bertranda2-showcase .bertranda-title > span { color: #75c98d; }
+.bertranda2-showcase .bertranda-title > b { color: #ff3b2f; font-size: .52em; font-weight: 900; text-shadow: 0 0 24px rgba(255, 43, 31, .62); vertical-align: .18em; }
+.bertranda2-showcase .bertranda-title small { color: #d8be45; }
+.bertranda2-preview { overflow: hidden; border-color: #70262a; background: radial-gradient(circle at 50% 45%, #251014, #070808 65%); color: #f0d8d0; }
+.bertranda2-preview::before { z-index: 2; background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255,255,255,.035) 4px 5px), linear-gradient(90deg, rgba(68,168,96,.2), transparent 45%, rgba(241,42,29,.2)); }
+.bertranda2-preview .game-preview-label,.bertranda2-preview .game-route { z-index: 4; color: #c5aaa4; }
+.bertranda2-preview .game-preview-label::after { background: #891d19; color: #fff0dc; }
+.bertranda2-art { position: relative; display: block; overflow: hidden; aspect-ratio: 16 / 9; margin-block: clamp(2rem,6vw,5rem) 2rem; border: 1px solid rgba(222,66,55,.4); border-radius: .9rem; background: radial-gradient(circle,#251216,#060707 68%); box-shadow: 0 25px 62px #000, inset 0 0 65px #000; }
+.bertranda2-art img { position: absolute; bottom: -8%; width: 34%; height: 112%; object-fit: contain; filter: drop-shadow(0 1rem 1.4rem #000) saturate(.82) contrast(1.08); transition: transform .7s ease,filter .7s ease; }
+.bertranda2-art img:nth-child(1){left:-5%;z-index:1;opacity:.48}.bertranda2-art img:nth-child(2){left:14%;z-index:2;opacity:.62}.bertranda2-art img:nth-child(3){left:33%;z-index:3;opacity:.75}.bertranda2-art img:nth-child(4){left:52%;z-index:4;opacity:.88}.bertranda2-art img:nth-child(5){left:71%;z-index:5}
+.bertranda2-preview:hover .bertranda2-art img { transform: translateY(-2%) scale(1.045); filter: drop-shadow(0 1.4rem 1.8rem #000) saturate(1) contrast(1.16); }
+.bertranda2-preview .game-route i { background: linear-gradient(90deg,#427a52,#756c45,#8d201b); }
+.bertranda2-preview .game-route i::after { background:#ff493a;box-shadow:0 0 10px rgba(255,56,41,.72); }
+
 /* BERTRANDA — nicotine light, bruised carmine and old specimen brass. */
 .bertranda-showcase {
   border-color: #716737;
