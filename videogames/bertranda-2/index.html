@@ -13,7 +13,7 @@
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-2/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=1">
+  <link rel="stylesheet" href="game.css?v=2-mobile">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -128,6 +128,15 @@
       </div>
     </section>
 
+    <section id="rotate-screen" class="rotate-screen" hidden aria-labelledby="rotate-title">
+      <div class="rotate-card">
+        <span class="rotate-phone" aria-hidden="true">↻</span>
+        <h2 id="rotate-title">RUOTA IL TELEFONO</h2>
+        <p>Bertranda 2 si gioca in orizzontale.</p>
+        <small>La partita resta ferma: ruota lo schermo e riprendi subito, senza perdere progressi.</small>
+      </div>
+    </section>
+
     <section id="death-screen" class="screen modal death-screen" hidden aria-labelledby="death-title">
       <div class="death-art" aria-hidden="true"><img src="assets/bertranda-face-tier5.png" alt=""></div>
       <div class="modal-card">
@@ -157,6 +166,6 @@
 
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
-  <script src="game.js?v=1"></script>
+  <script src="game.js?v=2-mobile"></script>
 </body>
 </html>

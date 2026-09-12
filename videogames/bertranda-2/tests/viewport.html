@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Bertranda 2 — mobile layout QA</title>
+<style>
+  body{margin:18px;background:#101817;color:#dcfff1;font:14px system-ui}
+  button{margin:0 8px 12px 0;padding:10px;background:#234236;color:#fff;border:1px solid #67ff9a;border-radius:5px;cursor:pointer}
+  iframe{display:block;border:2px solid #67ff9a;background:#06110f}
+  p{max-width:850px;line-height:1.5}
+</style>
+<h1>Bertranda 2 · mobile layout QA</h1>
+<p>Touch UI simulation inside a desktop browser. This checks layout and rotation, not real-device GPU performance. Fullscreen is intentionally unavailable in this test frame.</p>
+<nav aria-label="Test viewport">
+  <button data-width="844" data-height="390">Landscape 844 × 390</button>
+  <button data-width="667" data-height="375">Small landscape 667 × 375</button>
+  <button data-width="390" data-height="844">Portrait 390 × 844</button>
+</nav>
+<iframe id="preview" title="Bertranda 2 touch preview" width="844" height="390"></iframe>
+<p id="status" role="status">Loading the real game source…</p>
+<script>
+  const preview = document.getElementById('preview');
+  document.querySelector('nav').addEventListener('click', event => {
+    const button = event.target.closest('button[data-width]');
+    if (!button) return;
+    preview.width = button.dataset.width;
+    preview.height = button.dataset.height;
+    document.getElementById('status').textContent = 'Viewport ' + preview.width + ' × ' + preview.height + ' — existing session preserved';
+  });
+  fetch('../index.html').then(response => {
+    if (!response.ok) throw Error('Game source unavailable');
+    return response.text();
+  }).then(html => {
+    // Test-only device flag; production assets and gameplay are not modified.
+    const setup = '<base href="' + new URL('../', location.href).href + '">' +
+      '<script>Object.defineProperty(navigator,"maxTouchPoints",{get:()=>5});<\/script>';
+    preview.srcdoc = html.replace('<head>', '<head>' + setup)
+      .replace(/<script src="\.\.\/game-counter[^>]*><\/script>/, '');
+    document.getElementById('status').textContent = 'Ready. Start, rotate, fire, reload, toggle light, pause and resume.';
+  }).catch(error => { document.getElementById('status').textContent = error.message; });
+</script>
+</html>

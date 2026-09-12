@@ -58,6 +58,7 @@
     damageFlash: $("#damage-flash"),
     bossFlash: $("#boss-flash"),
     pauseButton: $("#pause-button"),
+    rotate: $("#rotate-screen"),
     touch: $("#touch-controls"),
     movePad: $("#move-pad"),
     moveKnob: $("#move-knob"),
@@ -105,6 +106,12 @@
   let dangerUntil = 0;
   let screenShake = 0;
   let pointerWasLocked = false;
+  let orientationBlocked = false;
+  let needsRender = true;
+  let resizeFrame = 0;
+  const touchResetters = [];
+  const performanceState = { scale: 1, seconds: 0, frames: 0, goodWindows: 0 };
+  const renderSize = { width: 0, height: 0, ratio: 0 };
   let spawnTimer = 0;
   let wave = 1;
   let kills = 0;
@@ -739,9 +746,12 @@
       const spirit = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 6), accent);
       spirit.position.set((index % 2 ? -1 : 1) * 0.72, 2.45 + index % 3 * 0.28, 0.4);
       group.add(spirit);
-      const glow = new THREE.PointLight(info.cycle.accent, 0.72, 7, 2);
-      glow.position.copy(spirit.position);
-      group.add(glow);
+      // Emissive spirits remain bright without adding one shader light per tree.
+      if (!IS_TOUCH && settings.quality === "high") {
+        const glow = new THREE.PointLight(info.cycle.accent, 0.72, 7, 2);
+        glow.position.copy(spirit.position);
+        group.add(glow);
+      }
       group.userData.spirit = spirit;
       addCollider(world.x, world.z, 1.15, 1.15);
     } else if (kind === "castle") {
@@ -1080,6 +1090,8 @@
     if (settings.quality === "low") cap = Math.min(cap, 9 + cycleBonus);
     if (settings.quality === "deep") cap = Math.min(cap, (IS_TOUCH ? 12 : 16) + cycleBonus);
     if (settings.quality === "high" && IS_TOUCH) cap = Math.min(cap, 17 + cycleBonus);
+    // Later schemas increase strength, not an unbounded mobile draw-call count.
+    if (IS_TOUCH) cap = Math.min(cap, settings.quality === "low" ? 8 : settings.quality === "deep" ? 12 : 14);
     return cap;
   }
 
@@ -1143,55 +1155,43 @@
     }
   }
 
+  // One reverse breadth-first search per player cell, shared by the whole swarm.
+  // The maze grid is fixed across schemas; decorative props do not change it.
+  const navigation = { goal: -1, next: new Int16Array(MAP_W * MAP_H), queue: new Int16Array(MAP_W * MAP_H) };
   function findPath(start, goal) {
     if (!isWalkableCell(goal.x, goal.z) || !isWalkableCell(start.x, start.z)) return [];
-    const key = (x, z) => z * MAP_W + x;
-    const startKey = key(start.x, start.z);
-    const goalKey = key(goal.x, goal.z);
+    const startKey = start.z * MAP_W + start.x;
+    const goalKey = goal.z * MAP_W + goal.x;
     if (startKey === goalKey) return [worldFromCell(goal.x, goal.z)];
-    const open = [{ x: start.x, z: start.z, g: 0, f: Math.abs(goal.x - start.x) + Math.abs(goal.z - start.z) }];
-    const came = new Map();
-    const cost = new Map([[startKey, 0]]);
-    const closed = new Set();
-    while (open.length) {
-      open.sort((a, b) => a.f - b.f);
-      const current = open.shift();
-      const currentKey = key(current.x, current.z);
-      if (currentKey === goalKey) {
-        const cells = [];
-        let cursor = currentKey;
-        while (cursor !== startKey) {
-          const x = cursor % MAP_W;
-          const z = Math.floor(cursor / MAP_W);
-          cells.push(worldFromCell(x, z));
-          cursor = came.get(cursor);
-          if (cursor === undefined) break;
+    if (navigation.goal !== goalKey) {
+      navigation.goal = goalKey;
+      navigation.next.fill(-1);
+      navigation.next[goalKey] = goalKey;
+      navigation.queue[0] = goalKey;
+      let head = 0;
+      let tail = 1;
+      while (head < tail) {
+        const cell = navigation.queue[head++];
+        const x = cell % MAP_W;
+        const z = Math.floor(cell / MAP_W);
+        for (const offset of [1, -1, MAP_W, -MAP_W]) {
+          const neighbour = cell + offset;
+          const nx = neighbour % MAP_W;
+          const nz = Math.floor(neighbour / MAP_W);
+          if (Math.abs(nx - x) + Math.abs(nz - z) !== 1 || !isWalkableCell(nx, nz) || navigation.next[neighbour] !== -1) continue;
+          navigation.next[neighbour] = cell;
+          navigation.queue[tail++] = neighbour;
         }
-        return cells.reverse();
       }
-      closed.add(currentKey);
-      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach((offset) => {
-        const x = current.x + offset[0];
-        const z = current.z + offset[1];
-        if (!isWalkableCell(x, z)) return;
-        const neighbourKey = key(x, z);
-        if (closed.has(neighbourKey)) return;
-        const nextCost = current.g + 1;
-        if (!cost.has(neighbourKey) || nextCost < cost.get(neighbourKey)) {
-          cost.set(neighbourKey, nextCost);
-          came.set(neighbourKey, currentKey);
-          const h = Math.abs(goal.x - x) + Math.abs(goal.z - z);
-          const existing = open.find((node) => node.x === x && node.z === z);
-          if (existing) {
-            existing.g = nextCost;
-            existing.f = nextCost + h;
-          } else {
-            open.push({ x, z, g: nextCost, f: nextCost + h });
-          }
-        }
-      });
     }
-    return [];
+    const path = [];
+    let cursor = startKey;
+    while (cursor !== goalKey && path.length < MAP_W * MAP_H) {
+      cursor = navigation.next[cursor];
+      if (cursor < 0) return [];
+      path.push(worldFromCell(cursor % MAP_W, Math.floor(cursor / MAP_W)));
+    }
+    return path;
   }
 
   function lineOfSight(ax, az, bx, bz) {
@@ -1207,7 +1207,7 @@
 
   function moveCreature(creature, dt, speed) {
     creature.repath -= dt;
-    if (creature.repath <= 0 || creature.pathIndex >= creature.path.length) {
+    if (creature.repath <= 0) {
       creature.repath = creature === boss ? 0.38 : 0.55 + Math.random() * 0.28;
       creature.path = findPath(cellFromWorld(creature.x, creature.z), cellFromWorld(player.x, player.z));
       creature.pathIndex = 0;
@@ -1320,7 +1320,7 @@
     const target = new THREE.Vector3(player.x, player.height, player.z);
     const velocity = target.sub(start).normalize().multiplyScalar(7.2 + boss.phase * 0.65);
     mesh.position.copy(start);
-    if (settings.quality !== "low") mesh.add(new THREE.PointLight(0x59fff1, 1.2, 5, 2));
+    if (!IS_TOUCH && settings.quality !== "low") mesh.add(new THREE.PointLight(0x59fff1, 1.2, 5, 2));
     scene.add(mesh);
     projectiles.push({ mesh, velocity, life: 5, damage: 12 + boss.phase * 3 });
     audio.tone(260, 0.16, 0.07, "sawtooth", 420);
@@ -1713,6 +1713,7 @@
     spawnOpeningSwarm();
     gameState = "playing";
     ui.objective.textContent = "SCHEMA " + schema + " / " + MAX_SCHEMAS + " · KILL BERTRANDA";
+    updateOrientation();
     ui.reticle.classList.remove("reloading", "hit", "locked");
     ui.touchTorch.classList.add("pressed");
     ui.touchTorch.textContent = "LIGHT ON";
@@ -1758,6 +1759,7 @@
 
   function finishWin() {
     gameState = "won";
+    updateOrientation();
     if (document.pointerLockElement) document.exitPointerLock();
     ui.hud.hidden = true;
     ui.touch.hidden = true;
@@ -1787,6 +1789,7 @@
   }
 
   function impactAt(position, color, count) {
+    count = Math.min(count, particleSlots());
     for (let i = 0; i < count; i += 1) {
       const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
       const spark = new THREE.Mesh(sparkGeometry, material);
@@ -1799,7 +1802,7 @@
 
   function spawnBurst(position, color) {
     impactAt(position, color, settings.quality === "low" ? 4 : settings.quality === "deep" ? 6 : 9);
-    if (settings.quality !== "low") {
+    if (!IS_TOUCH && settings.quality !== "low") {
       const light = new THREE.PointLight(color, 1.5, 6, 2);
       light.position.copy(position);
       scene.add(light);
@@ -1812,7 +1815,7 @@
     const core = new THREE.Mesh(blastGeometry, coreMaterial);
     core.position.copy(position);
     scene.add(core);
-    const light = settings.quality === "low" ? null : new THREE.PointLight(color, 5.4 * scale, 11 * scale, 1.5);
+    const light = IS_TOUCH || settings.quality === "low" ? null : new THREE.PointLight(color, 5.4 * scale, 11 * scale, 1.5);
     if (light) {
       light.position.copy(position);
       scene.add(light);
@@ -1827,7 +1830,8 @@
     effects.push({ kind: "ring", object: ring, life: 0.42, maxLife: 0.42, scale });
 
     const fragments = settings.quality === "low" ? Math.min(8, 5 + Math.round(scale * 2)) : settings.quality === "deep" ? Math.min(15, 9 + Math.round(scale * 3)) : Math.min(25, 15 + Math.round(scale * 4));
-    for (let i = 0; i < fragments; i += 1) {
+    const fragmentCount = Math.min(fragments, particleSlots());
+    for (let i = 0; i < fragmentCount; i += 1) {
       const fragmentMaterial = new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? 0xcaff55 : i % 2 ? color : 0x59fff1, transparent: true, opacity: 1 });
       const fragment = new THREE.Mesh(fragmentGeometry, fragmentMaterial);
       fragment.position.copy(position);
@@ -1838,6 +1842,12 @@
     }
     screenShake = Math.max(screenShake, Math.min(0.95, 0.18 + scale * 0.25));
     if (loud) audio.explosion(scale);
+  }
+
+  function particleSlots() {
+    // Never discard bolts or their damage callbacks: budget decorative fragments only.
+    const budget = IS_TOUCH ? (settings.quality === "low" ? 32 : 64) : 180;
+    return Math.max(0, budget - effects.length);
   }
 
   function updateEffects(dt) {
@@ -1895,8 +1905,7 @@
     group.add(ring);
     const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), material);
     group.add(core);
-    const light = new THREE.PointLight(0x72ff63, 1.1, 5, 2);
-    group.add(light);
+    if (!IS_TOUCH && settings.quality !== "low") group.add(new THREE.PointLight(0x72ff63, 1.1, 5, 2));
     group.position.copy(position);
     group.position.y = 0.62;
     scene.add(group);
@@ -2067,6 +2076,8 @@
   }
 
   function startGame() {
+    resetInputs();
+    requestLandscape();
     audio.start();
     ui.title.classList.remove("is-visible");
     ui.title.hidden = true;
@@ -2080,6 +2091,8 @@
     ui.touch.hidden = !IS_TOUCH;
     gameState = "playing";
     resetSession();
+    updateOrientation();
+    needsRender = true;
     showDanger("SCHEMA 1 / " + MAX_SCHEMAS + " · BERTRANDA IS IN THE ASYLUM", 2.7);
     showCaption("Survive 25 schemas. Five realms. Five corruptions. R reloads · E/F controls the light.", 5.2);
     if (!IS_TOUCH) requestPointer();
@@ -2088,19 +2101,25 @@
   function pauseGame() {
     if (gameState !== "playing") return;
     gameState = "paused";
-    controls.fire = false;
+    resetInputs();
+    needsRender = true;
     ui.pause.hidden = false;
     ui.pause.classList.add("is-visible");
     ui.touch.hidden = true;
+    updateOrientation();
     if (document.pointerLockElement) document.exitPointerLock();
   }
 
   function resumeGame() {
     if (gameState !== "paused") return;
+    resetInputs();
+    requestLandscape();
     ui.pause.classList.remove("is-visible");
     ui.pause.hidden = true;
     ui.touch.hidden = !IS_TOUCH;
     gameState = "playing";
+    updateOrientation();
+    needsRender = true;
     if (audio.context && audio.context.state === "suspended") audio.context.resume();
     audio.resetMusic();
     if (!IS_TOUCH) requestPointer();
@@ -2115,6 +2134,48 @@
 
   function restartGame() {
     startGame();
+  }
+
+  function resetInputs() {
+    controls.keys.clear();
+    controls.fire = false;
+    controls.runTouch = false;
+    controls.moveX = controls.moveY = controls.lookDX = controls.lookDY = 0;
+    touchResetters.forEach((reset) => reset());
+    ui.moveKnob.style.transform = "";
+    ui.touchFire.classList.remove("pressed");
+    ui.touchRun.classList.remove("pressed");
+  }
+
+  function updateOrientation() {
+    const active = gameState === "playing" || gameState === "transitioning";
+    const blocked = IS_TOUCH && innerHeight > innerWidth && active;
+    if (blocked !== orientationBlocked) {
+      resetInputs();
+      needsRender = true;
+    }
+    orientationBlocked = blocked;
+    ui.rotate.hidden = !blocked;
+    ui.touch.hidden = !IS_TOUCH || gameState !== "playing" || blocked;
+  }
+
+  async function requestLandscape() {
+    if (!IS_TOUCH) return;
+    // Run directly from Start/Resume's gesture. Unsupported iOS browsers use
+    // the rotate hint; rejected fullscreen/lock promises never pause the game.
+    try {
+      if (!document.fullscreenElement && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (_) { /* Fullscreen is optional. */ }
+    try {
+      if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape");
+    } catch (_) { /* Physical rotation remains available. */ }
+    updateOrientation();
+  }
+
+  function canPlay() {
+    return gameState === "playing" && !orientationBlocked && !document.hidden;
   }
 
   function bindKeyboardAndMouse() {
@@ -2135,9 +2196,22 @@
       if (event.code === "Space") controls.fire = false;
     });
     window.addEventListener("blur", () => {
-      controls.keys.clear();
-      controls.fire = false;
-      if (gameState === "playing" && IS_TOUCH) pauseGame();
+      // Mobile browser chrome, rotation and fullscreen all cause harmless blur.
+      // Clear held inputs, but only the explicit pause control opens the menu.
+      resetInputs();
+    });
+    document.addEventListener("visibilitychange", () => {
+      resetInputs();
+      if (clock) clock.getDelta();
+      performanceState.seconds = performanceState.frames = 0;
+      needsRender = true;
+      if (!document.hidden) {
+        audio.resetMusic();
+        if (audio.context && audio.context.state === "suspended") audio.context.resume().catch(() => {});
+        updateOrientation();
+      } else if (audio.context && audio.context.state === "running") {
+        audio.context.suspend().catch(() => {});
+      }
     });
     document.addEventListener("mousemove", (event) => {
       if (gameState === "playing" && document.pointerLockElement === ui.host) {
@@ -2146,7 +2220,7 @@
       }
     });
     ui.host.addEventListener("mousedown", (event) => {
-      if (event.button !== 0 || gameState !== "playing") return;
+      if (IS_TOUCH || event.button !== 0 || !canPlay()) return;
       if (!IS_TOUCH && document.pointerLockElement !== ui.host) requestPointer();
       controls.fire = true;
     });
@@ -2156,7 +2230,7 @@
     ui.host.addEventListener("contextmenu", (event) => event.preventDefault());
     document.addEventListener("pointerlockchange", () => {
       const locked = document.pointerLockElement === ui.host;
-      if (pointerWasLocked && !locked && gameState === "playing") pauseGame();
+      if (!IS_TOUCH && pointerWasLocked && !locked && gameState === "playing" && !document.hidden) pauseGame();
       pointerWasLocked = locked;
     });
   }
@@ -2178,6 +2252,8 @@
       ui.moveKnob.style.transform = "translate(" + x + "px," + y + "px)";
     };
     ui.movePad.addEventListener("pointerdown", (event) => {
+      if (!canPlay() || movePointer !== null) return;
+      event.preventDefault();
       movePointer = event.pointerId;
       ui.movePad.setPointerCapture(event.pointerId);
       updateMove(event);
@@ -2194,11 +2270,15 @@
     };
     ui.movePad.addEventListener("pointerup", endMove);
     ui.movePad.addEventListener("pointercancel", endMove);
+    ui.movePad.addEventListener("lostpointercapture", endMove);
+    touchResetters.push(() => { movePointer = null; });
 
     let lookPointer = null;
     let lookX = 0;
     let lookY = 0;
     ui.lookPad.addEventListener("pointerdown", (event) => {
+      if (!canPlay() || lookPointer !== null) return;
+      event.preventDefault();
       lookPointer = event.pointerId;
       lookX = event.clientX;
       lookY = event.clientY;
@@ -2216,20 +2296,29 @@
     };
     ui.lookPad.addEventListener("pointerup", endLook);
     ui.lookPad.addEventListener("pointercancel", endLook);
+    ui.lookPad.addEventListener("lostpointercapture", endLook);
+    touchResetters.push(() => { lookPointer = null; });
 
     const holdButton = (button, start, stop) => {
+      let pointer = null;
       button.addEventListener("pointerdown", (event) => {
+        if (!canPlay() || pointer !== null) return;
         event.preventDefault();
+        pointer = event.pointerId;
         button.setPointerCapture(event.pointerId);
         button.classList.add("pressed");
         start();
       });
-      const end = () => {
+      const end = (event) => {
+        if (event.pointerId !== pointer) return;
+        pointer = null;
         button.classList.remove("pressed");
         stop();
       };
       button.addEventListener("pointerup", end);
       button.addEventListener("pointercancel", end);
+      button.addEventListener("lostpointercapture", end);
+      touchResetters.push(() => { pointer = null; });
     };
     holdButton(ui.touchFire, () => {
       controls.fire = true;
@@ -2247,31 +2336,71 @@
 
   function applyQuality() {
     if (!renderer) return;
-    let ratio = Math.min(devicePixelRatio, IS_TOUCH ? 1 : 1.25);
-    if (settings.quality === "low") ratio = Math.min(devicePixelRatio, IS_TOUCH ? 0.72 : 0.86);
-    if (settings.quality === "high") ratio = Math.min(devicePixelRatio, IS_TOUCH ? 1.35 : 1.75);
-    renderer.setPixelRatio(ratio);
-    renderer.setSize(innerWidth, innerHeight, false);
+    updateRenderSize();
     const cycleIndex = stageInfo().cycleIndex;
     renderer.toneMappingExposure = (settings.quality === "low" ? 1.46 : settings.quality === "deep" ? 1.55 : 1.62) + cycleIndex * 0.035;
     document.body.dataset.quality = settings.quality;
     if (!scene) return;
     scene.fog.density = (settings.quality === "low" ? 0.012 : settings.quality === "deep" ? 0.0155 : 0.018) + cycleIndex * 0.0008;
     flickerLights.forEach((entry) => {
-      entry.light.visible = settings.quality === "high" || settings.quality === "deep" && entry.index % 2 === 0 || settings.quality === "low" && entry.index % 3 === 0;
+      entry.light.visible = IS_TOUCH ? entry.index % 4 === 0 : settings.quality === "high" || settings.quality === "deep" && entry.index % 2 === 0 || settings.quality === "low" && entry.index % 3 === 0;
     });
     rifts.forEach((rift) => {
-      rift.glow.visible = settings.quality === "high" || settings.quality === "deep" && rift.index % 2 === 0;
+      rift.glow.visible = !IS_TOUCH && (settings.quality === "high" || settings.quality === "deep" && rift.index % 2 === 0);
     });
-    if (flashlightHalo) flashlightHalo.visible = settings.quality !== "low";
-    if (weapon.muzzleLight) weapon.muzzleLight.visible = settings.quality !== "low";
+    if (flashlightHalo) flashlightHalo.visible = !IS_TOUCH && settings.quality !== "low";
+    if (weapon.muzzleLight) weapon.muzzleLight.visible = !IS_TOUCH && settings.quality !== "low";
+    needsRender = true;
+  }
+
+  function updateRenderSize() {
+    if (!renderer) return;
+    let cap = settings.quality === "low" ? (IS_TOUCH ? 0.72 : 0.86) : settings.quality === "high" ? (IS_TOUCH ? 1.15 : 1.75) : (IS_TOUCH ? 1 : 1.25);
+    if (IS_TOUCH) cap = Math.min(cap, Math.sqrt(650000 / (innerWidth * innerHeight))) * performanceState.scale;
+    const ratio = Math.min(devicePixelRatio || 1, cap);
+    if (renderSize.width === innerWidth && renderSize.height === innerHeight && renderSize.ratio === ratio) return;
+    renderSize.width = innerWidth;
+    renderSize.height = innerHeight;
+    if (renderSize.ratio !== ratio) renderer.setPixelRatio(ratio);
+    renderSize.ratio = ratio;
+    renderer.setSize(innerWidth, innerHeight, false);
+    if (camera) {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    needsRender = true;
+  }
+
+  function updatePerformance(dt) {
+    if (!IS_TOUCH || dt <= 0 || dt > 0.2) return;
+    performanceState.seconds += dt;
+    performanceState.frames += 1;
+    if (performanceState.seconds < 3) return;
+    const fps = performanceState.frames / performanceState.seconds;
+    const oldScale = performanceState.scale;
+    if (fps < 38) {
+      performanceState.scale = Math.max(0.6, oldScale - 0.1);
+      performanceState.goodWindows = 0;
+    } else if (fps > 56) {
+      performanceState.goodWindows += 1;
+      if (performanceState.goodWindows >= 3) {
+        performanceState.scale = Math.min(1, oldScale + 0.05);
+        performanceState.goodWindows = 0;
+      }
+    } else {
+      performanceState.goodWindows = 0;
+    }
+    performanceState.seconds = performanceState.frames = 0;
+    if (oldScale !== performanceState.scale) updateRenderSize();
   }
 
   function onResize() {
-    if (!camera || !renderer) return;
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight, false);
+    if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      updateRenderSize();
+      updateOrientation();
+    });
   }
 
   function init() {
@@ -2330,6 +2459,10 @@
     bindKeyboardAndMouse();
     bindTouchControls();
     window.addEventListener("resize", onResize);
+    if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", onResize);
+    document.addEventListener("fullscreenchange", onResize);
+    document.body.dataset.touch = String(IS_TOUCH);
+    updateOrientation();
 
     ui.start.disabled = false;
     ui.loading.classList.add("is-done");
@@ -2341,34 +2474,43 @@
 
   function animate() {
     requestAnimationFrame(animate);
-    const dt = Math.min(0.034, clock.getDelta());
-    if (gameState === "playing") {
-      elapsed += dt;
-      schemaElapsed += dt;
-      audio.updateMusic();
-      updatePlayer(dt);
-      updateWeapon(dt);
-      updateSpawning(dt);
-      updateBoss(dt);
-      updateEnemies(dt);
-      updateProjectiles(dt);
-      updatePickups(dt);
-      updateEffects(dt);
-      animateHouse();
-      hudTimer -= dt;
-      if (hudTimer <= 0) {
-        hudTimer = 0.08;
-        updateHud();
-      }
-    } else {
-      if (gameState === "transitioning" || gameState === "dying") {
+    const frameDt = clock.getDelta();
+    if (document.hidden || orientationBlocked) return;
+    const active = gameState === "playing" || gameState === "transitioning" || gameState === "dying";
+    if (!active && !needsRender) return;
+    if (gameState === "playing") updatePerformance(frameDt);
+    // At 20–30 FPS, advance real game time without tunnelling through walls.
+    // Long OS stalls are discarded instead of replaying seconds of attacks.
+    let remaining = Math.min(0.1, frameDt);
+    while (remaining > 0) {
+      const dt = Math.min(1 / 30, remaining);
+      remaining -= dt;
+      if (gameState === "playing") {
+        elapsed += dt;
+        schemaElapsed += dt;
+        audio.updateMusic();
+        updatePlayer(dt);
+        updateWeapon(dt);
+        updateSpawning(dt);
+        updateBoss(dt);
+        updateEnemies(dt);
+        updateProjectiles(dt);
+        updatePickups(dt);
+        updateEffects(dt);
+        hudTimer -= dt;
+        if (hudTimer <= 0) {
+          hudTimer = 0.08;
+          updateHud();
+        }
+      } else if (gameState === "transitioning" || gameState === "dying") {
         elapsed += dt;
         updateEffects(dt);
         if (gameState === "transitioning") audio.updateMusic();
       }
-      animateHouse();
     }
+    animateHouse();
     renderer.render(scene, camera);
+    needsRender = false;
   }
 
   ui.start.addEventListener("click", startGame);
