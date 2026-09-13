@@ -94,3 +94,50 @@ test('guide waypoints stay walkable with player clearance throughout all 25 real
     }
   }
 });
+
+test('the short phone map fits the full green detour and uses separate green and red circles', () => {
+  const strokes = [], fills = [];
+  let path = [], dash = [];
+  const ctx = {
+    save(){}, restore(){}, translate(){}, rotate(){}, fillRect(){}, fillText(){}, closePath(){},
+    beginPath(){path=[];}, moveTo(x,y){path.push(['point',x,y]);}, lineTo(x,y){path.push(['point',x,y]);},
+    arc(x,y,r){path.push(['circle',x,y,r]);}, setLineDash(value){dash=value;},
+    stroke(){strokes.push({color:this.strokeStyle,width:this.lineWidth,path:[...path],dash:[...dash]});},
+    fill(){fills.push({color:this.fillStyle,path:[...path]});}
+  };
+  const canvas = {width:162,height:69,getContext:()=>ctx,getBoundingClientRect:()=>({width:108,height:46})};
+  const map = new ScoutMap(canvas), player={x:2,z:2,yaw:0}, gold={x:98,z:2}, boss={x:52,z:52,alive:true};
+  // The required detour extends well outside the box between player and bullet.
+  map.route=[player,{x:2,z:102},{x:98,z:102},gold];
+  let cells=0;
+  const w={cell(){cells++;return 0;}};
+  map.draw(w,player,gold,boss,[],true,0);
+  const route = strokes.find(s=>s.color==='#76ff03');
+  assert.ok(route && route.width >= 4); assert.deepEqual(route.dash,[], 'the route is a continuous line');
+  assert.ok(strokes.some(s=>s.color==='#020904' && s.width > route.width), 'dark outline separates the route from terrain');
+  for (const [,x,y] of route.path) {
+    assert.ok(x>=11 && x<=canvas.width-11 && y>=11 && y<=canvas.height-11, 'the entire detour and endpoints fit inside marker padding');
+  }
+  assert.ok(fills.some(f=>f.color==='#76ff03' && f.path[0][0]==='circle'), 'bullet is a fluorescent green circle');
+  assert.ok(fills.some(f=>f.color==='#ff3047' && f.path[0][0]==='circle'), 'Bertranda is a red circle');
+  assert.ok(cells<1500, 'overview terrain work stays bounded');
+  strokes.length=0; fills.length=0;
+  map.draw(w,player,boss,boss,[],false,1); // Even a stale route must not be drawn.
+  assert.equal(strokes.some(s=>s.path.some(p=>p[0]==='point') && s.width>=4),false, 'no route is drawn to the monster');
+  assert.equal(fills.some(f=>f.color==='#76ff03'),false);
+  assert.ok(fills.some(f=>f.color==='#ff3047' && f.path[0][0]==='circle'));
+});
+
+test('collecting the bullet clears navigation and never searches for a route to Bertranda', () => {
+  const w=world(); w.setSchema(1,{accent:0x67ff9a});
+  const map=new ScoutMap({getContext:()=>null}), player={x:34,z:34,yaw:0}, gold=chooseBulletSite(w,player);
+  map.update(w,player,gold,{},[],0,false,true);
+  assert.ok(map.route.length>1);
+  const noRouting={generation:w.generation,walkable(){assert.fail('boss tracking must not search terrain');}};
+  const boss={x:94,z:114};
+  for (const visible of [false,true]) {
+    map.update(noRouting,player,boss,boss,[],1,visible,false);
+    assert.deepEqual(map.route,[]); assert.equal(map.partial,false);
+    assert.equal(map.distance,100,'the monster readout is direct distance only');
+  }
+});

@@ -1665,15 +1665,17 @@
     missionReminder.nextAt = elapsed + 12;
     missionReminder.index = 0;
     const group = new THREE.Group();
-    const gold = new THREE.MeshStandardMaterial({ color: 0xffdc69, emissive: 0xffa916, emissiveIntensity: 1.35, metalness: 0.65, roughness: 0.25 });
-    const casing = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.7, 10), gold);
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.19, 0.36, 10), gold);
-    tip.position.y = 0.53;
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.09, 10), gold);
-    base.position.y = -0.36;
-    const glow = new THREE.MeshBasicMaterial({ color: 0xffd55a, transparent: true, opacity: 0.7, depthWrite: false });
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.63, 0.045, 5, 20), glow);
-    const seal = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 24), glow);
+    // Unlit neon stays green and visible in every realm and graphics preset.
+    const gold = new THREE.MeshBasicMaterial({ color: 0x76ff03, toneMapped: false, fog: false });
+    const casing = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.84, 10), gold);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.44, 10), new THREE.MeshBasicMaterial({ color: 0xd9ffb4, toneMapped: false, fog: false }));
+    tip.position.y = 0.64;
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.1, 10), gold);
+    base.position.y = -0.43;
+    const glow = new THREE.MeshBasicMaterial({ color: 0x76ff03, toneMapped: false, fog: false, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.065, 5, 20), glow);
+    const seal = new THREE.Mesh(new THREE.RingGeometry(0.86, 1.08, 24), glow);
+    halo.name = "golden-halo"; seal.name = "golden-seal";
     seal.rotation.x = -Math.PI / 2; seal.position.y = -0.9;
     group.add(casing, tip, base, halo, seal);
     group.position.set(site.x, 1.05, site.z);
@@ -1687,12 +1689,17 @@
     const group = goldenBullet.model;
     group.rotation.y += dt * 1.6;
     group.position.y = 1.05 + Math.sin(elapsed * 3) * 0.12;
+    const pulse = 0.5 + 0.5 * Math.sin(elapsed * Math.PI * 2 / 1.2);
+    const halo = group.getObjectByName("golden-halo"), seal = group.getObjectByName("golden-seal");
+    halo.material.opacity = 0.6 + pulse * 0.4;
+    halo.scale.setScalar(1 + pulse * 0.13);
+    seal.scale.setScalar(1 + pulse * 0.09);
     if (Math.hypot(player.x - goldenBullet.x, player.z - goldenBullet.z) >= 1.7 || !lineOfSight(player.x, player.z, goldenBullet.x, goldenBullet.z)) return;
     goldenBullet.status = "loaded";
     missionReminder.nextAt = elapsed + 14;
     player.health = Math.min(100, player.health + 20);
     player.invulnerable = Math.max(player.invulnerable, 1.2);
-    explosionAt(group.position.clone(), 0.72, 0xffd45a, true);
+    explosionAt(group.position.clone(), 0.72, 0x76ff03, true);
     clearGoldenBullet();
     scoutMap.reset();
     audio.tone(660, 0.4, 0.12, "triangle", 660);
@@ -1719,7 +1726,7 @@
   function updateExpeditionHud() {
     const seeking = goldenBullet.status === "seeking", target = seeking ? goldenBullet : boss;
     scoutMap.update(world, player, target, boss, enemies, elapsed, mapOpen, seeking);
-    const waypoint = BertrandaExpedition.routeWaypoint(world, scoutMap.route, player, target);
+    const waypoint = seeking ? BertrandaExpedition.routeWaypoint(world, scoutMap.route, player, target) : boss;
     const arrow = waypoint ? BertrandaExpedition.bearingArrow(player, waypoint, player.yaw) : "◇";
     const distance = (scoutMap.partial ? "~" : "") + Math.ceil(scoutMap.distance) + "m";
     ui.mapStatus.textContent = (seeking ? "GOLD" : "BERTRANDA") + " " + arrow + " " + distance;
@@ -1732,7 +1739,7 @@
       ui.goldDistance.textContent = distance;
       ui.goldGuide.setAttribute("aria-label", "Golden bullet: " + arrow + " " + distance + ". Follow the arrow along the map route.");
     }
-    ui.mapHint.textContent = seeking ? "Follow gold · walk over bullet" : bossExposed() ? "Aim at Bertranda · FIRE" : "Weaken Bertranda to the gold mark";
+    ui.mapHint.textContent = seeking ? "Green route → green circle · collect bullet" : bossExposed() ? "Red circle · aim at Bertranda · FIRE" : "Red circle · weaken Bertranda";
     ui.mapWrap.classList.toggle("gold-loaded", !seeking);
     if (gameState !== "transitioning") {
       ui.objective.textContent = seeking ? (IS_TOUCH ? "1 · FIND GOLD" : "1 · FIND THE GOLDEN BULLET")
@@ -1842,14 +1849,14 @@
     let message;
     if (goldenBullet.status === "seeking") {
       message = !mapOpen
-        ? "Only the GOLDEN BULLET can kill Bertranda. Open MAP and follow the gold route."
+        ? "Only the GOLDEN BULLET can kill Bertranda. Follow the green arrow. Open MAP for the route."
         : missionReminder.index++ % 2 === 0
-          ? "Only the GOLDEN BULLET can kill Bertranda. Follow the gold route on the MAP."
-          : "Find the gold diamond on the MAP. Walk over the GOLDEN BULLET to collect it.";
+          ? "Only the GOLDEN BULLET can kill Bertranda. Follow the green arrow and route on the MAP."
+          : "Find the glowing GREEN CIRCLE on the MAP. Walk over the GOLDEN BULLET to collect it.";
     } else {
       message = bossExposed()
         ? "Bertranda is vulnerable! Aim at her and FIRE the golden finishing shot."
-        : "GOLDEN BULLET loaded. Follow MAP to Bertranda, weaken her, then FIRE.";
+        : "GOLDEN BULLET loaded. Find Bertranda's red circle on MAP, weaken her, then FIRE.";
     }
     showCaption(message, 5);
     missionReminder.nextAt = elapsed + 28;

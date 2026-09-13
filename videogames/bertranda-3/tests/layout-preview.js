@@ -27,12 +27,12 @@
     $('scout-map').classList.toggle('expanded', open);
     $('map-toggle').setAttribute('aria-expanded', String(open));
     map.update(world, player, gold, boss, [], time += 1, open, true);
-    $('map-status').textContent = 'GOLD → ' + Math.ceil(map.distance) + 'm';
     const waypoint = BertrandaExpedition.routeWaypoint(world, map.route, player, gold);
+    $('map-status').textContent = 'GOLD ' + (waypoint ? BertrandaExpedition.bearingArrow(player, waypoint, player.yaw) : '◇') + ' ' + Math.ceil(map.distance) + 'm';
     $('gold-guide').hidden = !waypoint;
     if (waypoint) $('gold-guide-arrow').style.transform = 'rotate(' + (-BertrandaExpedition.bearingAngle(player, waypoint, player.yaw) * 180 / Math.PI) + 'deg)';
     $('gold-guide-distance').textContent = Math.ceil(map.distance) + 'm';
-    $('subtitle').textContent = 'Only the GOLDEN BULLET can kill Bertranda. Follow the gold route on the MAP.';
+    $('subtitle').textContent = 'Only the GOLDEN BULLET can kill Bertranda. Follow the green arrow and route on the MAP.';
     $('subtitle').classList.add('visible');
     $('rotate-screen').hidden = innerWidth >= innerHeight;
   }

@@ -13,8 +13,8 @@
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-3/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=2-gold-guide">
-  <link rel="stylesheet" href="mobile.css?v=2-gold-guide">
+  <link rel="stylesheet" href="game.css?v=3-neon-route">
+  <link rel="stylesheet" href="mobile.css?v=3-neon-route">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -108,9 +108,9 @@
           <strong id="map-status">GOLD · LOCATING</strong>
         </button>
         <div id="map-details" class="map-details" hidden>
-          <canvas id="map-canvas" width="360" height="220" role="img" aria-label="Tactical map: cyan arrow is you, gold diamond is the bullet, pink circle is Bertranda. The line follows walkable paths."></canvas>
-          <div class="map-legend"><span class="you">▲ YOU</span><span class="gold">◆ GOLD</span><span class="monster">● BOSS</span></div>
-          <small id="map-hint">Follow gold · walk over bullet</small>
+          <canvas id="map-canvas" width="360" height="220" role="img" aria-label="Tactical map: cyan arrow is you, fluorescent green circle is the golden bullet, red circle is Bertranda. The green route leads only to the bullet."></canvas>
+          <div class="map-legend"><span class="you">▲ YOU</span><span class="gold">● GOLD</span><span class="monster">● BOSS</span></div>
+          <small id="map-hint">Green route → green circle · collect bullet</small>
         </div>
       </aside>
 
@@ -202,7 +202,7 @@
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
   <script src="world.js?v=3-realms"></script>
-  <script src="expedition.js?v=2-gold-guide"></script>
-  <script src="game.js?v=2-gold-guide"></script>
+  <script src="expedition.js?v=3-neon-route"></script>
+  <script src="game.js?v=3-neon-route"></script>
 </body>
 </html>

@@ -640,9 +640,25 @@ test('the gold arrow tracks heading with the map closed, yields to danger and di
     g.elapsed = 7; g.updateHud(); assert.equal(guide.hidden, false);
     g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
     assert.equal(guide.hidden, true);
+    assert.equal(g.scoutMap.route.length, 0, 'collecting gold removes the route rather than rerouting to the boss');
     g.elapsed = 11; g.updateHud(); assert.equal(guide.hidden, true, 'it stays hidden while gold is loaded');
     g.beginNextSchema(); g.elapsed += 4; g.updateHud(); assert.equal(guide.hidden, false);
   }
+});
+
+test('the collectible remains neon in darkness and its beacon pulses without extra lights or meshes', () => {
+  const h=harness(); const g=h.game; g.startGame();
+  const model=g.goldenBullet.model, halo=model.getObjectByName('golden-halo');
+  assert.equal(model.children[0].material.isMeshBasicMaterial,true,'the fluorescent casing does not depend on scene lighting');
+  assert.equal(model.children[0].material.color.getHex(),0x76ff03);
+  assert.equal(model.children[0].material.toneMapped,false);
+  assert.equal(model.children.length,5);
+  const lights=h.visibleLights();
+  g.elapsed=0.3; g.updateGoldenBullet(0.01); const bright=halo.material.opacity, large=halo.scale.x;
+  g.elapsed=0.9; g.updateGoldenBullet(0.01);
+  assert.ok(bright>halo.material.opacity && large>halo.scale.x);
+  assert.ok(halo.material.opacity>=0.6,'the pulse never hides the pickup');
+  assert.equal(h.visibleLights(),lights); assert.equal(model.children.length,5);
 });
 
 test('mission reminders explain gold and the map on PC and phone without staying on screen', () => {
@@ -655,7 +671,7 @@ test('mission reminders explain gold and the map on PC and phone without staying
     assert.equal(caption.classList.contains('visible'), true);
     g.elapsed = 17; g.updateHud(); assert.equal(caption.classList.contains('visible'), false);
     g.elapsed = 39; g.updateHud(); assert.equal(caption.classList.contains('visible'), false);
-    g.elapsed = 40; g.updateHud(); assert.match(caption.textContent, /gold diamond.*Walk over/);
+    g.elapsed = 40; g.updateHud(); assert.match(caption.textContent, /GREEN CIRCLE.*Walk over/);
     g.toggleMap(); g.elapsed = 68; g.updateHud(); assert.match(caption.textContent, /Open MAP/);
     assert.equal(h.el('map-details').hidden, true, 'reminders respect the player hiding the map');
   }

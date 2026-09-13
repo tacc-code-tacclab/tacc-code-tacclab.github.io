@@ -35,8 +35,8 @@
       '<script>Object.defineProperty(navigator,"maxTouchPoints",{get:()=>'+(touchMode ? 5 : 0)+'});<\/script>';
     let html = gameHTML.replace('<head>', '<head>' + setup)
       .replace(/<script src="\.\.\/game-counter[^>]*><\/script>/, '');
-    if (layoutOnly) html = html.replace(/<script src="game\.js[^>]*><\/script>/, '<script src="tests/layout-preview.js?v=2-gold-guide"><\/script>');
-    if (inputPreview) html = html.replace(/<script src="game\.js/, '<script src="tests/canvas-preview.js?v=2-gold-guide"><\/script><script src="game.js');
+    if (layoutOnly) html = html.replace(/<script src="game\.js[^>]*><\/script>/, '<script src="tests/layout-preview.js?v=3-neon-route"><\/script>');
+    if (inputPreview) html = html.replace(/<script src="game\.js/, '<script src="tests/canvas-preview.js?v=3-neon-route"><\/script><script src="game.js');
     preview.srcdoc = html;
     document.getElementById('status').textContent = inputPreview ? 'Production game logic and DOM controls; a 2D calibration canvas replaces WebGL. Start in portrait, rotate, drag to turn, hold FIRE and release. This does not test GPU rendering.' : layoutOnly ? 'Layout only: production CSS and 2D map, no 3D combat or FPS measurement.' : 'Ready. Start, rotate, fire, reload, toggle light, pause and resume.';
   }
@@ -65,7 +65,7 @@
     }
     document.getElementById('status').textContent = 'Viewport ' + preview.width + ' × ' + preview.height + ' — existing session preserved';
   });
-  fetch('../index.html?v=2-gold-guide', { cache: 'no-store' }).then(response => {
+  fetch('../index.html?v=3-neon-route', { cache: 'no-store' }).then(response => {
     if (!response.ok) throw Error('Game source unavailable');
     return response.text();
   }).then(html => {

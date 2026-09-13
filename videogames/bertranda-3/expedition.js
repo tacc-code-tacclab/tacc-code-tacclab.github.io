@@ -128,16 +128,22 @@
     }
     reset() { this.key = ""; this.nextSurvey = 0; this.nextDraw = 0; this.route = []; this.distance = 0; this.partial = false; }
     update(world, player, target, boss, enemies, now, visible, gold) {
-      const from = cell(player), to = cell(target), key = [from.x, from.z, to.x, to.z, world.generation].join(":");
-      if (key !== this.key && now >= this.nextSurvey) {
+      const from = cell(player), to = cell(target), key = [gold, from.x, from.z, to.x, to.z, world.generation].join(":");
+      if (!gold) {
+        // The monster is a marker only. No route is searched or retained after
+        // collection, even while the player keeps the map closed.
+        this.route = []; this.partial = false;
+        this.distance = Math.hypot(target.x - player.x, target.z - player.z);
+        this.key = key; this.nextSurvey = 0;
+      } else if (key !== this.key && now >= this.nextSurvey) {
         Object.assign(this, findRoute(world, player, target));
         this.key = key; this.nextSurvey = now + 0.5;
       }
       if (!visible || !this.context || now < this.nextDraw) return;
       this.nextDraw = now + 0.2;
-      this.draw(world, player, target, boss, enemies, gold);
+      this.draw(world, player, target, boss, enemies, gold, now);
     }
-    draw(world, player, target, boss, enemies, gold) {
+    draw(world, player, target, boss, enemies, gold, now = 0) {
       const rect = this.canvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         const pixels = Math.min(1.5, 480 / rect.width);
@@ -146,37 +152,48 @@
         if (this.canvas.height !== height) this.canvas.height = height;
       }
       const ctx = this.context, w = this.canvas.width, h = this.canvas.height, aspect = w / h;
-      const dx = target.x - player.x, dz = target.z - player.z;
-      const span = clamp(Math.max(Math.abs(dx) + 40, (Math.abs(dz) + 40) * aspect), 84, 240);
-      const near = Math.hypot(dx, dz) < 130;
-      const cx = near ? (target.x + player.x) / 2 : player.x, cz = near ? (target.z + player.z) / 2 : player.z;
+      const near = Math.hypot(target.x - player.x, target.z - player.z) < 130;
+      const points = gold ? [player, ...this.route] : [player];
+      if ((gold && !this.partial) || (!gold && near)) points.push(target);
+      const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x));
+      const minZ = Math.min(...points.map(p => p.z)), maxZ = Math.max(...points.map(p => p.z));
+      // Fit the complete walking route, including detours, on short phone maps.
+      // Sample terrain only around that route so the wide overview stays cheap.
+      const span = Math.max(64, (maxX - minX) * w / Math.max(16, w - 24), (maxZ - minZ) * w / Math.max(16, h - 24));
+      const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
       const left = cx - span / 2, top = cz - span / aspect / 2, scale = w / span;
       const xy = p => [ (p.x - left) * scale, (p.z - top) * scale ];
       ctx.fillStyle = "#071311"; ctx.fillRect(0, 0, w, h);
-      for (let z = Math.floor(top / CELL); z <= Math.ceil((top + h / scale) / CELL); z++) {
-        for (let x = Math.floor(left / CELL); x <= Math.ceil((left + span) / CELL); x++) {
+      for (let z = Math.floor(Math.max(top, minZ - 12) / CELL); z <= Math.ceil(Math.min(top + h / scale, maxZ + 12) / CELL); z++) {
+        for (let x = Math.floor(Math.max(left, minX - 12) / CELL); x <= Math.ceil(Math.min(left + span, maxX + 12) / CELL); x++) {
           const value = world.cell(x, z);
           ctx.fillStyle = value === 2 ? "#983c2c" : value ? "#536760" : "#122d27";
           ctx.fillRect((x * CELL - left) * scale, (z * CELL - top) * scale, CELL * scale - 0.5, CELL * scale - 0.5);
         }
       }
-      ctx.strokeStyle = gold ? "#ffd85b" : "#ff75cb"; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]); ctx.beginPath();
-      const start = xy(player); ctx.moveTo(...start);
-      for (const p of this.route) ctx.lineTo(...xy(p));
-      ctx.stroke(); ctx.setLineDash([]);
+      const start = xy(player);
+      if (gold && this.route.length > 1) {
+        ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.setLineDash([]); ctx.beginPath();
+        ctx.moveTo(...start);
+        for (const p of this.route) ctx.lineTo(...xy(p));
+        ctx.strokeStyle = "#020904"; ctx.lineWidth = 7; ctx.stroke();
+        ctx.strokeStyle = "#76ff03"; ctx.lineWidth = 4; ctx.stroke();
+        ctx.strokeStyle = "#d9ffb4"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+      }
       for (const enemy of enemies) if (enemy.alive) {
         const [x, y] = xy(enemy); ctx.fillStyle = "#ff7763"; ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
       }
-      const marker = (p, color, diamond) => {
-        const raw = xy(p), x = clamp(raw[0], 9, w - 9), y = clamp(raw[1], 9, h - 9);
-        ctx.save(); ctx.translate(x, y); ctx.fillStyle = color; ctx.strokeStyle = "#030806"; ctx.lineWidth = 2;
+      const marker = (p, color, radius) => {
+        const raw = xy(p), x = clamp(raw[0], 11, w - 11), y = clamp(raw[1], 11, h - 11);
+        ctx.save(); ctx.translate(x, y); ctx.fillStyle = color; ctx.strokeStyle = "#030806"; ctx.lineWidth = 3;
         ctx.beginPath();
-        if (diamond) { ctx.moveTo(0, -8); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0); ctx.closePath(); }
-        else ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke(); ctx.restore();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = "#fff5dd"; ctx.lineWidth = 0.8; ctx.stroke(); ctx.restore();
       };
-      if (boss.alive) marker(boss, "#ff66c2", false);
-      if (gold) marker(target, "#ffdc60", true);
+      if (boss.alive) marker(boss, "#ff3047", 6.5);
+      if (gold) marker(target, "#76ff03", 7 + 0.8 * Math.sin(now * Math.PI * 2 / 1.2));
       ctx.save(); ctx.translate(...start); ctx.rotate(-player.yaw); ctx.fillStyle = "#78ffef"; ctx.strokeStyle = "#06110e"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(6, 6); ctx.lineTo(0, 3); ctx.lineTo(-6, 6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
       ctx.fillStyle = "#dbfff1"; ctx.font = "bold 10px monospace"; ctx.fillText("N ↑", 7, 13);
