@@ -1,0 +1,695 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const Three = require('../../lovecraft/three.min.js');
+
+// Real scene geometry and production game functions, with only browser I/O
+// replaced. No test hooks, cheats or automation flags ship in the game itself.
+function harness({ touch = true, width = 844, height = 390 } = {}) {
+  class Element {
+    constructor() {
+      this.listeners = {};
+      this.hidden = false;
+      this.dataset = {};
+      this.style = { setProperty() {} };
+      const classes = new Set();
+      this.classList = {
+        add: (...names) => names.forEach(n => classes.add(n)),
+        remove: (...names) => names.forEach(n => classes.delete(n)),
+        contains: n => classes.has(n),
+        toggle: (n, on = !classes.has(n)) => on ? classes.add(n) : classes.delete(n)
+      };
+    }
+    addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); }
+    emit(name, event = {}) {
+      const value = { preventDefault() {}, ...event };
+      for (const callback of this.listeners[name] || []) callback(value);
+      if (/^pointer(move|up|cancel)$/.test(name) && this !== windowEvents) windowEvents.emit(name, value);
+    }
+    setAttribute() {}
+    appendChild() {}
+    setPointerCapture() {}
+    getBoundingClientRect() { return { left: 0, top: 0, width: 126, height: 126 }; }
+    getContext() { return new Proxy({}, { get: () => () => {} }); }
+  }
+  const elements = new Map();
+  const document = new Element();
+  document.hidden = false;
+  document.body = new Element();
+  document.documentElement = new Element();
+  document.querySelector = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  document.querySelectorAll = () => [];
+  document.createElement = () => new Element();
+  document.exitPointerLock = () => { document.pointerLockElement = null; document.emit('pointerlockchange'); };
+  const timers = [];
+  const raf = new Map();
+  let nextFrame = 0;
+  class Renderer {
+    constructor() {
+      this.domElement = new Element();
+      this.capabilities = { getMaxAnisotropy: () => 4 };
+      this.renders = 0;
+      this.resizes = 0;
+    }
+    // Match bundled Three.js, including the inline CSS that caused the
+    // portrait-to-landscape regression. Buffer size alone is not display size.
+    setSize(w, h, updateStyle = true) {
+      this.width = w; this.height = h; this.resizes++;
+      this.domElement.width = Math.floor(w * (this.ratio || 1));
+      this.domElement.height = Math.floor(h * (this.ratio || 1));
+      if (updateStyle) { this.domElement.style.width = w + 'px'; this.domElement.style.height = h + 'px'; }
+    }
+    setPixelRatio(ratio) { this.ratio = ratio; this.setSize(this.width, this.height, false); }
+    render(scene) { scene.updateMatrixWorld(true); this.renders++; }
+  }
+  const context = {
+    console, document, navigator: { maxTouchPoints: touch ? 5 : 0 },
+    BertrandaWorld: require('../world.js'),
+    BertrandaExpedition: require('../expedition.js'),
+    matchMedia: () => ({ matches: touch }),
+    innerWidth: width, innerHeight: height, devicePixelRatio: 3,
+    screen: { orientation: new Element() },
+    THREE: { ...Three, WebGLRenderer: Renderer,
+      TextureLoader: class { load() { return new Three.Texture(); } },
+      Clock: class { constructor() { this.delta = 1 / 60; } getDelta() { return this.delta; } }
+    },
+    setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
+    requestAnimationFrame: fn => { raf.set(++nextFrame, fn); return nextFrame; },
+    cancelAnimationFrame: id => raf.delete(id)
+  };
+  const windowEvents = new Element();
+  Object.defineProperties(document.querySelector('#render-host'), {
+    clientWidth: { get: () => context.viewportWidth || context.innerWidth },
+    clientHeight: { get: () => context.viewportHeight || context.innerHeight }
+  });
+  context.visualViewport = new Element();
+  let observedResize;
+  context.ResizeObserver = class { constructor(fn) { observedResize = fn; } observe() {} };
+  context.addEventListener = windowEvents.addEventListener.bind(windowEvents);
+  context.window = context;
+  context.window.emit = windowEvents.emit.bind(windowEvents);
+  vm.createContext(context);
+  const source = fs.readFileSync(path.join(__dirname, '../game.js'), 'utf8');
+  const instrumented = source.replace('  init();\n})();', `
+    window.gameTest = {
+      startGame, pauseGame, resumeGame, requestLandscape, updateOrientation,
+      animate, onResize, updateRenderSize, applyQuality, updatePerformance, findPath, moveCreature,
+      worldFromCell, cellFromWorld, isWalkableCell, floorCells, navigation,
+      explosionAt, impactAt, spawnHealth, spawnBurst, updateEffects, createTracer,
+      effectiveEnemyCap, beginNextSchema, killBoss, stageInfo,
+      spawnCreature, updateEnemies, currentFaceTexture, CREATURES,
+      goldenBullet, placeGoldenBullet, updateGoldenBullet, bossExposed,
+      fireWeapon, damageCreature, updateHud, toggleMap, updateExpeditionHud,
+      updateMissionReminder, missionReminder, showCaption, showDanger,
+      updatePlayer, updateWeapon, updateTouchAim, shouldAutoFire, findAimAssistTarget, touchAssist,
+      get scoutMap() { return scoutMap; }, get camera() { return camera; },
+      get world() { return world; },
+      controls, player, weapon, boss, settings, performanceState, effects, enemies,
+      get state() { return gameState; }, get elapsed() { return elapsed; },
+      set elapsed(value) { elapsed = value; },
+      get schema() { return schema; }, get renderer() { return renderer; },
+      get clock() { return clock; }, get scene() { return scene; }
+    };
+    init();
+  })();`);
+  assert.notEqual(instrumented, source, 'test instrumentation anchor exists');
+  vm.runInContext(instrumented, context);
+  return { game: context.gameTest, context, document, timers, raf,
+    resizeHost: () => observedResize?.(),
+    frame: () => { const callbacks = [...raf.values()]; raf.clear(); callbacks.forEach(fn => fn()); },
+    el: id => document.querySelector('#' + id),
+    visibleLights: () => {
+      let lights = 0;
+      context.gameTest.scene.traverseVisible(o => { if (o.isPointLight) lights++; });
+      return lights;
+    }
+  };
+}
+
+test('phone canvas, camera and HUD keep one size after portrait rotation and browser-bar changes', () => {
+  const h = harness({ width: 390, height: 844 }); const g = h.game;
+  h.el('game').scrollTop = 69; h.el('game').scrollLeft = 20;
+  g.startGame();
+  assert.equal(h.el('game').scrollTop, 0, 'starting clears a leftover title scroll offset');
+  assert.equal(h.el('game').scrollLeft, 0);
+  const canvas = g.renderer.domElement;
+  const displaySize = () => ['width', 'height'].map(axis => {
+    const inline = canvas.style[axis];
+    return inline?.endsWith('px') ? parseFloat(inline) : h.el('render-host')[axis === 'width' ? 'clientWidth' : 'clientHeight'];
+  });
+  assert.deepEqual(displaySize(), [390, 844]);
+  h.context.innerWidth = 844; h.context.innerHeight = 390;
+  h.el('game').scrollTop = 47;
+  h.context.emit('resize'); h.frame();
+  assert.equal(h.el('game').scrollTop, 0, 'rotation keeps the full play surface on screen');
+  assert.deepEqual(displaySize(), [844, 390], 'CSS canvas must not retain portrait pixel dimensions');
+  assert.equal(g.camera.aspect, 844 / 390);
+  assert.equal(h.el('rotate-screen').hidden, true);
+  h.context.viewportWidth = 844; h.context.viewportHeight = 310;
+  h.resizeHost(); h.frame();
+  assert.deepEqual(displaySize(), [844, 310]);
+  assert.equal(g.renderer.height, 310, 'dynamic viewport sizes the buffer too');
+  assert.equal(g.camera.aspect, 844 / 310, 'projection follows the actual play surface');
+  for (let i = 0; i < 6; i++) {
+    h.context.innerWidth = h.context.viewportWidth = i % 2 ? 844 : 390;
+    h.context.innerHeight = h.context.viewportHeight = i % 2 ? 390 : 844;
+    h.context.emit('resize'); h.frame();
+    assert.deepEqual(displaySize(), [g.renderer.width, g.renderer.height]);
+    assert.equal(g.camera.aspect, g.renderer.width / g.renderer.height);
+  }
+});
+
+test('phone starts with manual fire and leaves the view still until the player swipes', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h, 36.5, 26);
+  for (let i = 0; i < 50; i++) g.animate();
+  assert.equal(g.settings.touchAuto, false);
+  assert.equal(g.weapon.ammo, 32, 'an enemy on screen must not pull the trigger');
+  assert.equal(g.player.yaw, 0, 'aim assistance must not steer the camera on its own');
+  assert.equal(g.player.pitch, 0);
+});
+
+test('mobile blur and pointer-lock changes do not open the pause menu; manual pause works', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  g.controls.fire = true; g.controls.moveX = 1; g.controls.runTouch = true;
+  h.context.emit('blur');
+  assert.equal(g.state, 'playing');
+  assert.equal(g.controls.fire, false); assert.equal(g.controls.moveX, 0); assert.equal(g.controls.runTouch, false);
+  h.document.pointerLockElement = h.el('render-host'); h.document.emit('pointerlockchange');
+  h.document.pointerLockElement = null; h.document.emit('pointerlockchange');
+  assert.equal(g.state, 'playing');
+  h.el('pause-button').emit('click'); assert.equal(g.state, 'paused');
+  h.el('resume-button').emit('click'); assert.equal(g.state, 'playing');
+});
+
+test('hidden tabs freeze health/time/rendering and return without an unwanted pause', () => {
+  const h = harness(); const g = h.game; g.startGame(); g.animate();
+  const before = [g.elapsed, g.player.health, g.renderer.renders];
+  h.document.hidden = true; h.document.emit('visibilitychange');
+  g.clock.delta = 20; g.animate();
+  assert.deepEqual([g.elapsed, g.player.health, g.renderer.renders], before);
+  h.document.hidden = false; h.document.emit('visibilitychange'); g.clock.delta = 1 / 60; g.animate();
+  assert.equal(g.state, 'playing'); assert.ok(g.elapsed > before[0]);
+});
+
+test('portrait safely blocks play, landscape resumes and optional orientation API failures are harmless', async () => {
+  const h = harness({ width: 390, height: 844 }); const g = h.game;
+  h.document.fullscreenEnabled = true;
+  h.document.documentElement.requestFullscreen = async () => { throw Error('unsupported'); };
+  h.context.screen.orientation.lock = async () => { throw Error('unsupported'); };
+  g.startGame(); await g.requestLandscape();
+  assert.equal(h.el('rotate-screen').hidden, false); assert.equal(h.el('touch-controls').hidden, true);
+  g.animate(); assert.equal(g.elapsed, 0); assert.equal(g.state, 'playing');
+  h.context.innerWidth = 844; h.context.innerHeight = 390; g.updateOrientation();
+  assert.equal(h.el('rotate-screen').hidden, true); assert.equal(h.el('touch-controls').hidden, false);
+  g.animate(); assert.ok(g.elapsed > 0);
+  g.pauseGame(); assert.equal(h.el('rotate-screen').hidden, true);
+});
+
+test('touch holds have pointer ownership and lost capture clears movement, fire and sprint', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const fire = h.el('touch-fire');
+  fire.emit('pointerdown', { pointerId: 1 }); assert.equal(g.controls.fire, true);
+  fire.emit('pointerup', { pointerId: 2 }); assert.equal(g.controls.fire, true);
+  fire.emit('lostpointercapture', { pointerId: 1 }); assert.equal(g.controls.fire, false);
+  const move = h.el('move-pad');
+  move.emit('pointerdown', { pointerId: 3, clientX: 63, clientY: 10 });
+  assert.ok(g.controls.moveY > 0, 'up moves forward');
+  move.emit('lostpointercapture', { pointerId: 3 }); assert.equal(g.controls.moveY, 0);
+  h.el('touch-run').emit('pointerdown', { pointerId: 4 });
+  h.context.emit('blur'); assert.equal(g.controls.runTouch, false);
+  h.el('touch-run').emit('pointerdown', { pointerId: 5 }); assert.equal(g.controls.runTouch, true);
+});
+
+test('R/E keyboard and mobile reload/light buttons remain functional', () => {
+  const h = harness(); const g = h.game; g.startGame(); g.weapon.ammo = 9;
+  h.context.emit('keydown', { code: 'KeyR', key: 'r' }); assert.ok(g.weapon.reload > 0);
+  h.context.emit('keydown', { code: 'KeyE', key: 'e' }); assert.equal(g.player.torch, false);
+  h.el('touch-torch').emit('click'); assert.equal(g.player.torch, true);
+  g.weapon.reload = 0; h.el('touch-reload').emit('click'); assert.ok(g.weapon.reload > 0);
+});
+
+test('shared navigation paths reach goals without crossing walls; exhausted paths respect cooldown', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  assert.ok(g.floorCells.length > 100);
+  for (const goal of [g.cellFromWorld(g.player.x, g.player.z)]) {
+    for (const start of g.floorCells) {
+      const route = g.findPath(start, goal);
+      assert.ok(route.length > 0);
+      let previous = start;
+      for (const point of route) {
+        const cell = g.cellFromWorld(point.x, point.z);
+        assert.ok(g.isWalkableCell(cell.x, cell.z));
+        assert.ok(Math.abs(cell.x - previous.x) + Math.abs(cell.z - previous.z) <= 1);
+        previous = cell;
+      }
+      assert.deepEqual({ ...previous }, { ...goal });
+    }
+  }
+  const creature = { repath: 0.5, path: [], pathIndex: 0, x: -1000, z: -1000 };
+  g.moveCreature(creature, 0.016, 1); assert.equal(creature.repath, 0.484);
+});
+
+test('slow frames use real time in bounded steps; static pause does not redraw', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  g.clock.delta = 0.05; g.animate(); assert.ok(Math.abs(g.elapsed - 0.05) < 0.00001);
+  g.pauseGame(); g.animate(); const count = g.renderer.renders; g.animate();
+  assert.equal(g.renderer.renders, count);
+});
+
+test('adaptive resolution keeps Deep selected and resizing is deduplicated', () => {
+  const h = harness(); const g = h.game;
+  const initial = g.renderer.ratio;
+  for (let i = 0; i < 100; i++) g.updatePerformance(0.05);
+  assert.ok(g.renderer.ratio < initial); assert.equal(g.settings.quality, 'deep');
+  const count = g.renderer.resizes; g.applyQuality(); g.applyQuality();
+  assert.equal(g.renderer.resizes, count);
+  for (let i = 0; i < 2000; i++) g.updatePerformance(0.05);
+  assert.ok(g.performanceState.scale >= 0.6);
+});
+
+test('explosions cap fragments without growing mobile light count or dropping projectile damage', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const lights = h.visibleLights(); const p = new Three.Vector3(0, 1, 0);
+  for (let i = 0; i < 20; i++) { g.explosionAt(p, 1, 0xff55ff, false); g.spawnBurst(p, 0xff55ff); }
+  g.spawnHealth(p);
+  assert.equal(h.visibleLights(), lights);
+  assert.ok(g.effects.filter(e => e.kind === 'fragment').length <= 64);
+  let impacts = 0;
+  g.createTracer(p, new Three.Vector3(0, 1, -4), () => impacts++);
+  g.updateEffects(2); assert.equal(impacts, 1);
+});
+
+test('five corruption cycles progress past descent 25 with stable mobile budgets', () => {
+  const h = harness(); const g = h.game; g.startGame(); const lights = h.visibleLights();
+  const environments = new Set(); const cycles = new Set(); let lastHP = g.boss.hp;
+  for (let schema = 1; schema <= 25; schema++) {
+    assert.equal(g.schema, schema);
+    environments.add(g.stageInfo().environment.kind); cycles.add(g.stageInfo().cycleIndex);
+    assert.ok(g.effectiveEnemyCap() <= 12); assert.equal(h.visibleLights(), lights);
+    if (schema < 25) { g.beginNextSchema(); assert.ok(g.boss.hp > lastHP); lastHP = g.boss.hp; }
+  }
+  assert.equal(environments.size, 5); assert.equal(cycles.size, 5);
+  g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+  g.damageCreature(g.boss, g.boss.maxHp, new Three.Vector3(g.boss.x, 1, g.boss.z), true);
+  g.goldenBullet.status = 'fired';
+  g.damageCreature(g.boss, 26, new Three.Vector3(g.boss.x, 1, g.boss.z), true, true);
+  assert.equal(g.state, 'transitioning');
+  h.timers.findLast(t => t.ms === 1700).fn(); assert.equal(g.state, 'playing');
+  assert.equal(g.schema, 26); assert.equal(g.stageInfo().environment.kind, 'house');
+  assert.equal(g.stageInfo().cycleIndex, 4);
+});
+
+test('each creature uses its own face family; only Bertranda uses the woman', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const woman = g.currentFaceTexture('boss');
+  for (const type of ['roach', 'bat', 'snake', 'spirit', 'demon']) {
+    g.spawnCreature(type, true);
+    const creature = g.enemies.at(-1);
+    assert.equal(creature.type, type);
+    assert.notEqual(creature.face.material.map, woman);
+    assert.equal(creature.face.material.map, g.currentFaceTexture(type));
+  }
+  assert.notEqual(g.currentFaceTexture('roach'), g.currentFaceTexture('bat'));
+  assert.notEqual(g.currentFaceTexture('bat'), g.currentFaceTexture('snake'));
+  assert.notEqual(g.currentFaceTexture('roach'), g.currentFaceTexture('snake'));
+});
+
+test('the title-screen realm choice starts each biome with a valid spawn and native enemies', () => {
+  const h = harness(); const g = h.game;
+  for (let realm = 1; realm <= 5; realm++) {
+    g.settings.realm = String(realm); g.startGame();
+    assert.equal(g.schema, realm);
+    assert.ok(g.world.free(g.player.x, g.player.z));
+    assert.equal(g.world.schema, realm);
+    assert.ok(g.enemies.length >= 4);
+    assert.equal(g.world.chunks.size, 9);
+    if (realm === 1) assert.ok(g.enemies.every(e => ['roach', 'bat', 'snake'].includes(e.type)));
+    if (realm === 5) assert.ok(g.enemies.every(e => ['demon', 'bat', 'snake'].includes(e.type)));
+  }
+});
+
+test('insects pursue the player at a tile edge and inflict small, rate-limited contact damage', () => {
+  for (const type of ['roach', 'bat', 'snake']) {
+    const h = harness(); const g = h.game; g.startGame(); g.settings.touchAuto = false;
+    g.spawnCreature(type, true); const creature = g.enemies.at(-1);
+    creature.x = 32.4; creature.z = 32.4; creature.attackCooldown = 0;
+    g.player.x = 35.3; g.player.z = 35.3; g.player.health = 100;
+    const startDistance = Math.hypot(creature.x - g.player.x, creature.z - g.player.z);
+    g.clock.delta = 1 / 60;
+    for (let i = 0; i < 100; i++) g.animate();
+    assert.ok(g.player.health < 100, type + ' must hurt the player');
+    assert.ok(g.player.health >= 90, 'contact is not instant death');
+    assert.ok(Math.hypot(creature.x - g.player.x, creature.z - g.player.z) < startDistance);
+    const health = g.player.health;
+    g.updateEnemies(0.001); assert.equal(g.player.health, health, 'no repeated damage in the same frame');
+  }
+});
+
+test('a wall prevents melee damage even when the enemy is close in world space', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  let wall;
+  for (let z = 0; z < 16 && !wall; z++) for (let x = 0; x < 16; x++) {
+    if (!g.isWalkableCell(x, z)) { wall = { x, z }; break; }
+  }
+  assert.ok(wall);
+  g.spawnCreature('roach', true); const enemy = g.enemies.at(-1);
+  const p = g.worldFromCell(wall.x, wall.z);
+  g.player.x = p.x; g.player.z = p.z; enemy.x = p.x + 0.6; enemy.z = p.z;
+  enemy.attackCooldown = 0; enemy.repath = 1; g.player.health = 100;
+  g.updateEnemies(0.01); assert.equal(g.player.health, 100);
+});
+
+test('desktop pointer unlock still pauses deliberately', () => {
+  const h = harness({ touch: false, width: 1280, height: 800 }); h.game.startGame();
+  h.document.pointerLockElement = h.el('render-host'); h.document.emit('pointerlockchange');
+  h.document.pointerLockElement = null; h.document.emit('pointerlockchange');
+  assert.equal(h.game.state, 'paused');
+});
+
+test('ordinary fire cannot clear a realm without its golden bullet, even at zero attempted HP', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const point = new Three.Vector3(g.boss.x, 1, g.boss.z);
+  for (let i = 0; i < 5; i++) g.damageCreature(g.boss, 100000, point, true);
+  g.killBoss();
+  assert.equal(g.state, 'playing'); assert.equal(g.boss.alive, true);
+  assert.equal(g.boss.hp, g.boss.maxHp * 0.2);
+  assert.equal(g.goldenBullet.status, 'seeking');
+  g.updateHud(); assert.match(h.el('boss-name').textContent, /GOLD REQUIRED/);
+});
+
+test('gold is collected by proximity once, heals a little and survives reloads and misses', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const original = g.goldenBullet.model;
+  g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.player.health = 60;
+  g.updateGoldenBullet(0.01);
+  assert.equal(g.goldenBullet.status, 'loaded'); assert.equal(g.player.health, 80);
+  assert.equal(g.goldenBullet.model, null); assert.equal(original.parent, null);
+  g.updateGoldenBullet(0.5); assert.equal(g.player.health, 80);
+  g.weapon.ammo = 0; g.fireWeapon();
+  assert.ok(g.weapon.reload > 0); assert.equal(g.goldenBullet.status, 'loaded');
+  g.weapon.ammo = 32; g.weapon.reload = 0;
+  g.boss.alive = false; g.enemies.forEach(e => { e.alive = false; });
+  g.camera.rotation.x = 1.4; g.scene.updateMatrixWorld(true);
+  g.fireWeapon(); g.updateEffects(0.5);
+  assert.equal(g.goldenBullet.status, 'loaded', 'a miss cannot consume gold');
+  g.startGame(); assert.equal(g.goldenBullet.status, 'seeking');
+  assert.equal(g.player.health, 100); assert.ok(g.goldenBullet.model);
+});
+
+test('desktop and touch rifles fire a visible golden finisher and require a fresh relic next realm', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame();
+    g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+    g.player.x = 34; g.player.z = 34; g.player.yaw = 0;
+    g.camera.position.set(34, 1.62, 34); g.camera.rotation.set(0, 0, 0, 'YXZ');
+    g.enemies.forEach(e => { e.alive = false; });
+    g.boss.x = 34; g.boss.z = 26; g.boss.model.position.set(34, 0.08, 26);
+    g.boss.model.rotation.set(0, 0, 0);
+    g.scene.updateMatrixWorld(true);
+    g.damageCreature(g.boss, g.boss.maxHp, new Three.Vector3(34, 1, 26), true);
+    assert.equal(g.state, 'playing'); assert.equal(g.goldenBullet.status, 'loaded');
+    g.fireWeapon();
+    assert.equal(g.goldenBullet.status, 'fired');
+    const shot = g.effects.findLast(e => e.kind === 'bolt');
+    assert.equal(shot.object.material.color.getHex(), 0xffdf65);
+    assert.equal(g.boss.alive, true, 'damage waits for the travelling projectile');
+    g.pauseGame(); g.animate(); assert.equal(g.goldenBullet.status, 'fired');
+    g.resumeGame(); g.updateEffects(0.5);
+    assert.equal(g.boss.alive, false); assert.equal(g.goldenBullet.status, 'spent');
+    assert.equal(g.state, 'transitioning');
+    h.timers.findLast(t => t.ms === 1700).fn();
+    assert.equal(g.schema, 2); assert.equal(g.state, 'playing');
+    assert.equal(g.goldenBullet.status, 'seeking'); assert.ok(g.goldenBullet.model);
+  }
+});
+
+test('map starts visible and toggles without pausing or stealing held inputs', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame();
+    assert.equal(h.el('map-details').hidden, false);
+    g.controls.fire = true; g.controls.moveX = 1;
+    if (touch) h.el('map-toggle').emit('click');
+    else h.context.emit('keydown', { code: 'KeyM', key: 'm' });
+    assert.equal(h.el('map-details').hidden, true);
+    assert.equal(g.state, 'playing'); assert.equal(g.controls.fire, true); assert.equal(g.controls.moveX, 1);
+    const before = h.el('map-details').hidden;
+    h.context.emit('keydown', { code: 'KeyM', key: 'm', repeat: true });
+    assert.equal(h.el('map-details').hidden, before);
+    g.pauseGame(); h.el('map-toggle').emit('click');
+    assert.equal(h.el('map-details').hidden, before);
+    g.resumeGame();
+    if (touch) {
+      h.context.innerWidth = 390; h.context.innerHeight = 844; g.updateOrientation();
+      h.el('map-toggle').emit('click'); assert.equal(h.el('map-details').hidden, before);
+    }
+    g.startGame();
+    assert.equal(h.el('map-details').hidden, !touch, 'phone restarts reopen the minimap; PC retains its chosen state');
+  }
+});
+
+function faceTarget(h, x = 34, z = 26) {
+  const g = h.game;
+  g.enemies.forEach(e => { e.alive = false; });
+  g.player.x = 34; g.player.z = 34; g.player.yaw = 0; g.player.pitch = 0;
+  g.camera.position.set(34, 1.62, 34); g.camera.rotation.set(0, 0, 0, 'YXZ');
+  g.boss.x = x; g.boss.z = z; g.boss.model.position.set(x, 0.08, z);
+  g.boss.model.rotation.set(0, 0, 0);
+  g.scene.updateMatrixWorld(true);
+}
+
+test('one right thumb can aim and fire while the other moves; pointer cancellation releases both', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  h.el('move-pad').emit('pointerdown', { pointerId: 1, clientX: 63, clientY: 10 });
+  const fire = h.el('touch-fire');
+  fire.emit('pointerdown', { pointerId: 2, clientX: 700, clientY: 280 });
+  fire.emit('pointermove', { pointerId: 2, clientX: 728, clientY: 267 });
+  assert.equal(g.controls.fireTouch, true); assert.equal(g.controls.aimTouch, true);
+  assert.ok(g.controls.moveY > 0); assert.equal(g.controls.runTouch, true);
+  assert.equal(g.controls.lookDX, 28); assert.equal(g.controls.lookDY, -13);
+  const yaw = g.player.yaw, pitch = g.player.pitch;
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw < yaw, 'drag right turns right');
+  assert.ok(g.player.pitch > pitch, 'drag up looks up');
+  fire.emit('pointerup', { pointerId: 9 }); assert.equal(g.controls.fireTouch, true);
+  fire.emit('lostpointercapture', { pointerId: 2 });
+  assert.equal(g.controls.fireTouch, false); assert.equal(g.controls.aimTouch, false);
+  assert.ok(g.controls.moveY > 0, 'ending aim does not steal the movement finger');
+  h.el('move-pad').emit('pointercancel', { pointerId: 1 });
+  assert.equal(g.controls.moveY, 0); assert.equal(g.controls.runTouch, false);
+});
+
+test('holding the touch trigger resumes firing after an automatic reload', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  g.settings.touchAuto = false; g.boss.alive = false; g.enemies.forEach(e => { e.alive = false; });
+  h.el('touch-fire').emit('pointerdown', { pointerId: 4, clientX: 700, clientY: 280 });
+  g.weapon.ammo = 1; g.updateWeapon(0.02); assert.equal(g.weapon.ammo, 0);
+  g.updateWeapon(0.2); assert.ok(g.weapon.reload > 0); assert.equal(g.controls.fireTouch, true);
+  g.updateWeapon(1.2); assert.equal(g.weapon.ammo, 32);
+  g.updateWeapon(0.02); assert.equal(g.weapon.ammo, 31);
+  h.el('touch-fire').emit('pointerup', { pointerId: 4 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+});
+
+test('phone AUTO requires opt-in to shoot an acquired target; the idle desktop never fires', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    if (touch) h.el('touch-auto').emit('click');
+    const hp = g.boss.hp;
+    for (let i = 0; i < 55; i++) g.animate();
+    if (touch) {
+      assert.ok(g.weapon.ammo < 32); assert.ok(g.boss.hp < hp);
+      assert.equal(g.weapon.model.scale.x, 0.72);
+    } else {
+      assert.equal(g.weapon.ammo, 32); assert.equal(g.boss.hp, hp);
+      assert.equal(g.player.yaw, 0); assert.equal(g.player.pitch, 0);
+      assert.equal(g.weapon.model.scale.x, 1);
+    }
+  }
+});
+
+test('AUTO can be disabled; slow swipes control the camera without magnetic pullback', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h, 36.5, 26);
+  h.el('touch-auto').emit('click'); assert.equal(g.settings.touchAuto, true);
+  h.el('touch-auto').emit('click'); assert.equal(g.settings.touchAuto, false);
+  for (let i = 0; i < 50; i++) g.animate();
+  assert.equal(g.weapon.ammo, 32); assert.equal(g.player.yaw, 0);
+  const yaw = g.player.yaw;
+  h.el('look-pad').emit('pointerdown', { pointerId: 1, clientX: 500, clientY: 200 });
+  h.context.emit('pointermove', { pointerId: 1, clientX: 499, clientY: 199 });
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw > yaw, 'even a one-pixel swipe can aim away from the target');
+  const aimed = [g.player.yaw, g.player.pitch];
+  h.context.emit('pointerup', { pointerId: 1 });
+  for (let i = 0; i < 20; i++) g.updatePlayer(1 / 60);
+  assert.deepEqual([g.player.yaw, g.player.pitch], aimed, 'lifting the finger leaves the view still');
+  h.context.emit('blur'); assert.equal(g.touchAssist.target, null); assert.equal(g.touchAssist.ready, false);
+});
+
+test('automatic targeting respects walls and the portrait gameplay gate', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  h.el('touch-auto').emit('click');
+  let wall;
+  for (let z = 1; z < 15 && !wall; z++) for (let x = 1; x < 15; x++) {
+    if (!g.world.walkable(x,z) && g.world.walkable(x-1,z) && g.world.walkable(x+1,z)) { wall={x,z}; break; }
+  }
+  assert.ok(wall);
+  const p = g.worldFromCell(wall.x-1,wall.z), b = g.worldFromCell(wall.x+1,wall.z);
+  Object.assign(g.player,p,{yaw:-Math.PI/2}); Object.assign(g.boss,b);
+  g.boss.model.position.set(b.x,0.08,b.z);
+  g.camera.position.set(p.x,1.62,p.z); g.camera.rotation.set(0,-Math.PI/2,0,'YXZ'); g.scene.updateMatrixWorld(true);
+  assert.equal(g.findAimAssistTarget(), null);
+  g.updateTouchAim(0.2); assert.equal(g.touchAssist.target, null);
+  faceTarget(h); for (let i=0;i<40;i++) g.animate();
+  h.context.innerWidth=390; h.context.innerHeight=844; g.updateOrientation();
+  const hp=g.boss.hp, ammo=g.weapon.ammo;
+  for (let i=0;i<40;i++) g.animate();
+  assert.equal(g.boss.hp,hp); assert.equal(g.weapon.ammo,ammo);
+  assert.equal(g.controls.fireTouch,false); assert.equal(g.touchAssist.target,null);
+});
+
+test('camera drag and trigger release work outside controls even if pointer capture fails', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  const fire = h.el('touch-fire'), look = h.el('look-pad');
+  fire.setPointerCapture = look.setPointerCapture = () => { throw Error('capture unavailable'); };
+  look.emit('pointerdown', { pointerId: 2, clientX: 500, clientY: 200 });
+  h.context.emit('pointermove', { pointerId: 3, clientX: 100, clientY: 400 });
+  assert.equal(g.controls.lookDX, 0, 'another finger cannot move the view');
+  h.context.emit('pointermove', { pointerId: 2, clientX: 560, clientY: 180 });
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw < 0); assert.ok(g.player.pitch > 0);
+  h.context.emit('pointerup', { pointerId: 2 });
+  assert.equal(g.controls.aimTouch, false); assert.equal(g.weapon.ammo, 32);
+  fire.emit('pointerdown', { pointerId: 4, clientX: 800, clientY: 320 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+  h.context.emit('pointermove', { pointerId: 4, clientX: 600, clientY: 240 });
+  assert.ok(g.controls.lookDX < 0);
+  h.context.emit('pointerup', { pointerId: 4 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+  assert.equal(g.controls.fire, false); assert.equal(g.controls.fireTouch, false);
+  h.context.emit('pointermove', { pointerId: 4, clientX: 400, clientY: 100 });
+  assert.equal(g.controls.lookDX, -200, 'released pointers cannot keep turning the camera');
+});
+
+test('Bertranda 3 walking and sprinting cover the same faster distance at 30 and 120 FPS on PC and phone', () => {
+  for (const touch of [false, true]) for (const sprint of [false, true]) for (const fps of [30, 120]) {
+    const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    if (touch) { g.controls.moveY = 1; g.controls.runTouch = sprint; }
+    else { g.controls.keys.add('KeyW'); if (sprint) g.controls.keys.add('ShiftLeft'); }
+    for (let i = 0; i < fps; i++) g.updatePlayer(1 / fps);
+    assert.ok(Math.abs(34 - g.player.z - (sprint ? 8.4 : 5.5)) < 1e-8);
+    assert.equal(g.player.x, 34);
+  }
+});
+
+test('turning changes movement direction and camera matrices in the same step on both devices', () => {
+  for (const touch of [false, true]) {
+    const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    g.controls.lookDX = 100; g.controls.lookDY = -20; g.controls.moveY = 1;
+    g.updatePlayer(1 / 60);
+    const yaw = -100 * (touch ? 1.7 / 390 : 0.0032);
+    assert.ok(Math.abs(g.player.yaw - yaw) < 1e-8);
+    assert.ok(Math.abs(g.player.x - (34 - Math.sin(yaw) * 5.5 / 60)) < 1e-8, 'the first step already follows the new heading');
+    const renderedDirection = new Three.Vector3(0, 0, -1).transformDirection(g.camera.matrixWorld);
+    assert.ok(Math.abs(renderedDirection.x + Math.sin(yaw) * Math.cos(g.player.pitch)) < 1e-8, 'shot projection has no stale camera heading');
+    assert.ok(Math.abs(renderedDirection.y - Math.sin(g.player.pitch)) < 1e-8);
+  }
+});
+
+test('look presets work without a restart and fast touch swipes keep their full distance', () => {
+  for (const touch of [false, true]) {
+    const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    const turns = [];
+    for (const preset of ['precise', 'fast', 'veryfast']) {
+      g.settings.look = preset; const before = g.player.yaw;
+      if (touch) {
+        h.el('look-pad').emit('pointerdown', { pointerId: 1, clientX: 350, clientY: 200 });
+        h.context.emit('pointermove', { pointerId: 1, clientX: 610, clientY: 200 });
+        assert.equal(g.controls.lookDX, 260, 'quick swipes are not truncated to 100 pixels');
+      } else {
+        h.document.pointerLockElement = h.el('render-host');
+        h.document.emit('mousemove', { movementX: 260, movementY: 0 });
+      }
+      g.updatePlayer(1 / 60); turns.push(before - g.player.yaw);
+      if (touch) h.context.emit('pointerup', { pointerId: 1 });
+      const aimed = g.player.yaw; g.updatePlayer(1 / 60);
+      assert.equal(g.player.yaw, aimed, 'the view stops when input stops');
+    }
+    assert.ok(Math.abs(turns[0] / turns[1] - 0.7) < 1e-8);
+    assert.ok(Math.abs(turns[2] / turns[1] - 1.3) < 1e-8);
+  }
+});
+
+test('mission reminders explain gold and the map on PC and phone without staying on screen', () => {
+  for (const touch of [false, true]) {
+    const h = harness({ touch }); const g = h.game; g.startGame();
+    const caption = h.el('subtitle'); const intro = caption.textContent;
+    g.elapsed = 11.99; g.updateHud(); assert.equal(caption.textContent, intro);
+    g.elapsed = 12; g.updateHud();
+    assert.match(caption.textContent, /Only the GOLDEN BULLET can kill Bertranda.*MAP/);
+    assert.equal(caption.classList.contains('visible'), true);
+    g.elapsed = 17; g.updateHud(); assert.equal(caption.classList.contains('visible'), false);
+    g.elapsed = 39; g.updateHud(); assert.equal(caption.classList.contains('visible'), false);
+    g.elapsed = 40; g.updateHud(); assert.match(caption.textContent, /gold diamond.*Walk over/);
+    g.toggleMap(); g.elapsed = 68; g.updateHud(); assert.match(caption.textContent, /Open MAP/);
+    assert.equal(h.el('map-details').hidden, true, 'reminders respect the player hiding the map');
+  }
+});
+
+test('reminders yield to combat and reload messages and wait through pause, hidden tabs and rotation', () => {
+  const h = harness(); const g = h.game; g.startGame(); const caption = h.el('subtitle');
+  g.elapsed = 12; g.showCaption('Important combat message', 3); g.updateHud();
+  assert.equal(caption.textContent, 'Important combat message');
+  g.elapsed = 16; g.showDanger('Danger', 2); g.updateHud();
+  assert.equal(caption.textContent, 'Important combat message');
+  g.elapsed = 20; g.weapon.reload = 1; g.updateHud();
+  assert.equal(caption.textContent, 'Important combat message');
+  g.weapon.reload = 0; g.pauseGame(); g.elapsed = 24; g.updateHud();
+  assert.equal(caption.textContent, 'Important combat message');
+  g.resumeGame(); h.document.hidden = true; g.updateHud();
+  assert.equal(caption.textContent, 'Important combat message');
+  h.document.hidden = false; h.context.innerWidth = 390; h.context.innerHeight = 844;
+  g.updateOrientation(); g.updateHud(); assert.equal(caption.textContent, 'Important combat message');
+  h.context.innerWidth = 844; h.context.innerHeight = 390; g.updateOrientation(); g.updateHud();
+  assert.match(caption.textContent, /Only the GOLDEN BULLET/);
+});
+
+test('reminders change after collecting gold and reset for each realm and new game', () => {
+  const h = harness(); const g = h.game; g.startGame(); const caption = h.el('subtitle');
+  g.elapsed = 6; g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+  const collected = caption.textContent;
+  g.elapsed = 19; g.updateHud(); assert.equal(caption.textContent, collected);
+  g.elapsed = 20; g.updateHud(); assert.match(caption.textContent, /GOLDEN BULLET loaded.*weaken her/);
+  g.boss.hp = g.boss.maxHp * 0.2;
+  g.elapsed = 48; g.updateHud(); assert.match(caption.textContent, /vulnerable.*FIRE/);
+  const finisher = caption.textContent;
+  for (const status of ['fired', 'spent']) {
+    g.goldenBullet.status = status; g.elapsed += 28; g.updateHud();
+    assert.equal(caption.textContent, finisher);
+    assert.equal(caption.classList.contains('visible'), false);
+  }
+  g.beginNextSchema(); const newRealm = caption.textContent;
+  g.elapsed += 11; g.updateHud(); assert.equal(caption.textContent, newRealm);
+  g.elapsed += 1; g.updateHud(); assert.match(caption.textContent, /Only the GOLDEN BULLET/);
+  g.startGame(); assert.equal(g.missionReminder.nextAt, 12);
+  g.elapsed = 12; g.updateHud(); assert.match(caption.textContent, /Only the GOLDEN BULLET/);
+});
+
+test('the faster sprint still stops at walls on slow frames', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  let wall;
+  for (let z = 1; z < 15 && !wall; z++) for (let x = 1; x < 15; x++) {
+    if (!g.world.walkable(x, z) && g.world.walkable(x - 1, z)) { wall = { x, z }; break; }
+  }
+  assert.ok(wall);
+  g.boss.alive = false; g.enemies.forEach(e => { e.alive = false; });
+  g.player.x = wall.x * 4 - 0.5; g.player.z = wall.z * 4 + 2; g.player.yaw = -Math.PI / 2;
+  g.controls.moveY = 1; g.controls.runTouch = true; g.clock.delta = 0.1;
+  for (let i = 0; i < 12; i++) g.animate();
+  assert.ok(g.player.x <= wall.x * 4 - 0.38, 'sprinting cannot tunnel through the wall');
+  assert.ok(g.world.free(g.player.x, g.player.z, 0.38));
+});

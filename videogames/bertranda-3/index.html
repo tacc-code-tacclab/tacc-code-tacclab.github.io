@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>BERTRANDA 3 — Endless Realms</title>
+  <meta name="description" content="Move faster, turn faster and hunt the golden bullet across five endless horror realms. Bertranda 3 for PC and phone.">
+  <meta name="theme-color" content="#071017">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BERTRANDA 3 — Endless Realms">
+  <meta property="og:description" content="Find the golden bullet. Weaken Bertranda. Fire the final shot. Five endless realms for desktop and mobile.">
+  <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/bertranda-3/">
+  <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-3/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
+  <link rel="stylesheet" href="game.css?v=1-swift">
+  <link rel="stylesheet" href="mobile.css?v=1-swift">
+  <script src="../game-counter.js?v=20260805-visitors1" defer></script>
+</head>
+<body>
+  <main id="game" aria-label="Bertranda 3 first-person horror shooter">
+    <div id="render-host" aria-label="First-person view across five endless haunted realms"></div>
+
+    <div id="loading" class="loading" role="status" aria-live="polite">
+      <span class="loading-mark" aria-hidden="true"></span>
+      <strong>OPENING THE FIRST REALM</strong>
+      <small>Loading human faces. Counting too many legs.</small>
+    </div>
+
+    <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
+      <div class="title-art" aria-hidden="true">
+        <img class="cover-face" src="assets/bertranda-face-v2.png" alt="">
+        <span class="specimen-label">DEGENERATION 01 / 05 · FACE RETAINED</span>
+        <span class="tape-code">DESCENT FEED · 01 / ∞</span>
+      </div>
+      <div class="title-copy">
+        <p class="eyebrow">Five endless realms · no way back</p>
+        <h1 id="game-title"><span>BER</span>TRANDA <i>3</i></h1>
+        <p class="subtitle">FASTER INTO THE DARK</p>
+        <p class="story">One golden bullet is hidden in every realm. Follow your map through the swarms, collect it and weaken Bertranda. When her last seal is exposed, fire: your rifle delivers the golden finishing shot automatically. Only then does the next realm open.</p>
+
+        <div class="settings-row">
+          <fieldset>
+            <legend>Frenzy</legend>
+            <div class="segmented" data-setting="difficulty">
+              <button type="button" data-value="quiet">Story</button>
+              <button type="button" data-value="normal" class="selected">Frenzy</button>
+              <button type="button" data-value="nightmare">Massacre</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Graphics</legend>
+            <div class="segmented" data-setting="quality">
+              <button type="button" data-value="low">Light</button>
+              <button type="button" data-value="deep" class="selected">Deep</button>
+              <button type="button" data-value="high">Ultra</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Look speed</legend>
+            <div class="segmented" data-setting="look">
+              <button type="button" data-value="precise">Precise</button>
+              <button type="button" data-value="fast" class="selected">Fast</button>
+              <button type="button" data-value="veryfast">Very fast</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <fieldset class="realm-select">
+          <legend>STARTING REALM</legend>
+          <div class="segmented" data-setting="realm">
+            <button type="button" data-value="1" class="selected">1 · House</button>
+            <button type="button" data-value="2">2 · Forest</button>
+            <button type="button" data-value="3">3 · Cemetery</button>
+            <button type="button" data-value="4">4 · Catacombs</button>
+            <button type="button" data-value="5">5 · Hell</button>
+          </div>
+        </fieldset>
+
+        <div class="title-actions">
+          <button id="start-button" class="primary" type="button" disabled>LOAD THE BLASTER</button>
+          <button id="mute-button" class="secondary" type="button" aria-pressed="false">MUSIC + SOUND ON</button>
+          <a class="secondary" href="../bertranda-2/">BERTRANDA 2</a>
+        </div>
+
+        <div class="controls-summary" aria-label="Controls">
+          <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>E / F</b> LIGHT</span><span><b>M</b> MAP</span>
+        </div>
+        <p class="mobile-guide">PLAY IN LANDSCAPE · Left thumb moves; push fully to sprint. Drag on the right to aim. Hold and drag FIRE to shoot; release to stop. Adjust Look speed here or in Pause. AUTO starts OFF.</p>
+        <div class="title-foot">
+          <a href="../../#videogames">← All games</a>
+          <span class="game-visitor-counter" data-game-visitors="bertranda-3" data-counter-label="BERTRANDA 3">BERTRANDA 3 · … VISITORS</span>
+          <span>Endless maps · five corruptions · headphones recommended</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="hud" class="hud" aria-label="Combat status" hidden>
+      <div class="objective-card">
+        <span>OBJECTIVE</span>
+        <strong id="objective-text">1 · FIND THE GOLDEN BULLET</strong>
+        <small id="wave-text">HAUNTED HOUSE · VERDIGRIS</small>
+      </div>
+
+      <aside id="scout-map" class="scout-map" aria-label="Mission map">
+        <button id="map-toggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="map-details" aria-label="Open or close map. Keyboard shortcut M.">
+          <span class="map-label">◇ MAP <kbd>M</kbd></span>
+          <strong id="map-status">GOLD · LOCATING</strong>
+        </button>
+        <div id="map-details" class="map-details" hidden>
+          <canvas id="map-canvas" width="360" height="220" role="img" aria-label="Tactical map: cyan arrow is you, gold diamond is the bullet, pink circle is Bertranda. The line follows walkable paths."></canvas>
+          <div class="map-legend"><span class="you">▲ YOU</span><span class="gold">◆ GOLD</span><span class="monster">● BOSS</span></div>
+          <small id="map-hint">Follow gold · walk over bullet</small>
+        </div>
+      </aside>
+
+      <div id="boss-wrap" class="boss-wrap">
+        <div><span id="boss-name">BERTRANDA</span><small id="boss-phase">DESCENT 1 · HAUNTED HOUSE</small></div>
+        <i><b id="boss-fill"></b><span class="gold-threshold" aria-hidden="true"></span></i>
+      </div>
+
+      <div id="danger" class="danger" aria-live="assertive">SWARM INCOMING</div>
+      <div id="reticle" class="reticle" aria-hidden="true"><i></i></div>
+      <div id="aim-target" class="aim-target" aria-hidden="true" hidden></div>
+      <div id="prompt" class="prompt" role="status" aria-live="polite"></div>
+      <div id="subtitle" class="caption" role="status" aria-live="polite"></div>
+
+      <aside class="player-panel" aria-label="Player health">
+        <span>VITALS</span>
+        <div class="health-row"><i><b id="health-fill"></b></i><strong id="health-text">100</strong></div>
+        <small id="streak-text">NO STREAK</small>
+      </aside>
+
+      <aside class="weapon-panel" aria-label="Weapon status">
+        <span>SALT-ARC RIFLE</span>
+        <strong><b id="ammo-text">32</b><small> / ∞</small></strong>
+        <em id="weapon-state">AUTO · LIGHT ON · E/F</em>
+      </aside>
+
+      <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+      <div id="boss-flash" class="boss-flash" aria-hidden="true"></div>
+      <button id="pause-button" class="pause-button" type="button" aria-label="Pause game">Ⅱ</button>
+    </section>
+
+    <section id="touch-controls" class="touch-controls" aria-label="Touch controls" hidden>
+      <div id="move-pad" class="move-pad" aria-label="Movement joystick"><i id="move-knob"></i></div>
+      <div id="look-pad" class="look-pad" aria-label="Drag to aim"></div>
+      <button id="touch-fire" class="touch-button fire" type="button" aria-label="Hold to fire. Drag this button to aim while shooting."><span>FIRE</span></button>
+      <button id="touch-run" class="touch-button run" type="button">RUN</button>
+      <button id="touch-reload" class="touch-button reload" type="button" aria-label="Reload">↻</button>
+      <button id="touch-torch" class="touch-button torch" type="button" aria-label="Turn light off" aria-pressed="true">☼</button>
+      <button id="touch-auto" class="touch-button auto" type="button" aria-label="Automatic firing" aria-pressed="false">AUTO OFF</button>
+    </section>
+
+    <section id="pause-screen" class="screen modal" hidden aria-labelledby="pause-title">
+      <div class="modal-card">
+        <p class="eyebrow">The swarm is suspended</p>
+        <h2 id="pause-title">PAUSED</h2>
+        <p>The faces will begin moving again when you return.</p>
+        <fieldset class="look-settings">
+          <legend>Look speed</legend>
+          <div class="segmented" data-setting="look">
+            <button type="button" data-value="precise">Precise</button>
+            <button type="button" data-value="fast" class="selected">Fast</button>
+            <button type="button" data-value="veryfast">Very fast</button>
+          </div>
+        </fieldset>
+        <button id="resume-button" class="primary" type="button">RETURN TO FIRE</button>
+        <button id="restart-button" class="secondary" type="button">RESTART THE DESCENT</button>
+        <a class="secondary" href="../../#videogames">LEAVE THE DESCENT</a>
+      </div>
+    </section>
+
+    <section id="rotate-screen" class="rotate-screen" hidden aria-labelledby="rotate-title">
+      <div class="rotate-card">
+        <span class="rotate-phone" aria-hidden="true">↻</span>
+        <h2 id="rotate-title">RUOTA IL TELEFONO</h2>
+        <p>Bertranda 3 si gioca in orizzontale.</p>
+        <small>La partita resta ferma: ruota lo schermo e riprendi subito, senza perdere progressi.</small>
+      </div>
+    </section>
+
+    <section id="death-screen" class="screen modal death-screen" hidden aria-labelledby="death-title">
+      <div class="death-art" aria-hidden="true"><img src="assets/bertranda-face-tier5.png" alt=""></div>
+      <div class="modal-card">
+        <p class="eyebrow">BODY RECOVERED · FACE MISSING</p>
+        <h2 id="death-title">THEY TOOK IT</h2>
+        <p>Your face has joined the things crawling inside the walls.</p>
+        <button id="retry-button" class="primary" type="button">FIRE AGAIN</button>
+        <a class="secondary" href="../../#videogames">LEAVE THE DESCENT</a>
+      </div>
+    </section>
+
+    <div class="vhs" aria-hidden="true"></div>
+    <div id="jumpscare" class="jumpscare" aria-hidden="true"><img src="assets/bertranda-face-tier5.png" alt=""></div>
+  </main>
+
+  <noscript>This game needs JavaScript enabled.</noscript>
+  <script src="../lovecraft/three.min.js"></script>
+  <script src="world.js?v=3-realms"></script>
+  <script src="expedition.js?v=4-gold"></script>
+  <script src="game.js?v=1-swift"></script>
+</body>
+</html>
