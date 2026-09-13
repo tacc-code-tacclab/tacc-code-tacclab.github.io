@@ -35,6 +35,7 @@
   }
 
   const ui = {
+    game: $("#game"),
     host: $("#render-host"),
     loading: $("#loading"),
     title: $("#title-screen"),
@@ -1954,6 +1955,12 @@
 
   function updateOrientation() {
     const active = gameState === "playing" || gameState === "transitioning";
+    if (IS_TOUCH && active) {
+      // The title can scroll; the play surface cannot. Clear any focus/scroll
+      // offset left by opening the menu or rotating in older mobile browsers.
+      ui.game.scrollTop = 0;
+      ui.game.scrollLeft = 0;
+    }
     const viewport = playViewport();
     const blocked = IS_TOUCH && viewport.height > viewport.width && active;
     if (blocked !== orientationBlocked) {

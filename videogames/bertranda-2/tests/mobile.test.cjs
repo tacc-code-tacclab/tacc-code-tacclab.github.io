@@ -131,7 +131,10 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
 
 test('phone canvas, camera and HUD keep one size after portrait rotation and browser-bar changes', () => {
   const h = harness({ width: 390, height: 844 }); const g = h.game;
+  h.el('game').scrollTop = 69; h.el('game').scrollLeft = 20;
   g.startGame();
+  assert.equal(h.el('game').scrollTop, 0, 'starting clears a leftover title scroll offset');
+  assert.equal(h.el('game').scrollLeft, 0);
   const canvas = g.renderer.domElement;
   const displaySize = () => ['width', 'height'].map(axis => {
     const inline = canvas.style[axis];
@@ -139,7 +142,9 @@ test('phone canvas, camera and HUD keep one size after portrait rotation and bro
   });
   assert.deepEqual(displaySize(), [390, 844]);
   h.context.innerWidth = 844; h.context.innerHeight = 390;
+  h.el('game').scrollTop = 47;
   h.context.emit('resize'); h.frame();
+  assert.equal(h.el('game').scrollTop, 0, 'rotation keeps the full play surface on screen');
   assert.deepEqual(displaySize(), [844, 390], 'CSS canvas must not retain portrait pixel dimensions');
   assert.equal(g.camera.aspect, 844 / 390);
   assert.equal(h.el('rotate-screen').hidden, true);

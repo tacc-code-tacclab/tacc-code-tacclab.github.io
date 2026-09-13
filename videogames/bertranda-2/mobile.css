@@ -1,7 +1,7 @@
 /* Touch-only play surface. Mouse/keyboard presentation keeps game.css. */
 .mobile-guide,.aim-target{display:none}
 body[data-touch="true"]{--edge-left:max(8px,env(safe-area-inset-left));--edge-right:max(8px,env(safe-area-inset-right));--edge-top:max(4px,env(safe-area-inset-top));--edge-bottom:max(8px,env(safe-area-inset-bottom))}
-body[data-touch="true"] #game{bottom:auto;width:100%;height:100%;height:100dvh}
+body[data-touch="true"] #game{bottom:auto;width:100%;height:100%;height:100dvh;overflow:clip}
 body[data-touch="true"] #render-host{position:absolute}
 body[data-touch="true"] .hud{z-index:16}
 body[data-touch="true"] .mobile-guide{display:block;color:#96d5bd;font-size:11px;line-height:1.5;margin:14px 0 0}
