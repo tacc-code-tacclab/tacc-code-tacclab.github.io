@@ -35,6 +35,23 @@ test('farmer warns before pouring and attacks only holes made by the mole',()=>{
  assert(warningAt!==null&&pourAt!==null);assert(pourAt-warningAt>=g.difficulty.warning-.02);assert(g.holes.includes(g.farmer.target));
  const first=new Game(1);assert(g.difficulty.interval<first.difficulty.interval);assert(g.difficulty.farmerSpeed>first.difficulty.farmerSpeed);assert(g.difficulty.floodStep<first.difficulty.floodStep);
 });
+test('farmer, poison and ants become progressively more dangerous',()=>{
+ const first=new Game(1),middle=new Game(6),last=new Game(10),phone=new Game(10,0,{assist:true});
+ assert.equal(first.difficulty.antCount,0);assert.equal(middle.difficulty.antCount,3);assert.equal(last.difficulty.antCount,5);
+ assert(last.difficulty.interval<middle.difficulty.interval&&middle.difficulty.interval<first.difficulty.interval);
+ assert(last.difficulty.warning<first.difficulty.warning);assert(last.difficulty.floodStep<first.difficulty.floodStep);
+ assert(last.difficulty.farmerSpeed>first.difficulty.farmerSpeed);assert(last.difficulty.antSpeed>middle.difficulty.antSpeed);
+ assert(phone.difficulty.interval>last.difficulty.interval);assert(phone.difficulty.floodStep>last.difficulty.floodStep);assert(phone.difficulty.antSpeed<last.difficulty.antSpeed);
+});
+test('ants spawn away from the mole, chase her and cause protected damage on contact',()=>{
+ const g=new Game(2);g.farmer.clock=1e6;g.antClock=0;g.update(1/60);
+ assert.equal(g.ants.length,1);assert(Math.hypot(g.ants[0].x-g.player.x,g.ants[0].y-g.player.y)>5);
+ assert(g.takeEvents().some(e=>e.type==='antSpawn'));
+ const ant=g.ants[0];ant.x=g.player.x;ant.y=g.player.y;ant.cooldown=0;g.update(1/60);
+ const events=g.takeEvents();assert.equal(g.health,2);assert(events.some(e=>e.type==='hurt'&&e.source==='ant'));
+ assert(Math.hypot(ant.x-g.player.x,ant.y-g.player.y)>5);
+ ant.x=g.player.x;ant.y=g.player.y;ant.cooldown=0;g.update(1/60);assert.equal(g.health,2);
+});
 test('damage has a grace period and retry restores the level checkpoint',()=>{
  const g=new Game(4,900);g.farmer.clock=1e6;g.poison[1]=10;g.update(1/60);assert.equal(g.health,2);
  for(let i=0;i<60;i++)g.update(1/60);assert.equal(g.health,2);
