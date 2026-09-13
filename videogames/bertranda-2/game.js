@@ -125,7 +125,7 @@
   let hudTimer = 0;
   let aimLockUntil = 0;
   let scoutMap;
-  let mapOpen = !IS_TOUCH;
+  let mapOpen = true;
   const goldenBullet = { status: "seeking", x: 0, z: 0, model: null, epoch: 0, hintAt: -10 };
 
   const enemies = [];
@@ -221,8 +221,22 @@
     started: false,
     musicStep: 0,
     musicNext: 0,
-    melody: [69, 72, 76, 74, 72, 76, 81, 76, 69, 74, 77, 76, 74, 77, 83, 77, 67, 71, 74, 72, 71, 74, 79, 74, 65, 69, 72, 71, 69, 73, 76, 73],
-    bass: [45, 52, 48, 52, 43, 50, 47, 50, 41, 48, 45, 48, 40, 47, 44, 47],
+    musicBus: null,
+    organWave: null,
+    // Original eight-bar nocturne: pipe-organ ostinato, semitone/tritone
+    // tension and sustained pedal notes. No film recording or quoted melody.
+    melody: [
+      64, null, 59, 65, 64, null, 58, 59,
+      64, 67, null, 65, 64, 63, null, 59,
+      60, null, 67, 66, 64, null, 63, 60,
+      59, 63, 66, null, 65, null, 63, 59,
+      64, null, 70, 71, 67, 65, null, 64,
+      65, 68, null, 71, 70, null, 68, 65,
+      64, null, 60, 66, 65, 63, null, 59,
+      63, 66, null, 65, 63, null, 59, null
+    ],
+    bass: [40, 40, 36, 35, 40, 41, 36, 35],
+    chords: [[52, 55, 59], [52, 53, 58], [48, 55, 59], [47, 51, 57], [52, 55, 58], [53, 56, 59], [48, 54, 59], [47, 51, 54]],
     start() {
       if (this.started) {
         if (this.context && this.context.state === "suspended") this.context.resume();
@@ -240,25 +254,37 @@
       const data = this.noiseBuffer.getChannelData(0);
       for (let i = 0; i < frames; i += 1) data[i] = Math.random() * 2 - 1;
 
-      const drone = this.context.createOscillator();
-      const droneTwo = this.context.createOscillator();
-      const filter = this.context.createBiquadFilter();
-      const gain = this.context.createGain();
-      drone.type = "sawtooth";
-      drone.frequency.value = 41;
-      droneTwo.type = "sine";
-      droneTwo.frequency.value = 61.5;
-      filter.type = "lowpass";
-      filter.frequency.value = 130;
-      gain.gain.value = 0.018;
-      drone.connect(filter);
-      droneTwo.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.master);
-      drone.start();
-      droneTwo.start();
+      this.setupOrgan();
       this.started = true;
       this.resetMusic();
+    },
+    setupOrgan() {
+      // One shared wavetable and reverb; one oscillator per voice keeps the
+      // score light on phones. Combat sounds retain their original dry path.
+      const partials = new Float32Array([0, 1, 0.52, 0.18, 0.28, 0.07, 0.10, 0.025, 0.08]);
+      this.organWave = this.context.createPeriodicWave(new Float32Array(partials.length), partials);
+      this.musicBus = this.context.createGain();
+      this.musicBus.gain.value = 0.82;
+      const dry = this.context.createGain();
+      dry.gain.value = 0.78;
+      this.musicBus.connect(dry); dry.connect(this.master);
+      const reverb = this.context.createConvolver();
+      const seconds = 2.8, rate = this.context.sampleRate;
+      const impulse = this.context.createBuffer(2, Math.ceil(rate * seconds), rate);
+      let seed = 7219;
+      for (let channel = 0; channel < 2; channel++) {
+        const data = impulse.getChannelData(channel);
+        let smooth = 0;
+        for (let i = 0; i < data.length; i++) {
+          seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+          smooth = smooth * 0.58 + ((seed >>> 0) / 2147483648 - 1) * 0.42;
+          data[i] = i < rate * 0.035 ? 0 : smooth * Math.pow(1 - i / data.length, 2.6);
+        }
+      }
+      reverb.buffer = impulse;
+      const wet = this.context.createGain();
+      wet.gain.value = 0.32;
+      this.musicBus.connect(reverb); reverb.connect(wet); wet.connect(this.master);
     },
     resetMusic() {
       if (!this.context) return;
@@ -278,43 +304,35 @@
     frequency(note) {
       return 440 * Math.pow(2, (note - 69) / 12);
     },
-    musicNote(note, time, duration, volume) {
-      if (!this.context || !this.master) return;
+    musicNote(note, time, duration, volume, sustained = false) {
+      if (!this.context || !this.musicBus || note === null) return;
       const osc = this.context.createOscillator();
-      const upper = this.context.createOscillator();
-      const filter = this.context.createBiquadFilter();
       const gain = this.context.createGain();
-      osc.type = "sawtooth";
-      upper.type = "square";
+      osc.setPeriodicWave(this.organWave);
       osc.frequency.setValueAtTime(this.frequency(note), time);
-      upper.frequency.setValueAtTime(this.frequency(note + 12), time);
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(2200, time);
-      filter.frequency.exponentialRampToValueAtTime(520, time + duration);
+      osc.detune.value = Math.sin(note * 1.7) * 2.4;
+      const attack = sustained ? 0.08 : 0.018, release = sustained ? 0.65 : 0.16;
       gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.exponentialRampToValueAtTime(volume, time + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-      osc.connect(filter);
-      upper.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.master);
+      gain.gain.exponentialRampToValueAtTime(volume, time + attack);
+      gain.gain.exponentialRampToValueAtTime(volume * 0.82, time + duration);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration + release);
+      osc.connect(gain); gain.connect(this.musicBus);
+      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
       osc.start(time);
-      upper.start(time);
-      osc.stop(time + duration + 0.02);
-      upper.stop(time + duration + 0.02);
+      osc.stop(time + duration + release + 0.02);
     },
     updateMusic() {
       if (!this.context || gameState !== "playing") return;
       if (this.musicNext < this.context.currentTime - 0.5) this.musicNext = this.context.currentTime;
-      const stepDuration = 60 / 132 / 2;
+      const stepDuration = 60 / 94 / 2;
       while (this.musicNext < this.context.currentTime + 0.16) {
-        const step = this.musicStep;
-        this.musicNote(this.melody[step % this.melody.length], this.musicNext, stepDuration * 0.72, 0.021);
-        if (step % 2 === 0) {
-          const bassNote = this.bass[Math.floor(step / 2) % this.bass.length];
-          this.musicNote(bassNote, this.musicNext, stepDuration * 1.45, 0.014);
+        const step = this.musicStep, bar = Math.floor(step / 8) % 8;
+        this.musicNote(this.melody[step % this.melody.length], this.musicNext, stepDuration * 0.76, step % 8 === 0 ? 0.070 : 0.053);
+        if (step % 8 === 0) {
+          this.musicNote(this.bass[bar], this.musicNext, stepDuration * 7.1, 0.060, true);
+          this.chords[bar].forEach(note => this.musicNote(note, this.musicNext, stepDuration * 5.7, 0.021, true));
         }
-        if (step % 4 === 3) this.musicNote(this.melody[(step + 7) % this.melody.length] - 12, this.musicNext, stepDuration * 0.58, 0.009);
+        if (step % 8 === 4) this.musicNote(this.bass[bar] + 12, this.musicNext, stepDuration * 1.3, 0.022, true);
         this.musicStep += 1;
         this.musicNext += stepDuration;
       }
@@ -1852,6 +1870,7 @@
     lastKillAt = -20;
     hudTimer = 0;
     aimLockUntil = 0;
+    if (IS_TOUCH) mapOpen = true;
     spawnTimer = 1.25;
     captionUntil = 0;
     dangerUntil = 0;

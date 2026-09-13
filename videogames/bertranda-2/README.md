@@ -37,7 +37,7 @@ The tactical map shows walls/terrain, the player and heading, the golden bullet,
 - `M` or the MAP button: expand/collapse the tactical map
 - `P`: pause
 
-The touch interface uses a single 24-pixel status row and a 112-pixel-wide map that starts collapsed. The expanded map hides its legend and keeps a short canvas above the left joystick, including short landscape viewports with browser bars. Small visual icons retain generous touch areas. The central aiming area stays clear. Desktop keeps its existing HUD and expanded map.
+The touch interface uses a single 24-pixel status row and a 112-pixel-wide minimap that opens automatically when starting or restarting. It shows the player, pink Bertranda marker and golden bullet, with a tiny colour key. Its short canvas sits above the left joystick, including short landscape viewports with browser bars; MAP can still hide/show it. Small visual icons retain generous touch areas. The central aiming area stays clear. Desktop keeps its existing HUD and map behaviour.
 
 On phones, the left joystick moves and pushing it to its outer edge sprints, removing the separate RUN button. Drag anywhere in the broad right-hand area to aim, or hold and drag FIRE to shoot and aim with the same thumb. The trigger continues after reloading while held. Pointer cancellation, blur and rotation release held input.
 
@@ -46,6 +46,10 @@ Phone firing starts in manual mode: hold FIRE to shoot and release to stop. Opti
 The mobile canvas, HUD and touch areas share the same dynamic viewport. Canvas CSS stays fluid when rotating from portrait to landscape; the drawing buffer and camera aspect follow the actual play surface, including browser-bar and fullscreen changes. Window-level pointer movement/release handlers preserve drags outside the controls and stop firing even if pointer capture is unavailable.
 
 On touch devices, play in landscape. Start/Resume requests fullscreen and landscape lock where supported; other browsers (including iPhone browsers without orientation-lock support) show a rotate prompt. Portrait play and hidden tabs freeze the simulation without opening the pause menu or losing progress. A transient browser blur only clears held controls. Use the pause button to pause manually.
+
+## Soundtrack
+
+The desktop and mobile soundtrack is an original eight-bar horror-organ score: deep pedal bass, a chromatic ostinato, dissonant sustained chords and a shared stereo church reverb. Pipe harmonics use one wavetable oscillator per voice, with explicit note cleanup and one reusable reverb buffer. Combat sounds keep their original levels and dry signal path; the existing music/sound mute button is unchanged. No external soundtrack recordings are required.
 
 ## Graphics
 

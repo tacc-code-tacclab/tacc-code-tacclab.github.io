@@ -24,7 +24,7 @@ body[data-touch="true"] .weapon-panel strong small{font:8px var(--mono)}
 body[data-touch="true"] .pause-button{display:block;top:0;right:var(--edge-right);width:40px;height:44px;font-size:12px;border:0;background:transparent}
 body[data-touch="true"] .pause-button:before{position:absolute;inset:7px 6px 13px;border:1px solid #76c6a94d;border-radius:4px;content:""}
 
-/* Small on demand map: 112 px wide, with full-sized invisible tap padding. */
+/* Compact map opens with the game, above the left joystick. */
 body[data-touch="true"] .scout-map,body[data-touch="true"] .scout-map.expanded{top:calc(var(--edge-top) + 26px);left:var(--edge-left);width:112px}
 body[data-touch="true"] .map-toggle{height:44px;min-height:44px;gap:2px;padding:5px 7px;border-color:#d6b35770;background:#07130eba;box-shadow:none}
 body[data-touch="true"] .map-label{font-size:8px;letter-spacing:.05em}
@@ -32,7 +32,8 @@ body[data-touch="true"] .map-label kbd{display:none}
 body[data-touch="true"] .map-toggle strong{font-size:9px;overflow:hidden;text-overflow:ellipsis}
 body[data-touch="true"] .map-details{padding:2px;border-color:#d6b35770;background:#07130ecc}
 body[data-touch="true"] .map-details canvas{height:58px;border:0}
-body[data-touch="true"] .map-legend,body[data-touch="true"] .map-details small{display:none}
+body[data-touch="true"] .map-legend{display:flex;gap:2px;margin:3px 1px 1px;font:7px/1.2 var(--mono);letter-spacing:0}
+body[data-touch="true"] .map-details small{display:none}
 
 body[data-touch="true"] .look-pad{top:30px;left:max(calc(var(--edge-left) + 116px),22%);right:0;bottom:0}
 body[data-touch="true"] .move-pad{left:var(--edge-left);bottom:var(--edge-bottom);width:104px;height:104px;background:#09191329;box-shadow:none;border-color:#79efd35c}

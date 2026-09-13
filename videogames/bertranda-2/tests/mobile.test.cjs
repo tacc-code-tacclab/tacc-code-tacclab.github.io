@@ -426,14 +426,14 @@ test('desktop and touch rifles fire a visible golden finisher and require a fres
   }
 });
 
-test('map opens by M on PC or a touch button, without pausing or stealing held inputs', () => {
+test('map starts visible and toggles without pausing or stealing held inputs', () => {
   for (const touch of [true, false]) {
     const h = harness({ touch }); const g = h.game; g.startGame();
-    assert.equal(h.el('map-details').hidden, touch);
+    assert.equal(h.el('map-details').hidden, false);
     g.controls.fire = true; g.controls.moveX = 1;
     if (touch) h.el('map-toggle').emit('click');
     else h.context.emit('keydown', { code: 'KeyM', key: 'm' });
-    assert.equal(h.el('map-details').hidden, !touch);
+    assert.equal(h.el('map-details').hidden, true);
     assert.equal(g.state, 'playing'); assert.equal(g.controls.fire, true); assert.equal(g.controls.moveX, 1);
     const before = h.el('map-details').hidden;
     h.context.emit('keydown', { code: 'KeyM', key: 'm', repeat: true });
@@ -445,6 +445,8 @@ test('map opens by M on PC or a touch button, without pausing or stealing held i
       h.context.innerWidth = 390; h.context.innerHeight = 844; g.updateOrientation();
       h.el('map-toggle').emit('click'); assert.equal(h.el('map-details').hidden, before);
     }
+    g.startGame();
+    assert.equal(h.el('map-details').hidden, !touch, 'phone restarts reopen the minimap; PC retains its chosen state');
   }
 });
 
