@@ -29,16 +29,32 @@ test('poison only flows through connected tunnels and eventually disappears',()=
  for(let i=0;i<1400;i++)g.update(1/60);
  assert(g.poison.every(n=>n===0));assert.equal(g.waves.length,0);assert.equal(g.health,3);
 });
-test('poison falls fastest, moves sideways next, climbs slowly and fades away',()=>{
+test('poison falls fastest, slows on horizontal and uphill runs, and fades away',()=>{
  const g=new Game(1);g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;g.dug.fill(false);g.poison.fill(0);g.player={x:.5,y:.5,facing:1,moving:false};
  const c=12,r=6,source=r*COLS+c,down=(r+1)*COLS+c,side=r*COLS+c+1,up=(r-1)*COLS+c;
  for(const k of [source,down,side,up])g.dug[k]=true;
  g.poison[source]=g.difficulty.poisonLife;g.waves=[g.makeWave(source)];
  const arrival={down:null,side:null,up:null};
  for(let i=0;i<1000&&arrival.up===null;i++){g.update(1/240);if(arrival.down===null&&g.poison[down]>0)arrival.down=g.time;if(arrival.side===null&&g.poison[side]>0)arrival.side=g.time;if(arrival.up===null&&g.poison[up]>0)arrival.up=g.time;}
- assert(arrival.down<arrival.side&&arrival.side<arrival.up);assert(arrival.down<g.difficulty.floodStep*.6);assert(arrival.up>g.difficulty.floodStep*2.4);
+ assert(arrival.down<arrival.side&&arrival.side<arrival.up);assert(arrival.down<g.difficulty.floodStep*.65);assert(arrival.up>g.difficulty.floodStep*3);
  for(let i=0;i<1200;i++)g.update(1/120);
  assert(g.poison.every(value=>value===0));assert.equal(g.waves.length,0);
+});
+test('horizontal and bending tunnels let the mole outrun poison from level 6 onward',()=>{
+ const six=new Game(6),last=new Game(10),moleCellTime=1/SPEED;
+ for(const g of [six,last]){
+  const horizontal=g.flowDelay(1,0),uphill=g.flowDelay(0,-1),downhill=g.flowDelay(0,1);
+  assert(downhill<moleCellTime);assert(horizontal>moleCellTime);assert(uphill>horizontal);
+  assert(g.flowDelay(1,0,0,1)>horizontal);assert(g.flowDelay(0,-1,1,0)>uphill);
+ }
+ for(const level of [6,10]){
+  const g=new Game(level);g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;g.dug.fill(false);g.poison.fill(0);g.player={x:COLS-.5,y:ROWS-.5,facing:1,moving:false};
+  const path=[[2,0]];let c=2,r=0;for(let i=0;i<14;i++){if(i%2===0)r++;else c++;path.push([c,r]);}
+  for(const [x,y] of path)g.dug[y*COLS+x]=true;
+  const source=path[0][1]*COLS+path[0][0],target=path.at(-1)[1]*COLS+path.at(-1)[0];g.poison[source]=g.difficulty.poisonLife;g.waves=[g.makeWave(source)];
+  let arrival=null;for(let i=0;i<4000&&!arrival;i++){g.update(1/480);if(g.poison[target]>0)arrival=g.time;}
+  assert(arrival>(path.length-1)/SPEED,`level ${level}: zig-zag poison ${arrival}s must trail the mole`);
+ }
 });
 test('farmer warns briefly before pouring and attacks only open surface holes',()=>{
  const g=new Game(10);let warningAt=null,pourAt=null;

@@ -13,7 +13,7 @@
   const spriteTiles=[], cropArts=[];
   const held=new Set(), touches=new DirectionState(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let canvasPointer=null, pointerOrigin=null, dragging=false;
-  const defaultTip='Il veleno scende rapido, risale piano e poi svanisce: continua a muoverti!';
+  const defaultTip='Scappa a zig-zag: il veleno rallenta in orizzontale, in salita e a ogni curva.';
   $('tip').textContent=defaultTip;
   if(comfortable)$('panel-note').textContent='10 orti · veleno direzionale · comandi touch facilitati';
   const atlas=new Image();
@@ -215,17 +215,17 @@
     if(comfortable)document.querySelector('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
     syncMusic();
     const antCount=game.difficulty.antCount;
-    toast(game.level===1?'Il veleno scende rapido, risale lento e poi svanisce. Dal secondo orto scavano le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'} e veleno più rapido in discesa!`,4);
+    toast(game.level===1?'Scava a zig-zag: curve, tratti orizzontali e salite frenano il veleno. Dal secondo orto arrivano le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'}. Usa zig-zag e salite per seminare il veleno!`,4);
   }
   function showSummary(){mode='summary';summaryAt=0;savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
     const poisoned=game.status==='lost'&&death?.source==='poison';$('menu-card').classList.toggle('poisoned',poisoned);
-    if(poisoned)setPanel('IL VELENO HA RAGGIUNTO LA TALPA','Ops, che guaio!','Il veleno è letale al primo contatto. Prova a risalire: contro gravità avanza più lentamente e dopo poco svanisce.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
+    if(poisoned)setPanel('IL VELENO HA RAGGIUNTO LA TALPA','Ops, che guaio!','Il veleno è letale al primo contatto. Scava a zig-zag: rallenta in orizzontale, ancora di più in salita e perde tempo a ogni curva.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='lost')setPanel('LE FORMICHE TI HANNO BECCATA','Ops, che guaio!','Hai finito i cuori. Non fermarti vicino alle formiche e cambia spesso strada.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='complete')setPanel('TUTTI E DIECI GLI ORTI COMPLETATI','Sei una birbona!','Hai divorato l’orto, seminato il contadino e schivato tutte le formiche. Il giardino è tuo!','GIOCA DI NUOVO',`${game.score.toLocaleString('it-IT')} punti · Record: ${savedBest.toLocaleString('it-IT')}`);
-    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima, il veleno scenderà ancora più rapidamente e le formiche apriranno nuovi passaggi: cambia spesso strada.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
+    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima e le formiche apriranno nuovi passaggi. Zig-zag, tratti orizzontali e salite restano la via di fuga migliore.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
   }
   function pause(help=false){if(mode!=='playing')return;mode=help?'help':'paused';
-    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Il veleno uccide subito, scende rapido, si sposta normalmente di lato, risale piano e poi svanisce. Le formiche scavano nuovi passaggi e tolgono un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
+    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Il veleno uccide subito ma rallenta nei tratti orizzontali, nelle salite e a ogni curva: scava a zig-zag. Le formiche aprono nuovi passaggi e tolgono un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
   }
   $('play').addEventListener('click',()=>{
     if(!atlasReady)return;if(mode==='menu')game.start(1,0);else if(mode==='summary'){if(game.status==='won')game.next();else if(game.status==='lost')game.retry();else game.start(1,0);particles=[];popups=[];}

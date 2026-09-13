@@ -22,3 +22,10 @@ Atlas layout: 4 columns × 3 rows, 362×362 pixels per cell, total 1448×1086. C
 Generation brief: create one polished, cheerful 4×3 sprite sheet for a side-view game called Talpa Birbona, with one complete isolated subject in each cell and no text. Use consistent warm cartoon art, friendly rounded shapes, expressive eyes, crisp dark outlines, soft highlights and shadows, and true transparent backgrounds. Design the mole and farmer as original characters, and make all ten crops individually recognizable. Keep padding around every subject so each sprite can be sampled independently. No existing entertainment characters or copied game assets.
 
 Roblox uses independently drawn rounded GUI shapes in `TalpaBirbona.client.lua`: mole, farmer, ten crops, country house, trees, roots, tunnels and poison. It does not claim pixel-identical parity with the raster atlas and requires no uploaded image IDs.
+
+## Roblox presentation art
+
+The built-in image generator produced two dedicated Roblox marketing assets using `characters.png` as the character and style reference. Both were visually checked after export.
+
+- `roblox/assets/talpa-birbona-icon-512.png`: 512×512 PNG. Final prompt: a close, highly readable view of the red-scarfed mole bursting from a tunnel while purple poison falls behind her, with one ant and a narrow garden strip; warm saturated family-friendly cartoon rendering, no text or logos.
+- `roblox/assets/talpa-birbona-thumbnail-1920x1080.jpg`: 1920×1080 JPEG. Final prompt: a wide garden cutaway showing the same mole underground, the farmer pouring purple poison, ants digging a side tunnel and recognizable crops; an honest cinematic representation of the actual gameplay, no text or logos, with key subjects clear of Roblox's lower metadata area.

@@ -27,7 +27,7 @@ end}
 local screen=Instance.new('ScreenGui');local module=Instance.new('ModuleScript');module.Name='Core';module.Parent=screen
 script={Parent=screen};local realRequire=require
 require=function(arg)if arg==module then return dofile('roblox/Core.lua')else return realRequire(arg)end end
-local user=Instance.new('Player');local services={Players={LocalPlayer=user},UserInputService=Instance.new('UserInputService'),RunService=Instance.new('RunService'),GuiService=Instance.new('GuiService'),StarterGui={SetCoreGuiEnabled=function()end}}
+local user=Instance.new('Player');local services={Players={LocalPlayer=user},UserInputService=Instance.new('UserInputService'),RunService=Instance.new('RunService'),GuiService=Instance.new('GuiService'),SoundService=Instance.new('SoundService'),StarterGui={SetCoreGuiEnabled=function()end}}
 workspace={CurrentCamera={ViewportSize=Vector2.new(1440,1000)}};game={GetService=function(_,name)return assert(services[name],name)end}
 dofile('roblox/TalpaBirbona.client.lua')
 local function byText(s)for _,v in ipairs(all)do if v.Text==s and not v.destroyed then return v end end;error('Missing UI text: '..s)end

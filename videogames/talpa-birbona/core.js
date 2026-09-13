@@ -38,7 +38,8 @@
       this.difficulty={
         interval:Math.max(1.2,3.4-(level-1)*.24),
         warning:Math.max(.45,1.05-(level-1)*.065),
-        floodStep:Math.max(.08,.23-(level-1)*.016),
+        // The later gardens stay demanding without making level 6 a hard wall.
+        floodStep:Math.max(.115,.235-(level-1)*.012),
         poisonLife:4,
         farmerSpeed:9.2+level*1.25,
         antCount:level===1?0:Math.min(5,Math.floor(level/2)),
@@ -57,16 +58,17 @@
     random() { this.randomState=(this.randomState*16807)%2147483647; return this.randomState/2147483647; }
     makeWave(k) {
       const arrival=new Float64Array(COLS*ROWS);arrival.fill(Infinity);arrival[k]=0;
-      return {pending:[{k,at:0}],arrival,seen:new Set([k]),frontier:[k],age:0};
+      return {pending:[{k,at:0,dc:0,dr:0}],arrival,seen:new Set([k]),frontier:[k],age:0};
     }
-    flowDelay(dr) {
-      // Gravity makes downward flow fast; climbing against it is deliberately slow.
-      const directionFactor=dr>0?.46:dr<0?2.6:1;
-      return this.difficulty.floodStep*directionFactor;
+    flowDelay(dc,dr,previousDc=0,previousDr=0) {
+      // Falling remains dangerous, while horizontal runs, climbs and bends reward zig-zag escape tunnels.
+      const directionFactor=dr>0?.55:dr<0?3.2:1.75;
+      const turned=(previousDc!==0||previousDr!==0)&&(dc!==previousDc||dr!==previousDr);
+      return this.difficulty.floodStep*(directionFactor+(turned?.65:0));
     }
-    injectWaveCell(wave,k) {
+    injectWaveCell(wave,k,dc=0,dr=0) {
       if(wave.arrival[k]<=wave.age)return;
-      wave.arrival[k]=wave.age;wave.seen.add(k);wave.pending.push({k,at:wave.age});
+      wave.arrival[k]=wave.age;wave.seen.add(k);wave.pending.push({k,at:wave.age,dc,dr});
       if(!wave.frontier.includes(k))wave.frontier.push(k);
     }
     carryPoisonIntoAntTunnel(k,c,r) {
@@ -76,7 +78,8 @@
       if(poisoned===undefined)return;
       this.poison[k]=Math.max(this.poison[k],this.difficulty.poisonLife);
       const wave=this.waves.find(candidate=>candidate.seen.has(poisoned));
-      if(wave)this.injectWaveCell(wave,k);
+      const pc=poisoned%COLS,pr=Math.floor(poisoned/COLS);
+      if(wave)this.injectWaveCell(wave,k,c-pc,r-pr);
       else this.waves.push(this.makeWave(k));
       this.events.push({type:'poisonBreach',x:c+.5,y:r+.5});
     }
@@ -177,8 +180,8 @@
           for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]) {
             const nc=c+dc,nr=r+dr;
             if(nc<0||nc>=COLS||nr<0||nr>=ROWS)continue;
-            const nk=index(nc,nr),at=entry.at+this.flowDelay(dr);
-            if(this.dug[nk]&&at+1e-9<wave.arrival[nk]){wave.arrival[nk]=at;wave.seen.add(nk);wave.pending.push({k:nk,at});}
+            const nk=index(nc,nr),at=entry.at+this.flowDelay(dc,dr,entry.dc,entry.dr);
+            if(this.dug[nk]&&at+1e-9<wave.arrival[nk]){wave.arrival[nk]=at;wave.seen.add(nk);wave.pending.push({k:nk,at,dc,dr});}
           }
         }
         if(activated.length)wave.frontier=activated;

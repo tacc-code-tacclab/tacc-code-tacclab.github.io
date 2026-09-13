@@ -50,6 +50,8 @@ def build(output):
     for name, value in [('Enabled', 'true'), ('IgnoreGuiInset', 'true'), ('ResetOnSpawn', 'false')]:
         prop(props, 'bool', name, value)
     prop(props, 'int', 'DisplayOrder', 100)
+    _, music_props = item(screen, 'StringValue', 'MusicSoundId')
+    prop(music_props, 'string', 'Value', '')
     for cls, name, path in [('ModuleScript', 'Core', ROOT / 'Core.lua'), ('LocalScript', 'TalpaBirbonaClient', ROOT / 'TalpaBirbona.client.lua')]:
         _, props = item(screen, cls, name)
         if cls == 'LocalScript':
@@ -60,6 +62,8 @@ def build(output):
     ET.ElementTree(doc).write(output, encoding='utf-8', xml_declaration=True)
     # Validate structure and exact script round-trip; this is not a Studio playtest.
     parsed = ET.parse(output)
+    music_value = parsed.find(".//Item[@class='StringValue']/Properties/string[@name='Value']")
+    assert music_value is not None
     for cls, filename in [('ModuleScript', 'Core.lua'), ('LocalScript', 'TalpaBirbona.client.lua')]:
         source = parsed.find(f".//Item[@class='{cls}']/Properties/ProtectedString[@name='Source']")
         assert source.text == (ROOT / filename).read_text()
@@ -67,5 +71,5 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=ROOT / 'Talpa_Birbona_Roblox_V1.rbxlx')
+    parser.add_argument('--output', type=Path, default=ROOT / 'Talpa_Birbona_Roblox_V2.rbxlx')
     build(parser.parse_args().output.resolve())
