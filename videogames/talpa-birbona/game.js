@@ -13,9 +13,9 @@
   const spriteTiles=[], cropArts=[];
   const held=new Set(), touches=new DirectionState(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let canvasPointer=null, pointerOrigin=null, dragging=false;
-  const defaultTip='Il veleno uccide al contatto; le formiche tolgono un cuore. Continua a muoverti!';
+  const defaultTip='Il veleno scende rapido, risale piano e poi svanisce: continua a muoverti!';
   $('tip').textContent=defaultTip;
-  if(comfortable)$('panel-note').textContent='10 orti · veleno letale · comandi touch facilitati';
+  if(comfortable)$('panel-note').textContent='10 orti · veleno direzionale · comandi touch facilitati';
   const atlas=new Image();
   music.volume=.22;
   try{
@@ -132,8 +132,8 @@
     }
     const poisonFront=new Set(game.waves.flatMap(w=>w.frontier));
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(game.poison[r*COLS+c]>0){
-      const k=r*COLS+c,x=px(c+.5),y=py(r+.5),a=Math.min(.88,game.poison[k]/2);ctx.globalAlpha=a;
-      round(x-17,y-17,34,34,10,'#a666e8');ellipse(x+Math.sin(t*3+c)*5,y+Math.cos(t*2+r)*6,7,6,'#d9b5fa');ellipse(x+9,y-8,3,3,'#f4d9ff');
+      const k=r*COLS+c,x=px(c+.5),y=py(r+.5),remaining=clamp(game.poison[k]/game.difficulty.poisonLife,0,1),a=.12+.76*Math.sqrt(remaining),radius=13+4*remaining;ctx.globalAlpha=a;
+      round(x-radius,y-radius,radius*2,radius*2,10,'#a666e8');ellipse(x+Math.sin(t*3+c)*5,y+Math.cos(t*2+r)*6,5+2*remaining,4+2*remaining,'#d9b5fa');ellipse(x+8*remaining,y-8*remaining,2+remaining,2+remaining,'#f4d9ff');
       if(poisonFront.has(k)){ctx.lineWidth=3;round(x-19-Math.sin(t*10)*2,y-19-Math.sin(t*10)*2,38+Math.sin(t*10)*4,38+Math.sin(t*10)*4,12,null,'#f2d6ff');}ctx.globalAlpha=1;
     }
     for(const c of game.holes){const x=px(c+.5);ellipse(x,GY,22,7,'#7b593d');ellipse(x,GY,14,5,'#473a32');ellipse(x-22,GY,8,4,'#c2915e');ellipse(x+18,GY,7,4,'#c2915e');}
@@ -215,17 +215,17 @@
     if(comfortable)document.querySelector('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
     syncMusic();
     const antCount=game.difficulty.antCount;
-    toast(game.level===1?'Il contadino ora è rapido. Dal secondo orto scavano anche le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'} e veleno velocissimo!`,4);
+    toast(game.level===1?'Il veleno scende rapido, risale lento e poi svanisce. Dal secondo orto scavano le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'} e veleno più rapido in discesa!`,4);
   }
   function showSummary(){mode='summary';summaryAt=0;savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
     const poisoned=game.status==='lost'&&death?.source==='poison';$('menu-card').classList.toggle('poisoned',poisoned);
-    if(poisoned)setPanel('IL VELENO HA RAGGIUNTO LA TALPA','Ops, che guaio!','Il veleno è letale al primo contatto. Cambia subito cunicolo quando il viola si avvicina.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
+    if(poisoned)setPanel('IL VELENO HA RAGGIUNTO LA TALPA','Ops, che guaio!','Il veleno è letale al primo contatto. Prova a risalire: contro gravità avanza più lentamente e dopo poco svanisce.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='lost')setPanel('LE FORMICHE TI HANNO BECCATA','Ops, che guaio!','Hai finito i cuori. Non fermarti vicino alle formiche e cambia spesso strada.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='complete')setPanel('TUTTI E DIECI GLI ORTI COMPLETATI','Sei una birbona!','Hai divorato l’orto, seminato il contadino e schivato tutte le formiche. Il giardino è tuo!','GIOCA DI NUOVO',`${game.score.toLocaleString('it-IT')} punti · Record: ${savedBest.toLocaleString('it-IT')}`);
-    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima e le formiche apriranno nuovi passaggi al veleno: cambia spesso strada.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
+    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima, il veleno scenderà ancora più rapidamente e le formiche apriranno nuovi passaggi: cambia spesso strada.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
   }
   function pause(help=false){if(mode!=='playing')return;mode=help?'help':'paused';
-    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Cambia strada toccando la terra oppure usa le frecce. Il veleno corre nei cunicoli, comprese le nuove gallerie delle formiche, e uccide subito. Le formiche invece tolgono un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
+    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Il veleno uccide subito, scende rapido, si sposta normalmente di lato, risale piano e poi svanisce. Le formiche scavano nuovi passaggi e tolgono un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
   }
   $('play').addEventListener('click',()=>{
     if(!atlasReady)return;if(mode==='menu')game.start(1,0);else if(mode==='summary'){if(game.status==='won')game.next();else if(game.status==='lost')game.retry();else game.start(1,0);particles=[];popups=[];}

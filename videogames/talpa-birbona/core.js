@@ -39,6 +39,7 @@
         interval:Math.max(1.2,3.4-(level-1)*.24),
         warning:Math.max(.45,1.05-(level-1)*.065),
         floodStep:Math.max(.08,.23-(level-1)*.016),
+        poisonLife:4,
         farmerSpeed:9.2+level*1.25,
         antCount:level===1?0:Math.min(5,Math.floor(level/2)),
         antSpeed:1.35+level*.16,
@@ -54,15 +55,29 @@
       this.dig(this.player.x,this.player.y);
     }
     random() { this.randomState=(this.randomState*16807)%2147483647; return this.randomState/2147483647; }
+    makeWave(k) {
+      const arrival=new Float64Array(COLS*ROWS);arrival.fill(Infinity);arrival[k]=0;
+      return {pending:[{k,at:0}],arrival,seen:new Set([k]),frontier:[k],age:0};
+    }
+    flowDelay(dr) {
+      // Gravity makes downward flow fast; climbing against it is deliberately slow.
+      const directionFactor=dr>0?.46:dr<0?2.6:1;
+      return this.difficulty.floodStep*directionFactor;
+    }
+    injectWaveCell(wave,k) {
+      if(wave.arrival[k]<=wave.age)return;
+      wave.arrival[k]=wave.age;wave.seen.add(k);wave.pending.push({k,at:wave.age});
+      if(!wave.frontier.includes(k))wave.frontier.push(k);
+    }
     carryPoisonIntoAntTunnel(k,c,r) {
       const neighbors=[[c+1,r],[c-1,r],[c,r+1],[c,r-1]]
         .filter(([nc,nr])=>nc>=0&&nc<COLS&&nr>=0&&nr<ROWS).map(([nc,nr])=>index(nc,nr));
       const poisoned=neighbors.find(nk=>this.poison[nk]>0);
       if(poisoned===undefined)return;
-      this.poison[k]=Math.max(this.poison[k],4.2);
+      this.poison[k]=Math.max(this.poison[k],this.difficulty.poisonLife);
       const wave=this.waves.find(candidate=>candidate.seen.has(poisoned));
-      if(wave){wave.seen.add(k);wave.frontier.push(k);}
-      else this.waves.push({frontier:[k],seen:new Set([poisoned,k]),clock:0,age:0});
+      if(wave)this.injectWaveCell(wave,k);
+      else this.waves.push(this.makeWave(k));
       this.events.push({type:'poisonBreach',x:c+.5,y:r+.5});
     }
     dig(x,y,source='mole') {
@@ -75,8 +90,8 @@
       if(r===0&&!this.holes.includes(c)) { this.holes.push(c); this.events.push({type:'hole',source,x:c+.5,y:0}); }
     }
     beginWave(c) {
-      const k=index(c,0); this.poison[k]=Math.max(this.poison[k],4.2);
-      this.waves.push({frontier:[k],seen:new Set([k]),clock:0,age:0});
+      const k=index(c,0); this.poison[k]=Math.max(this.poison[k],this.difficulty.poisonLife);
+      this.waves.push(this.makeWave(k));
       this.events.push({type:'pour',x:c+.5,y:0});
     }
     antPosition() {
@@ -150,22 +165,25 @@
       this.updateFarmer(dt);
       for(let i=0;i<this.poison.length;i++) this.poison[i]=Math.max(0,this.poison[i]-dt);
       for(const wave of this.waves) {
-        wave.age+=dt; wave.clock+=dt;
-        if(wave.clock<this.difficulty.floodStep||wave.age>13) continue;
-        wave.clock-=this.difficulty.floodStep;
-        const next=[];
-        for(const k of wave.frontier) {
-          const c=k%COLS,r=Math.floor(k/COLS);
+        wave.age+=dt;
+        if(wave.age>13)continue;
+        const ready=[],waiting=[];
+        for(const entry of wave.pending)(entry.at<=wave.age+1e-9?ready:waiting).push(entry);
+        wave.pending=waiting;ready.sort((a,b)=>a.at-b.at);const activated=[];
+        for(const entry of ready) {
+          if(Math.abs(wave.arrival[entry.k]-entry.at)>1e-9)continue;
+          const k=entry.k,c=k%COLS,r=Math.floor(k/COLS);activated.push(k);
+          this.poison[k]=Math.max(this.poison[k],this.difficulty.poisonLife);
           for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]) {
             const nc=c+dc,nr=r+dr;
-            if(nc<0||nc>=COLS||nr<0||nr>=ROWS) continue;
-            const nk=index(nc,nr);
-            if(this.dug[nk]&&!wave.seen.has(nk)) { wave.seen.add(nk); next.push(nk); this.poison[nk]=4.2; }
+            if(nc<0||nc>=COLS||nr<0||nr>=ROWS)continue;
+            const nk=index(nc,nr),at=entry.at+this.flowDelay(dr);
+            if(this.dug[nk]&&at+1e-9<wave.arrival[nk]){wave.arrival[nk]=at;wave.seen.add(nk);wave.pending.push({k:nk,at});}
           }
         }
-        wave.frontier=next;
+        if(activated.length)wave.frontier=activated;
       }
-      this.waves=this.waves.filter(w=>w.age<=13&&w.frontier.length);
+      this.waves=this.waves.filter(w=>w.age<=13&&w.pending.length);
       if(this.poisonTouchesPlayer()) return;
       this.updateAnts(dt);
       if(this.status==='playing') this.poisonTouchesPlayer();

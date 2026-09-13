@@ -15,7 +15,7 @@ La selezione e il menu di pressione prolungata sono bloccati sui comandi tramite
 ### Regole
 
 - Mangia le radici colorate di **tutte le piante** per completare un orto. La pianta appassisce, il suo passaggio verso la superficie si apre e ricevi i punti indicati.
-- Il contadino corre fino alle buche, concede un avviso molto breve prima di versare il veleno viola e riduce progressivamente le pause. Il veleno accelera a ogni orto, si propaga lungo tutti i cunicoli collegati, uccide la talpa immediatamente al contatto e poi si dissolve. Scava nella terra intatta per trovare una via di fuga.
+- Il contadino corre fino alle buche, concede un avviso molto breve prima di versare il veleno viola e riduce progressivamente le pause. Il veleno accelera a ogni orto e segue la gravità: scende circa due volte più rapidamente, si sposta lateralmente alla velocità normale e risale circa 2,6 volte più lentamente. Ogni chiazza si restringe, sbiadisce e scompare dopo circa quattro secondi, ma resta letale al primo contatto. Scava nella terra intatta o risali per trovare una via di fuga.
 - Dal secondo orto arrivano le formiche. Il loro numero e la loro velocità aumentano fino al livello 10; inseguono la talpa scavando vere gallerie. Se una galleria appena aperta tocca il veleno, ne diventa subito un nuovo fronte di propagazione. Dopo un contatto con la talpa, la formica viene respinta lontano.
 - Hai tre cuori per orto contro le formiche: ogni loro contatto toglie un cuore ed è seguito da un breve periodo di protezione. Il veleno ignora invece i cuori ed è subito fatale. I cuori si ricaricano nel livello successivo.
 - Completi il gioco dopo l'orto 10. Un orto fallito si può riprovare; il punteggio torna a quello all'inizio del livello.
@@ -58,7 +58,7 @@ python tests/verify_lua.py
 python roblox/build_place.py
 ```
 
-I test controllano completamento dei dieci livelli, punteggi, movimento, limiti dello schermo, continuità dei cunicoli della talpa e delle formiche, infiltrazione del veleno nelle nuove gallerie, progressione dei pericoli, morte istantanea da veleno, danni delle formiche e ripartenza. `verify_lua.py` usa la libreria di sistema Lua 5.4; questi controlli e il round-trip XML **non equivalgono a una prova in Roblox Studio**.
+I test controllano completamento dei dieci livelli, punteggi, movimento, limiti dello schermo, continuità dei cunicoli della talpa e delle formiche, infiltrazione del veleno nelle nuove gallerie, ordine delle velocità discesa–laterale–risalita, dissolvenza, progressione dei pericoli, morte istantanea da veleno, danni delle formiche e ripartenza. `verify_lua.py` usa la libreria di sistema Lua 5.4; questi controlli e il round-trip XML **non equivalgono a una prova in Roblox Studio**.
 
 ## Asset
 
