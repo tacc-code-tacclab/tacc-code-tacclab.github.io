@@ -11,7 +11,6 @@
   $('boss-name').textContent = 'GOLDEN SHOT READY · 84m ↗';
   $('health-text').textContent = '100';
   $('ammo-text').textContent = '32';
-  $('touch-auto').classList.add('enabled');
   $('render-host').style.background = 'radial-gradient(ellipse at 50% 60%, #35624b, #132721 65%, #091710)';
   const world = new BertrandaWorld.World(THREE, new THREE.Scene());
   world.setSchema(1, { accent: 0x67ff9a });

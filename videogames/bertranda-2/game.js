@@ -88,7 +88,7 @@
     difficulty: "normal",
     quality: "deep",
     realm: "1",
-    touchAuto: true,
+    touchAuto: false,
     muted: false
   };
 
@@ -1076,7 +1076,7 @@
     }
 
     const lookDX = controls.lookDX, lookDY = controls.lookDY;
-    const lookSpeed = IS_TOUCH ? clamp(1.15 / Math.min(innerWidth, innerHeight), 0.0024, 0.0046) : 0.00215;
+    const lookSpeed = IS_TOUCH ? clamp(1.15 / Math.min(renderSize.width, renderSize.height), 0.0024, 0.0046) : 0.00215;
     player.yaw -= lookDX * lookSpeed;
     player.pitch = clamp(player.pitch - lookDY * lookSpeed * (IS_TOUCH ? 0.78 : 1), -1.1, 1.1);
     controls.lookDX = 0;
@@ -1085,7 +1085,7 @@
       camera.position.set(player.x, player.height, player.z);
       camera.rotation.set(player.pitch, player.yaw, 0, "YXZ");
       camera.updateMatrixWorld(true);
-      updateTouchAim(dt, lookDX, lookDY);
+      updateTouchAim(dt);
     }
 
     const stability = IS_TOUCH ? 0.18 : 1;
@@ -1191,7 +1191,7 @@
     return best;
   }
 
-  function updateTouchAim(dt, lookDX = 0, lookDY = 0) {
+  function updateTouchAim(dt) {
     if (!IS_TOUCH || !canPlay()) return;
     touchAssist.scanTimer -= dt;
     if (touchAssist.scanTimer <= 0 || (touchAssist.target && !touchAssist.target.creature.alive)) {
@@ -1206,17 +1206,8 @@
     if (!target) return;
     const creature = target.creature;
     target.point.set(creature.x, creature === boss ? 1.65 : CREATURES[creature.type].aimY + creature.model.position.y, creature.z);
-    const dx = creature.x - player.x, dz = creature.z - player.z;
-    const yaw = Math.atan2(-dx, -dz) - player.yaw;
-    const errorYaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
-    const errorPitch = Math.atan2(target.point.y - player.height, Math.hypot(dx, dz)) - player.pitch;
-    const pull = 1 - Math.exp(-dt * 4.5);
-    // A deliberate swipe always takes priority over the magnet. Vertical
-    // assistance makes low insects and flying bats reachable with one thumb.
-    if (Math.abs(lookDX) < 1.5) player.yaw += clamp(errorYaw * pull, -dt * 0.9, dt * 0.9);
-    if (Math.abs(lookDY) < 1.5) player.pitch = clamp(player.pitch + clamp(errorPitch * pull, -dt * 1.3, dt * 1.3), -1.1, 1.1);
-    camera.rotation.set(player.pitch, player.yaw, 0, "YXZ");
-    camera.updateMatrixWorld(true);
+    // Assist the shot, never steer the view. Even a slow swipe belongs to the
+    // player, and lifting a finger must leave the camera where it was aimed.
     const projected = target.point.clone().project(camera);
     const aimDistance = Math.hypot(projected.x * camera.aspect, projected.y);
     touchAssist.acquired += dt;
@@ -1900,7 +1891,7 @@
     updateOrientation();
     needsRender = true;
     showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.7);
-    showCaption(IS_TOUCH ? "Left thumb: move. Right thumb: aim. AUTO shoots for you. Find GOLD on the map." : "M opens your map. Find the golden bullet, weaken Bertranda, then fire to enter the next realm.", 5.2);
+    showCaption(IS_TOUCH ? "Left thumb: move. Drag right: look. Hold FIRE: shoot; release: stop. Find GOLD on the map." : "M opens your map. Find the golden bullet, weaken Bertranda, then fire to enter the next realm.", 5.2);
     if (!IS_TOUCH) requestPointer();
   }
 
@@ -1963,7 +1954,8 @@
 
   function updateOrientation() {
     const active = gameState === "playing" || gameState === "transitioning";
-    const blocked = IS_TOUCH && innerHeight > innerWidth && active;
+    const viewport = playViewport();
+    const blocked = IS_TOUCH && viewport.height > viewport.width && active;
     if (blocked !== orientationBlocked) {
       resetInputs();
       needsRender = true;
@@ -1985,6 +1977,7 @@
     try {
       if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape");
     } catch (_) { /* Physical rotation remains available. */ }
+    onResize();
     updateOrientation();
   }
 
@@ -2024,6 +2017,7 @@
         audio.resetMusic();
         if (audio.context && audio.context.state === "suspended") audio.context.resume().catch(() => {});
         updateOrientation();
+        if (IS_TOUCH) onResize();
       } else if (audio.context && audio.context.state === "running") {
         audio.context.suspend().catch(() => {});
       }
@@ -2051,6 +2045,11 @@
   }
 
   function bindTouchControls() {
+    // Window listeners also finish gestures that leave a control or whose
+    // capture is unavailable during a browser/fullscreen transition.
+    const capture = (element, pointerId) => {
+      try { element.setPointerCapture(pointerId); } catch (_) { /* Window fallback. */ }
+    };
     let movePointer = null;
     const updateMove = (event) => {
       const rect = ui.movePad.getBoundingClientRect();
@@ -2071,11 +2070,13 @@
       if (!canPlay() || movePointer !== null) return;
       event.preventDefault();
       movePointer = event.pointerId;
-      ui.movePad.setPointerCapture(event.pointerId);
+      capture(ui.movePad, event.pointerId);
       updateMove(event);
     });
-    ui.movePad.addEventListener("pointermove", (event) => {
-      if (event.pointerId === movePointer) updateMove(event);
+    window.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== movePointer) return;
+      event.preventDefault();
+      updateMove(event);
     });
     const endMove = (event) => {
       if (event.pointerId !== movePointer) return;
@@ -2085,8 +2086,8 @@
       controls.runTouch = false;
       ui.moveKnob.style.transform = "";
     };
-    ui.movePad.addEventListener("pointerup", endMove);
-    ui.movePad.addEventListener("pointercancel", endMove);
+    window.addEventListener("pointerup", endMove);
+    window.addEventListener("pointercancel", endMove);
     ui.movePad.addEventListener("lostpointercapture", endMove);
     touchResetters.push(() => { movePointer = null; });
 
@@ -2097,14 +2098,14 @@
         if (!canPlay() || pointer !== null) return;
         event.preventDefault();
         pointer = event.pointerId; x = event.clientX || 0; y = event.clientY || 0;
-        element.setPointerCapture(pointer);
+        capture(element, pointer);
         aimingSurfaces.add(element); controls.aimTouch = true;
         if (shoots) {
           controls.fireTouch = true; controls.fire = true;
           element.classList.add("pressed");
         }
       });
-      element.addEventListener("pointermove", event => {
+      window.addEventListener("pointermove", event => {
         if (pointer !== event.pointerId) return;
         event.preventDefault();
         controls.lookDX += clamp(event.clientX - x, -100, 100);
@@ -2117,8 +2118,8 @@
         aimingSurfaces.delete(element); controls.aimTouch = aimingSurfaces.size > 0;
         if (shoots) { controls.fireTouch = false; controls.fire = false; element.classList.remove("pressed"); }
       };
-      element.addEventListener("pointerup", end);
-      element.addEventListener("pointercancel", end);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
       element.addEventListener("lostpointercapture", end);
       touchResetters.push(() => { pointer = null; aimingSurfaces.delete(element); });
     };
@@ -2131,7 +2132,7 @@
         if (!canPlay() || pointer !== null) return;
         event.preventDefault();
         pointer = event.pointerId;
-        button.setPointerCapture(event.pointerId);
+        capture(button, event.pointerId);
         button.classList.add("pressed");
         start();
       });
@@ -2141,8 +2142,8 @@
         button.classList.remove("pressed");
         stop();
       };
-      button.addEventListener("pointerup", end);
-      button.addEventListener("pointercancel", end);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
       button.addEventListener("lostpointercapture", end);
       touchResetters.push(() => { pointer = null; });
     };
@@ -2169,19 +2170,27 @@
     needsRender = true;
   }
 
+  function playViewport() {
+    return {
+      width: IS_TOUCH ? (ui.host.clientWidth || innerWidth) : innerWidth,
+      height: IS_TOUCH ? (ui.host.clientHeight || innerHeight) : innerHeight
+    };
+  }
+
   function updateRenderSize() {
     if (!renderer) return;
+    const { width, height } = playViewport();
     let cap = settings.quality === "low" ? (IS_TOUCH ? 0.72 : 0.86) : settings.quality === "high" ? (IS_TOUCH ? 1.15 : 1.75) : (IS_TOUCH ? 1 : 1.25);
-    if (IS_TOUCH) cap = Math.min(cap, Math.sqrt(650000 / (innerWidth * innerHeight))) * performanceState.scale;
+    if (IS_TOUCH) cap = Math.min(cap, Math.sqrt(650000 / (width * height))) * performanceState.scale;
     const ratio = Math.min(devicePixelRatio || 1, cap);
-    if (renderSize.width === innerWidth && renderSize.height === innerHeight && renderSize.ratio === ratio) return;
-    renderSize.width = innerWidth;
-    renderSize.height = innerHeight;
+    if (renderSize.width === width && renderSize.height === height && renderSize.ratio === ratio) return;
+    renderSize.width = width;
+    renderSize.height = height;
     if (renderSize.ratio !== ratio) renderer.setPixelRatio(ratio);
     renderSize.ratio = ratio;
-    renderer.setSize(innerWidth, innerHeight, false);
+    renderer.setSize(width, height, false);
     if (camera) {
-      camera.aspect = innerWidth / innerHeight;
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
     }
     needsRender = true;
@@ -2224,8 +2233,11 @@
       ui.loading.innerHTML = "<strong>THE REALMS FAILED TO OPEN</strong><small>Reload to finish loading the game.</small>";
       return;
     }
+    document.body.dataset.touch = String(IS_TOUCH);
     renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-    renderer.setSize(innerWidth, innerHeight);
+    // Mobile canvas CSS must remain fluid after rotating. Three's default
+    // setSize writes inline portrait pixels which override the 100% stylesheet.
+    renderer.setSize(innerWidth, innerHeight, !IS_TOUCH);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.55;
@@ -2235,7 +2247,7 @@
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x071017);
     scene.fog = new THREE.FogExp2(0x071017, 0.0155);
-    camera = new THREE.PerspectiveCamera(73, innerWidth / innerHeight, 0.06, 95);
+    camera = new THREE.PerspectiveCamera(73, renderSize.width / renderSize.height, 0.06, 95);
     camera.rotation.order = "YXZ";
     scene.add(camera);
     clock = new THREE.Clock();
@@ -2279,7 +2291,7 @@
     if (window.visualViewport) window.visualViewport.addEventListener("resize", onResize);
     if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", onResize);
     document.addEventListener("fullscreenchange", onResize);
-    document.body.dataset.touch = String(IS_TOUCH);
+    if (IS_TOUCH && window.ResizeObserver) new ResizeObserver(onResize).observe(ui.host);
     updateOrientation();
 
     ui.start.disabled = false;

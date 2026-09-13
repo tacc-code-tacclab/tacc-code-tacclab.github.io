@@ -23,7 +23,11 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
       };
     }
     addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); }
-    emit(name, event = {}) { for (const callback of this.listeners[name] || []) callback({ preventDefault() {}, ...event }); }
+    emit(name, event = {}) {
+      const value = { preventDefault() {}, ...event };
+      for (const callback of this.listeners[name] || []) callback(value);
+      if (/^pointer(move|up|cancel)$/.test(name) && this !== windowEvents) windowEvents.emit(name, value);
+    }
     setAttribute() {}
     appendChild() {}
     setPointerCapture() {}
@@ -52,8 +56,15 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
       this.renders = 0;
       this.resizes = 0;
     }
-    setSize(w, h) { this.width = w; this.height = h; this.resizes++; }
-    setPixelRatio(ratio) { this.ratio = ratio; }
+    // Match bundled Three.js, including the inline CSS that caused the
+    // portrait-to-landscape regression. Buffer size alone is not display size.
+    setSize(w, h, updateStyle = true) {
+      this.width = w; this.height = h; this.resizes++;
+      this.domElement.width = Math.floor(w * (this.ratio || 1));
+      this.domElement.height = Math.floor(h * (this.ratio || 1));
+      if (updateStyle) { this.domElement.style.width = w + 'px'; this.domElement.style.height = h + 'px'; }
+    }
+    setPixelRatio(ratio) { this.ratio = ratio; this.setSize(this.width, this.height, false); }
     render(scene) { scene.updateMatrixWorld(true); this.renders++; }
   }
   const context = {
@@ -72,6 +83,13 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
     cancelAnimationFrame: id => raf.delete(id)
   };
   const windowEvents = new Element();
+  Object.defineProperties(document.querySelector('#render-host'), {
+    clientWidth: { get: () => context.viewportWidth || context.innerWidth },
+    clientHeight: { get: () => context.viewportHeight || context.innerHeight }
+  });
+  context.visualViewport = new Element();
+  let observedResize;
+  context.ResizeObserver = class { constructor(fn) { observedResize = fn; } observe() {} };
   context.addEventListener = windowEvents.addEventListener.bind(windowEvents);
   context.window = context;
   context.window.emit = windowEvents.emit.bind(windowEvents);
@@ -80,7 +98,7 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
   const instrumented = source.replace('  init();\n})();', `
     window.gameTest = {
       startGame, pauseGame, resumeGame, requestLandscape, updateOrientation,
-      animate, onResize, applyQuality, updatePerformance, findPath, moveCreature,
+      animate, onResize, updateRenderSize, applyQuality, updatePerformance, findPath, moveCreature,
       worldFromCell, cellFromWorld, isWalkableCell, floorCells, navigation,
       explosionAt, impactAt, spawnHealth, spawnBurst, updateEffects, createTracer,
       effectiveEnemyCap, beginNextSchema, killBoss, stageInfo,
@@ -100,6 +118,8 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
   assert.notEqual(instrumented, source, 'test instrumentation anchor exists');
   vm.runInContext(instrumented, context);
   return { game: context.gameTest, context, document, timers, raf,
+    resizeHost: () => observedResize?.(),
+    frame: () => { const callbacks = [...raf.values()]; raf.clear(); callbacks.forEach(fn => fn()); },
     el: id => document.querySelector('#' + id),
     visibleLights: () => {
       let lights = 0;
@@ -108,6 +128,43 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
     }
   };
 }
+
+test('phone canvas, camera and HUD keep one size after portrait rotation and browser-bar changes', () => {
+  const h = harness({ width: 390, height: 844 }); const g = h.game;
+  g.startGame();
+  const canvas = g.renderer.domElement;
+  const displaySize = () => ['width', 'height'].map(axis => {
+    const inline = canvas.style[axis];
+    return inline?.endsWith('px') ? parseFloat(inline) : h.el('render-host')[axis === 'width' ? 'clientWidth' : 'clientHeight'];
+  });
+  assert.deepEqual(displaySize(), [390, 844]);
+  h.context.innerWidth = 844; h.context.innerHeight = 390;
+  h.context.emit('resize'); h.frame();
+  assert.deepEqual(displaySize(), [844, 390], 'CSS canvas must not retain portrait pixel dimensions');
+  assert.equal(g.camera.aspect, 844 / 390);
+  assert.equal(h.el('rotate-screen').hidden, true);
+  h.context.viewportWidth = 844; h.context.viewportHeight = 310;
+  h.resizeHost(); h.frame();
+  assert.deepEqual(displaySize(), [844, 310]);
+  assert.equal(g.renderer.height, 310, 'dynamic viewport sizes the buffer too');
+  assert.equal(g.camera.aspect, 844 / 310, 'projection follows the actual play surface');
+  for (let i = 0; i < 6; i++) {
+    h.context.innerWidth = h.context.viewportWidth = i % 2 ? 844 : 390;
+    h.context.innerHeight = h.context.viewportHeight = i % 2 ? 390 : 844;
+    h.context.emit('resize'); h.frame();
+    assert.deepEqual(displaySize(), [g.renderer.width, g.renderer.height]);
+    assert.equal(g.camera.aspect, g.renderer.width / g.renderer.height);
+  }
+});
+
+test('phone starts with manual fire and leaves the view still until the player swipes', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h, 36.5, 26);
+  for (let i = 0; i < 50; i++) g.animate();
+  assert.equal(g.settings.touchAuto, false);
+  assert.equal(g.weapon.ammo, 32, 'an enemy on screen must not pull the trigger');
+  assert.equal(g.player.yaw, 0, 'aim assistance must not steer the camera on its own');
+  assert.equal(g.player.pitch, 0);
+});
 
 test('mobile blur and pointer-lock changes do not open the pause menu; manual pause works', () => {
   const h = harness(); const g = h.game; g.startGame();
@@ -429,9 +486,10 @@ test('holding the touch trigger resumes firing after an automatic reload', () =>
   g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
 });
 
-test('phone AUTO shoots an acquired target; the same idle desktop scene never fires', () => {
+test('phone AUTO requires opt-in to shoot an acquired target; the idle desktop never fires', () => {
   for (const touch of [true, false]) {
     const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    if (touch) h.el('touch-auto').emit('click');
     const hp = g.boss.hp;
     for (let i = 0; i < 55; i++) g.animate();
     if (touch) {
@@ -445,19 +503,27 @@ test('phone AUTO shoots an acquired target; the same idle desktop scene never fi
   }
 });
 
-test('AUTO can be disabled; a deliberate swipe takes priority over magnetic aiming', () => {
+test('AUTO can be disabled; slow swipes control the camera without magnetic pullback', () => {
   const h = harness(); const g = h.game; g.startGame(); faceTarget(h, 36.5, 26);
+  h.el('touch-auto').emit('click'); assert.equal(g.settings.touchAuto, true);
   h.el('touch-auto').emit('click'); assert.equal(g.settings.touchAuto, false);
   for (let i = 0; i < 50; i++) g.animate();
-  assert.equal(g.weapon.ammo, 32); assert.ok(g.player.yaw < -0.1, 'gentle assist brings the target toward centre');
+  assert.equal(g.weapon.ammo, 32); assert.equal(g.player.yaw, 0);
   const yaw = g.player.yaw;
-  g.controls.lookDX = -50; g.updatePlayer(1 / 60);
-  assert.ok(g.player.yaw > yaw, 'the player can swipe away from the target');
+  h.el('look-pad').emit('pointerdown', { pointerId: 1, clientX: 500, clientY: 200 });
+  h.context.emit('pointermove', { pointerId: 1, clientX: 499, clientY: 199 });
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw > yaw, 'even a one-pixel swipe can aim away from the target');
+  const aimed = [g.player.yaw, g.player.pitch];
+  h.context.emit('pointerup', { pointerId: 1 });
+  for (let i = 0; i < 20; i++) g.updatePlayer(1 / 60);
+  assert.deepEqual([g.player.yaw, g.player.pitch], aimed, 'lifting the finger leaves the view still');
   h.context.emit('blur'); assert.equal(g.touchAssist.target, null); assert.equal(g.touchAssist.ready, false);
 });
 
 test('automatic targeting respects walls and the portrait gameplay gate', () => {
   const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  h.el('touch-auto').emit('click');
   let wall;
   for (let z = 1; z < 15 && !wall; z++) for (let x = 1; x < 15; x++) {
     if (!g.world.walkable(x,z) && g.world.walkable(x-1,z) && g.world.walkable(x+1,z)) { wall={x,z}; break; }
@@ -475,4 +541,27 @@ test('automatic targeting respects walls and the portrait gameplay gate', () => 
   for (let i=0;i<40;i++) g.animate();
   assert.equal(g.boss.hp,hp); assert.equal(g.weapon.ammo,ammo);
   assert.equal(g.controls.fireTouch,false); assert.equal(g.touchAssist.target,null);
+});
+
+test('camera drag and trigger release work outside controls even if pointer capture fails', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  const fire = h.el('touch-fire'), look = h.el('look-pad');
+  fire.setPointerCapture = look.setPointerCapture = () => { throw Error('capture unavailable'); };
+  look.emit('pointerdown', { pointerId: 2, clientX: 500, clientY: 200 });
+  h.context.emit('pointermove', { pointerId: 3, clientX: 100, clientY: 400 });
+  assert.equal(g.controls.lookDX, 0, 'another finger cannot move the view');
+  h.context.emit('pointermove', { pointerId: 2, clientX: 560, clientY: 180 });
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw < 0); assert.ok(g.player.pitch > 0);
+  h.context.emit('pointerup', { pointerId: 2 });
+  assert.equal(g.controls.aimTouch, false); assert.equal(g.weapon.ammo, 32);
+  fire.emit('pointerdown', { pointerId: 4, clientX: 800, clientY: 320 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+  h.context.emit('pointermove', { pointerId: 4, clientX: 600, clientY: 240 });
+  assert.ok(g.controls.lookDX < 0);
+  h.context.emit('pointerup', { pointerId: 4 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+  assert.equal(g.controls.fire, false); assert.equal(g.controls.fireTouch, false);
+  h.context.emit('pointermove', { pointerId: 4, clientX: 400, clientY: 100 });
+  assert.equal(g.controls.lookDX, -100, 'released pointers cannot keep turning the camera');
 });
