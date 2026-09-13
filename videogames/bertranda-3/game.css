@@ -18,6 +18,11 @@
 .look-settings legend{margin-bottom:7px;color:var(--bone-dim);font:9px var(--mono);letter-spacing:.12em}
 .look-settings .segmented{display:flex;width:100%}
 .look-settings .segmented button{flex:1}
+.gold-guide{position:absolute;top:82px;left:50%;display:flex;align-items:center;gap:9px;height:38px;padding:4px 12px;border:1px solid #d8ad4e80;border-radius:20px;background:#10150ee0;color:#ffe18a;transform:translateX(-50%);pointer-events:none;text-shadow:0 1px 4px #000;white-space:nowrap}
+.gold-guide svg{width:25px;height:25px;flex:none;fill:#ffdc60;stroke:#fff3b4;stroke-width:.6;transform-origin:center;transition:transform .09s linear}
+.gold-guide span{font:10px var(--mono);letter-spacing:.07em}
+.gold-guide strong{font:bold 12px var(--mono);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.gold-guide svg{transition:none}}
 html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#02070a;color:var(--bone);font-family:var(--mono);touch-action:none}
 button,a{font:inherit}button{color:inherit}
 button:focus-visible,a:focus-visible{outline:2px solid var(--mould-bright);outline-offset:4px}

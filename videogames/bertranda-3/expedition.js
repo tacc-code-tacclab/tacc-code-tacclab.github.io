@@ -87,9 +87,39 @@
     return { route, distance, partial: goal !== target };
   }
 
-  function bearingArrow(origin, destination, yaw) {
+  function bearingAngle(origin, destination, yaw) {
     const angle = Math.atan2(-(destination.x - origin.x), -(destination.z - origin.z)) - yaw;
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+  }
+
+  function bearingArrow(origin, destination, yaw) {
+    const angle = bearingAngle(origin, destination, yaw);
     return ["↑", "↖", "←", "↙", "↓", "↘", "→", "↗"][(Math.round(angle / (Math.PI / 4)) % 8 + 8) % 8];
+  }
+
+  function routeWaypoint(world, route, origin, destination) {
+    // Reuse the map's bounded route. A short look-ahead avoids jitter at each
+    // tile, but only when the player's full collision radius clears the corner.
+    const reachable = p => {
+      const distance = Math.hypot(p.x - origin.x, p.z - origin.z);
+      if (distance > CELL * 3) return false;
+      const steps = Math.max(1, Math.ceil(distance / 0.4));
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        if (!world.free(origin.x + (p.x - origin.x) * t, origin.z + (p.z - origin.z) * t, 0.38)) return false;
+      }
+      return true;
+    };
+    if (reachable(destination)) return destination;
+    let nearest = 0, distance = Infinity;
+    route.forEach((p, index) => {
+      const d = Math.hypot(p.x - origin.x, p.z - origin.z);
+      if (d < distance) { distance = d; nearest = index; }
+    });
+    for (let i = Math.min(nearest + 3, route.length - 1); i >= Math.max(0, nearest - 1); i--) {
+      if (Math.hypot(route[i].x - origin.x, route[i].z - origin.z) > 0.65 && reachable(route[i])) return route[i];
+    }
+    return null;
   }
 
   class ScoutMap {
@@ -152,5 +182,5 @@
       ctx.fillStyle = "#dbfff1"; ctx.font = "bold 10px monospace"; ctx.fillText("N ↑", 7, 13);
     }
   }
-  return { chooseBulletSite, findRoute, bearingArrow, ScoutMap };
+  return { chooseBulletSite, findRoute, bearingAngle, bearingArrow, routeWaypoint, ScoutMap };
 });

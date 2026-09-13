@@ -624,6 +624,27 @@ test('look presets work without a restart and fast touch swipes keep their full 
   }
 });
 
+test('the gold arrow tracks heading with the map closed, yields to danger and disappears after collection', () => {
+  for (const touch of [false, true]) {
+    const h = harness({touch}); const g = h.game; g.startGame();
+    const guide = h.el('gold-guide'), arrow = h.el('gold-guide-arrow');
+    assert.equal(guide.hidden, true, 'intro danger takes priority');
+    g.elapsed = 4; g.updateHud();
+    assert.equal(guide.hidden, false);
+    assert.match(h.el('gold-guide-distance').textContent, /^\d+m$/);
+    const rotation = parseFloat(arrow.style.transform.slice(7));
+    g.toggleMap(); assert.equal(h.el('map-details').hidden, true); assert.equal(guide.hidden, false);
+    g.player.yaw += Math.PI / 2; g.updateHud();
+    assert.ok(Math.abs(parseFloat(arrow.style.transform.slice(7)) - rotation - 90) < 1e-7, 'right/left guidance follows the actual camera heading');
+    g.showDanger('DANGER',2); assert.equal(guide.hidden, true);
+    g.elapsed = 7; g.updateHud(); assert.equal(guide.hidden, false);
+    g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+    assert.equal(guide.hidden, true);
+    g.elapsed = 11; g.updateHud(); assert.equal(guide.hidden, true, 'it stays hidden while gold is loaded');
+    g.beginNextSchema(); g.elapsed += 4; g.updateHud(); assert.equal(guide.hidden, false);
+  }
+});
+
 test('mission reminders explain gold and the map on PC and phone without staying on screen', () => {
   for (const touch of [false, true]) {
     const h = harness({ touch }); const g = h.game; g.startGame();

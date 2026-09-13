@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Three = require('../../lovecraft/three.min.js');
 const { World } = require('../world.js');
-const { chooseBulletSite, findRoute, bearingArrow, ScoutMap } = require('../expedition.js');
+const { chooseBulletSite, findRoute, bearingAngle, bearingArrow, routeWaypoint, ScoutMap } = require('../expedition.js');
 const world = () => new World(Three, new Three.Scene());
 
 function traversable(w, route) {
@@ -66,4 +66,31 @@ test('map is throttled and draws nothing when collapsed', () => {
   for (let i = 100; i < 200; i++) map.update(w, p, target, {}, [], i / 100, true, true);
   assert.ok(frames >= 4 && frames <= 5);
   assert.ok(map.route.length > 1);
+});
+
+test('gold guidance follows a detour around a wall and turns with the player', () => {
+  const route = [{x:2,z:2},{x:2,z:6},{x:2,z:10},{x:6,z:10},{x:10,z:10},{x:10,z:6},{x:10,z:2}];
+  const open = new Set(route.map(p => Math.floor(p.x/4)+':'+Math.floor(p.z/4)));
+  const w = { free(x,z,r) { return [-r,r].every(dx => [-r,r].every(dz => open.has(Math.floor((x+dx)/4)+':'+Math.floor((z+dz)/4)))); } };
+  const origin = route[0], gold = route.at(-1);
+  const first = routeWaypoint(w, route, origin, gold);
+  assert.deepEqual(first, {x:2,z:10}, 'the arrow leads down the corridor, not straight through the wall toward gold');
+  assert.equal(bearingArrow(origin, first, 0), '↓');
+  assert.ok(Math.abs(bearingAngle(origin, first, Math.PI)) < 1e-8, 'turning around brings the guide straight ahead');
+  assert.deepEqual(routeWaypoint(w, route, {x:2,z:9.7}, gold), {x:10,z:10}, 'the guide turns at the corridor bend');
+  assert.equal(routeWaypoint(w, [], origin, gold), null, 'missing routes never invent a shortcut through walls');
+});
+
+test('guide waypoints stay walkable with player clearance throughout all 25 realms', () => {
+  const w = world(), origin = {x:34,z:34};
+  for (let schema = 1; schema <= 25; schema++) {
+    w.setSchema(schema, { accent: 0x67ff9a });
+    const gold = chooseBulletSite(w, origin), route = findRoute(w, origin, gold).route;
+    for (const p of route.slice(0,-1)) {
+      const next = routeWaypoint(w, route, p, gold);
+      assert.ok(next, 'each route position has a forward waypoint');
+      assert.ok(Math.hypot(next.x-p.x,next.z-p.z) <= 12, 'look-ahead stays bounded');
+      for (let i=0;i<=40;i++) assert.ok(w.free(p.x+(next.x-p.x)*i/40,p.z+(next.z-p.z)*i/40,0.38), 'following the arrow leaves room for the player');
+    }
+  }
 });

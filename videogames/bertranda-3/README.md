@@ -34,6 +34,8 @@ The tactical map shows walls/terrain, the player and heading, the golden bullet,
 
 Brief mission reminders appear after 12 seconds, then roughly every 28 seconds of active play. They explain that only the golden bullet can finish Bertranda and point to the map; if the map is closed, they ask the player to open it. After collection, reminders switch to weakening Bertranda and firing the final shot. They yield to combat/reload captions, stop during pause, rotation or transitions, and reset in each realm. They use the existing compact caption area, away from the reticle.
 
+A gold arrow at the top of the screen rotates relative to the player's heading and shows the remaining route distance. It follows nearby reachable waypoints, including turns around walls, instead of pointing straight through obstacles. It works with the minimap closed, disappears on collection, and returns for the next realm. Danger messages temporarily take priority. The phone indicator is only 20 pixels tall and leaves the reticle, map, captions and touch controls clear. Guidance reuses the map route; it adds no 3D meshes, lights or extra route searches.
+
 ## Controls
 
 - `WASD` or arrow keys: move

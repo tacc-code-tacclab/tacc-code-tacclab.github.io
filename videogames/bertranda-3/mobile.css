@@ -34,6 +34,10 @@ body[data-touch="true"] .map-details{padding:2px;border-color:#d6b35770;backgrou
 body[data-touch="true"] .map-details canvas{height:58px;border:0}
 body[data-touch="true"] .map-legend{display:flex;gap:2px;margin:3px 1px 1px;font:7px/1.2 var(--mono);letter-spacing:0}
 body[data-touch="true"] .map-details small{display:none}
+body[data-touch="true"] .gold-guide{top:calc(var(--edge-top) + 25px);height:20px;gap:6px;padding:1px 8px;border-radius:12px;background:#11160cc9}
+body[data-touch="true"] .gold-guide svg{width:16px;height:16px}
+body[data-touch="true"] .gold-guide span{font-size:8px;letter-spacing:.02em}
+body[data-touch="true"] .gold-guide strong{font-size:9px}
 
 body[data-touch="true"] .look-pad{top:30px;left:max(calc(var(--edge-left) + 116px),22%);right:0;bottom:0}
 body[data-touch="true"] .move-pad{left:var(--edge-left);bottom:var(--edge-bottom);width:104px;height:104px;background:#09191329;box-shadow:none;border-color:#79efd35c}

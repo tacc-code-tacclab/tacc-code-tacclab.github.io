@@ -13,8 +13,8 @@
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-3/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=1-swift">
-  <link rel="stylesheet" href="mobile.css?v=1-swift">
+  <link rel="stylesheet" href="game.css?v=2-gold-guide">
+  <link rel="stylesheet" href="mobile.css?v=2-gold-guide">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -120,6 +120,10 @@
       </div>
 
       <div id="danger" class="danger" aria-live="assertive">SWARM INCOMING</div>
+      <div id="gold-guide" class="gold-guide" role="img" aria-label="Follow the arrow to the golden bullet" hidden>
+        <svg id="gold-guide-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2 3 12h6v10h6V12h6Z"/></svg>
+        <span>FIND GOLD</span><strong id="gold-guide-distance">…</strong>
+      </div>
       <div id="reticle" class="reticle" aria-hidden="true"><i></i></div>
       <div id="aim-target" class="aim-target" aria-hidden="true" hidden></div>
       <div id="prompt" class="prompt" role="status" aria-live="polite"></div>
@@ -198,7 +202,7 @@
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
   <script src="world.js?v=3-realms"></script>
-  <script src="expedition.js?v=4-gold"></script>
-  <script src="game.js?v=1-swift"></script>
+  <script src="expedition.js?v=2-gold-guide"></script>
+  <script src="game.js?v=2-gold-guide"></script>
 </body>
 </html>

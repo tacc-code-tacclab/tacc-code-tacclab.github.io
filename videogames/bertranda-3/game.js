@@ -56,6 +56,9 @@
     mapCanvas: $("#map-canvas"),
     mapStatus: $("#map-status"),
     mapHint: $("#map-hint"),
+    goldGuide: $("#gold-guide"),
+    goldArrow: $("#gold-guide-arrow"),
+    goldDistance: $("#gold-guide-distance"),
     danger: $("#danger"),
     reticle: $("#reticle"),
     aimTarget: $("#aim-target"),
@@ -131,6 +134,7 @@
   let mapOpen = true;
   const goldenBullet = { status: "seeking", x: 0, z: 0, model: null, epoch: 0, hintAt: -10 };
   const missionReminder = { nextAt: 12, index: 0 };
+  let guideRotation = 0;
 
   const enemies = [];
   const effects = [];
@@ -1715,14 +1719,19 @@
   function updateExpeditionHud() {
     const seeking = goldenBullet.status === "seeking", target = seeking ? goldenBullet : boss;
     scoutMap.update(world, player, target, boss, enemies, elapsed, mapOpen, seeking);
-    let nearest = 0, nearestDistance = Infinity;
-    scoutMap.route.forEach((p, index) => {
-      const distance = Math.hypot(p.x - player.x, p.z - player.z);
-      if (distance < nearestDistance) { nearest = index; nearestDistance = distance; }
-    });
-    const waypoint = scoutMap.route.slice(nearest).find(p => Math.hypot(p.x - player.x, p.z - player.z) > 3) || target;
-    const arrow = BertrandaExpedition.bearingArrow(player, waypoint, player.yaw);
-    ui.mapStatus.textContent = (seeking ? "GOLD" : "BERTRANDA") + " " + arrow + " " + (scoutMap.partial ? "~" : "") + Math.ceil(scoutMap.distance) + "m";
+    const waypoint = BertrandaExpedition.routeWaypoint(world, scoutMap.route, player, target);
+    const arrow = waypoint ? BertrandaExpedition.bearingArrow(player, waypoint, player.yaw) : "◇";
+    const distance = (scoutMap.partial ? "~" : "") + Math.ceil(scoutMap.distance) + "m";
+    ui.mapStatus.textContent = (seeking ? "GOLD" : "BERTRANDA") + " " + arrow + " " + distance;
+    ui.goldGuide.hidden = !seeking || !waypoint || !canPlay() || dangerUntil > elapsed;
+    if (seeking && waypoint) {
+      const rotation = -BertrandaExpedition.bearingAngle(player, waypoint, player.yaw) * 180 / Math.PI;
+      // Keep CSS interpolation on the short arc when crossing north/180°.
+      guideRotation += ((rotation - guideRotation) % 360 + 540) % 360 - 180;
+      ui.goldArrow.style.transform = "rotate(" + guideRotation + "deg)";
+      ui.goldDistance.textContent = distance;
+      ui.goldGuide.setAttribute("aria-label", "Golden bullet: " + arrow + " " + distance + ". Follow the arrow along the map route.");
+    }
     ui.mapHint.textContent = seeking ? "Follow gold · walk over bullet" : bossExposed() ? "Aim at Bertranda · FIRE" : "Weaken Bertranda to the gold mark";
     ui.mapWrap.classList.toggle("gold-loaded", !seeking);
     if (gameState !== "transitioning") {
@@ -1853,6 +1862,7 @@
   }
 
   function showDanger(text, seconds) {
+    ui.goldGuide.hidden = true;
     ui.danger.textContent = text;
     dangerUntil = elapsed + (seconds || 2);
     ui.danger.classList.add("visible");
