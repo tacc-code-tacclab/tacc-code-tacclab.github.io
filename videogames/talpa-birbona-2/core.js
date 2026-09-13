@@ -5,18 +5,18 @@
   else root.TalpaCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const COLS = 28, ROWS = 14, LAST_LEVEL = 10, SPEED = 4.6;
+  const COLS = 28, ROWS = 14, LAST_LEVEL = 20, SPEED = 4.6;
   const CROPS = [
-    {name:'Carota', points:100, sprite:2, color:'#ff923f'},
-    {name:'Patate', points:120, sprite:3, color:'#efc788'},
-    {name:'Cavolo', points:140, sprite:4, color:'#a4df69'},
-    {name:'Pero', points:300, sprite:5, color:'#e9e858'},
-    {name:'Melo', points:280, sprite:6, color:'#ff676c'},
-    {name:'Albicocco', points:320, sprite:7, color:'#ffb74d'},
-    {name:'Grano', points:80, sprite:8, color:'#ffe087'},
-    {name:'Pomodori', points:160, sprite:9, color:'#ff6961'},
+    {name:'Carrot', points:100, sprite:2, color:'#ff923f'},
+    {name:'Potatoes', points:120, sprite:3, color:'#efc788'},
+    {name:'Cabbage', points:140, sprite:4, color:'#a4df69'},
+    {name:'Pear tree', points:300, sprite:5, color:'#e9e858'},
+    {name:'Apple tree', points:280, sprite:6, color:'#ff676c'},
+    {name:'Apricot tree', points:320, sprite:7, color:'#ffb74d'},
+    {name:'Wheat', points:80, sprite:8, color:'#ffe087'},
+    {name:'Tomatoes', points:160, sprite:9, color:'#ff6961'},
     {name:'Zucchini', points:180, sprite:10, color:'#95d256'},
-    {name:'Melanzane', points:200, sprite:11, color:'#c197f5'}
+    {name:'Eggplants', points:200, sprite:11, color:'#c197f5'}
   ];
   const ORDER = [0,1,2,7,8,9,3,4,5,6];
   const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
@@ -38,12 +38,12 @@
       this.difficulty={
         interval:Math.max(1.2,3.4-(level-1)*.24),
         warning:Math.max(.45,1.05-(level-1)*.065),
-        // The later gardens stay demanding without making level 6 a hard wall.
-        floodStep:Math.max(.115,.235-(level-1)*.012),
+        // Gardens 1-10 keep their established balance. The second chapter grows gently.
+        floodStep:Math.max(.125,.235-(level-1)*.012),
         poisonLife:2.5,
-        farmerSpeed:9.2+level*1.25,
+        farmerSpeed:9.2+Math.min(level,10)*1.25+Math.max(0,level-10)*.35,
         antCount:level===1?0:Math.min(5,Math.floor(level/2)),
-        antSpeed:1.35+level*.16,
+        antSpeed:1.35+Math.min(level,10)*.16+Math.max(0,level-10)*.045,
         antSpawn:Math.max(2.6,4.5-(level-2)*.22)
       };
       this.farmer={x:6.5, mode:'waiting', target:1, clock:level===1?1.8:Math.max(.35,1-(level-2)*.075), previous:-1};

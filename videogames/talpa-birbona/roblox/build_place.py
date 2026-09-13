@@ -5,8 +5,11 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_MUSIC_ID = '125223351505621'
+DEFAULT_ICON_ID = '89222834262673'
+DEFAULT_THUMBNAIL_ID = '111193583415914'
 
-def build(output):
+def build(output, music_id, icon_id, thumbnail_id):
     doc = ET.Element('roblox', {'version': '4'})
     ET.SubElement(doc, 'External').text = 'null'
     ET.SubElement(doc, 'External').text = 'nil'
@@ -50,8 +53,13 @@ def build(output):
     for name, value in [('Enabled', 'true'), ('IgnoreGuiInset', 'true'), ('ResetOnSpawn', 'false')]:
         prop(props, 'bool', name, value)
     prop(props, 'int', 'DisplayOrder', 100)
-    _, music_props = item(screen, 'StringValue', 'MusicSoundId')
-    prop(music_props, 'string', 'Value', '')
+    for name, value in (
+        ('MusicSoundId', music_id),
+        ('IconImageId', icon_id),
+        ('ThumbnailImageId', thumbnail_id),
+    ):
+        _, value_props = item(screen, 'StringValue', name)
+        prop(value_props, 'string', 'Value', value)
     for cls, name, path in [('ModuleScript', 'Core', ROOT / 'Core.lua'), ('LocalScript', 'TalpaBirbonaClient', ROOT / 'TalpaBirbona.client.lua')]:
         _, props = item(screen, cls, name)
         if cls == 'LocalScript':
@@ -62,8 +70,16 @@ def build(output):
     ET.ElementTree(doc).write(output, encoding='utf-8', xml_declaration=True)
     # Validate structure and exact script round-trip; this is not a Studio playtest.
     parsed = ET.parse(output)
-    music_value = parsed.find(".//Item[@class='StringValue']/Properties/string[@name='Value']")
-    assert music_value is not None
+    configured_values = {
+        node.find("Properties/string[@name='Name']").text:
+        node.find("Properties/string[@name='Value']").text
+        for node in parsed.findall(".//Item[@class='StringValue']")
+    }
+    assert configured_values == {
+        'MusicSoundId': music_id,
+        'IconImageId': icon_id,
+        'ThumbnailImageId': thumbnail_id,
+    }
     for cls, filename in [('ModuleScript', 'Core.lua'), ('LocalScript', 'TalpaBirbona.client.lua')]:
         source = parsed.find(f".//Item[@class='{cls}']/Properties/ProtectedString[@name='Source']")
         assert source.text == (ROOT / filename).read_text()
@@ -71,5 +87,14 @@ def build(output):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=ROOT / 'Talpa_Birbona_Roblox_V2.rbxlx')
-    build(parser.parse_args().output.resolve())
+    parser.add_argument('--output', type=Path, default=ROOT / 'Talpa_Birbona_Roblox_V5.rbxlx')
+    parser.add_argument('--music-id', default=DEFAULT_MUSIC_ID)
+    parser.add_argument('--icon-id', default=DEFAULT_ICON_ID)
+    parser.add_argument('--thumbnail-id', default=DEFAULT_THUMBNAIL_ID)
+    args = parser.parse_args()
+    build(
+        args.output.resolve(),
+        args.music_id.strip(),
+        args.icon_id.strip(),
+        args.thumbnail_id.strip(),
+    )

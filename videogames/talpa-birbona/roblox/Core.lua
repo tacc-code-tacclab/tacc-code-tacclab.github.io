@@ -1,5 +1,5 @@
 -- Deterministic rules shared with the browser edition (coordinates are zero-based).
-local Core = {COLS=28, ROWS=14, LAST_LEVEL=10, SPEED=4.6}
+local Core = {COLS=28, ROWS=14, LAST_LEVEL=20, SPEED=4.6}
 Core.CROPS = {
     {name="Carota",points=100}, {name="Patate",points=120}, {name="Cavolo",points=140},
     {name="Pero",points=300}, {name="Melo",points=280}, {name="Albicocco",points=320},
@@ -35,12 +35,13 @@ function Game:start(level,score)
     self.difficulty={
         interval=math.max(1.2,3.4-(self.level-1)*.24),
         warning=math.max(.45,1.05-(self.level-1)*.065),
-        -- The later gardens stay demanding without making level 6 a hard wall.
-        floodStep=math.max(.115,.235-(self.level-1)*.012),
-        poisonLife=4,
-        farmerSpeed=9.2+self.level*1.25,
+        -- Gardens 1-10 keep their established balance. After that, danger grows gently
+        -- so the last chapter stays demanding without becoming a speed wall.
+        floodStep=math.max(.125,.235-(self.level-1)*.012),
+        poisonLife=2.5,
+        farmerSpeed=9.2+math.min(self.level,10)*1.25+math.max(0,self.level-10)*.35,
         antCount=self.level==1 and 0 or math.min(5,math.floor(self.level/2)),
-        antSpeed=1.35+self.level*.16,
+        antSpeed=1.35+math.min(self.level,10)*.16+math.max(0,self.level-10)*.045,
         antSpawn=math.max(2.6,4.5-(self.level-2)*.22)
     }
     self.farmer={x=6.5,mode="waiting",target=1,clock=self.level==1 and 1.8 or math.max(.35,1-(self.level-2)*.075),previous=-1}
@@ -88,11 +89,16 @@ function Game:carryPoisonIntoAntTunnel(k,c,r)
         end
     end
     if not poisoned then return end
-    self.poison[k]=math.max(self.poison[k],self.difficulty.poisonLife)
     local wave=nil
     for _,candidate in ipairs(self.waves) do if candidate.seen[poisoned] then wave=candidate; break end end
     local pc=(poisoned-1)%Core.COLS; local pr=math.floor((poisoned-1)/Core.COLS)
-    if wave then self:injectWaveCell(wave,k,c-pc,r-pr) else table.insert(self.waves,self:makeWave(k)) end
+    if wave then
+        local life=math.max(0,self.difficulty.poisonLife-wave.age)
+        if life<=0 then return end
+        self.poison[k]=math.max(self.poison[k],life); self:injectWaveCell(wave,k,c-pc,r-pr)
+    else
+        self.poison[k]=math.max(self.poison[k],self.difficulty.poisonLife); table.insert(self.waves,self:makeWave(k))
+    end
     table.insert(self.events,{type="poisonBreach",x=c+.5,y=r+.5})
 end
 
@@ -242,7 +248,7 @@ function Game:step(dt,dx,dy)
     local kept={}
     for _,wave in ipairs(self.waves) do
         wave.age=wave.age+dt
-        if wave.age<=13 then
+        if wave.age<self.difficulty.poisonLife then
             local ready,waiting={},{}
             for _,entry in ipairs(wave.pending) do
                 if entry.at<=wave.age+1e-9 then table.insert(ready,entry) else table.insert(waiting,entry) end
@@ -252,7 +258,8 @@ function Game:step(dt,dx,dy)
             for _,entry in ipairs(ready) do
                 if math.abs((wave.arrival[entry.k] or math.huge)-entry.at)<=1e-9 then
                     local k=entry.k; local c=(k-1)%Core.COLS; local r=math.floor((k-1)/Core.COLS)
-                    table.insert(activated,k); self.poison[k]=math.max(self.poison[k],self.difficulty.poisonLife)
+                    local life=math.max(0,self.difficulty.poisonLife-wave.age)
+                    table.insert(activated,k); self.poison[k]=math.max(self.poison[k],life)
                     for _,d in ipairs(DIRECTIONS) do
                         local nc,nr=c+d[1],r+d[2]
                         if nc>=0 and nc<Core.COLS and nr>=0 and nr<Core.ROWS then
@@ -266,7 +273,7 @@ function Game:step(dt,dx,dy)
             end
             if #activated>0 then wave.frontier=activated end
         end
-        if wave.age<=13 and #wave.pending>0 then table.insert(kept,wave) end
+        if wave.age<self.difficulty.poisonLife and #wave.pending>0 then table.insert(kept,wave) end
     end
     self.waves=kept
     if self:poisonTouchesPlayer() then return end

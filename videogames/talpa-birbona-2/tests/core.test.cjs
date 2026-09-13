@@ -2,7 +2,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {Game,CROPS,COLS,ROWS,LAST_LEVEL,SPEED}=require('../core.js');
 function drive(g,x,y){let ticks=0;while(g.status==='playing'&&Math.hypot(g.player.x-x,g.player.y-y)>.08&&ticks++<3000){const dx=x-g.player.x,dy=y-g.player.y,d=Math.hypot(dx,dy);g.update(1/60,dx/d*Math.min(1,d/(SPEED/60)),dy/d*Math.min(1,d/(SPEED/60)));}assert(ticks<3000);}
-test('all ten garden layouts are completable, all crops appear, final victory and replay work',()=>{
+test('all twenty garden layouts are completable, all crops appear, final victory and replay work',()=>{
  const g=new Game(),kinds=new Set();let expected=0;
  for(let level=1;level<=LAST_LEVEL;level++){
   assert.equal(g.level,level);g.invulnerable=Infinity;g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;const crops=g.plants.map(p=>({...p}));
@@ -12,7 +12,7 @@ test('all ten garden layouts are completable, all crops appear, final victory an
   const doneScore=g.score;g.update(.25,1,0);assert.equal(g.score,doneScore);
   if(level<LAST_LEVEL)g.next();
  }
- assert.equal(kinds.size,10);g.next();assert.equal(g.level,10);g.start(1,0);assert.equal(g.status,'playing');assert.equal(g.score,0);
+ assert.equal(kinds.size,10);g.next();assert.equal(g.level,LAST_LEVEL);g.start(1,0);assert.equal(g.status,'playing');assert.equal(g.score,0);
 });
 test('each garden emits exactly one completion event after its final root, including garden 9',()=>{
  for(let level=1;level<=LAST_LEVEL;level++){
@@ -67,13 +67,13 @@ test('every poison pour disappears completely 2.5 seconds after it starts',()=>{
  assert.equal(g.waves.length,0,'the propagation wave must also be gone');
 });
 test('horizontal and bending tunnels let the mole outrun poison from level 6 onward',()=>{
- const six=new Game(6),last=new Game(10),moleCellTime=1/SPEED;
- for(const g of [six,last]){
+ const six=new Game(6),tenth=new Game(10),last=new Game(20),moleCellTime=1/SPEED;
+ for(const g of [six,tenth,last]){
   const horizontal=g.flowDelay(1,0),uphill=g.flowDelay(0,-1),downhill=g.flowDelay(0,1);
   assert(downhill<moleCellTime);assert(horizontal>moleCellTime);assert(uphill>horizontal);
   assert(g.flowDelay(1,0,0,1)>horizontal);assert(g.flowDelay(0,-1,1,0)>uphill);
  }
- for(const level of [6,10]){
+ for(const level of [6,10,20]){
   const g=new Game(level);g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;g.dug.fill(false);g.poison.fill(0);g.player={x:COLS-.5,y:ROWS-.5,facing:1,moving:false};
   const path=[[2,0]];let c=2,r=0;for(let i=0;i<14;i++){if(i%2===0)r++;else c++;path.push([c,r]);}
   for(const [x,y] of path)g.dug[y*COLS+x]=true;
@@ -89,12 +89,14 @@ test('farmer warns briefly before pouring and attacks only open surface holes',(
  assert(warningAt!==null&&pourAt!==null);assert(pourAt-warningAt>=g.difficulty.warning-.02);assert(pourAt<2.2);assert(g.holes.includes(g.farmer.target));
  const first=new Game(1);assert(g.difficulty.interval<first.difficulty.interval);assert(g.difficulty.farmerSpeed>first.difficulty.farmerSpeed);assert(g.difficulty.floodStep<first.difficulty.floodStep);
 });
-test('farmer, poison and ants become progressively more dangerous',()=>{
- const first=new Game(1),middle=new Game(6),last=new Game(10),phone=new Game(10,0,{assist:true});
- assert.equal(first.difficulty.antCount,0);assert.equal(middle.difficulty.antCount,3);assert.equal(last.difficulty.antCount,5);
- assert(last.difficulty.interval<middle.difficulty.interval&&middle.difficulty.interval<first.difficulty.interval);
+test('gardens 11-20 add danger gently without changing the established first ten',()=>{
+ const first=new Game(1),middle=new Game(6),tenth=new Game(10),last=new Game(20),phone=new Game(20,0,{assist:true});
+ assert.equal(first.difficulty.antCount,0);assert.equal(middle.difficulty.antCount,3);assert.equal(tenth.difficulty.antCount,5);assert.equal(last.difficulty.antCount,5);
+ assert(tenth.difficulty.interval<middle.difficulty.interval&&middle.difficulty.interval<first.difficulty.interval);
  assert(last.difficulty.warning<first.difficulty.warning);assert(last.difficulty.floodStep<first.difficulty.floodStep);
- assert(last.difficulty.farmerSpeed>first.difficulty.farmerSpeed);assert(last.difficulty.antSpeed>middle.difficulty.antSpeed);
+ assert(Math.abs(tenth.difficulty.farmerSpeed-21.7)<1e-10);assert(Math.abs(tenth.difficulty.antSpeed-2.95)<1e-10);
+ assert(Math.abs(last.difficulty.farmerSpeed-25.2)<1e-10);assert(Math.abs(last.difficulty.antSpeed-3.4)<1e-10);
+ assert(last.difficulty.farmerSpeed>tenth.difficulty.farmerSpeed);assert(last.difficulty.antSpeed>tenth.difficulty.antSpeed);assert(last.difficulty.antSpeed<SPEED);
  assert(phone.difficulty.interval>last.difficulty.interval);assert(phone.difficulty.floodStep>last.difficulty.floodStep);assert(phone.difficulty.antSpeed<last.difficulty.antSpeed);
 });
 test('ants spawn away from the mole, chase her and cause protected damage on contact',()=>{

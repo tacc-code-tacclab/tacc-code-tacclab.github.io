@@ -10,7 +10,7 @@ UDim={new=function(s,o)return {Scale=s,Offset=o}end}
 UDim2={fromOffset=function(x,y)return {X=UDim.new(0,x),Y=UDim.new(0,y)}end,fromScale=function(x,y)return {X=UDim.new(x,0),Y=UDim.new(y,0)}end,new=function(xs,xo,ys,yo)return {X=UDim.new(xs,xo),Y=UDim.new(ys,yo)}end}
 Vector2={new=function(x,y)return {X=x,Y=y,Magnitude=math.sqrt(x*x+y*y)}end}
 local cf=setmetatable({},{__mul=function()return {}end});CFrame={new=function()return cf end,Angles=function()return cf end}
-task={defer=function(fn)fn()end}
+task={defer=function(fn)fn()end,delay=function(_,fn)fn()end}
 local all={};local methods={};local signalNames={Activated=true,InputBegan=true,InputChanged=true,InputEnded=true,WindowFocusReleased=true,CharacterAdded=true,RenderStepped=true,MenuOpened=true}
 function methods:GetDescendants() local out={};for _,v in ipairs(all) do local p=v.Parent;while p do if p==self then table.insert(out,v);break end;p=p.Parent end end;return out end
 function methods:GetChildren()local out={};for _,v in ipairs(all)do if v.Parent==self then table.insert(out,v)end end;return out end
@@ -19,6 +19,7 @@ function methods:FindFirstChildOfClass(name)for _,v in ipairs(self:GetChildren()
 function methods:WaitForChild(name)return assert(self:FindFirstChild(name),name)end
 function methods:IsA(name)return self.ClassName==name end
 function methods:Destroy()self.Parent=nil;self.destroyed=true end
+function methods:Play()self.IsPlaying=true end
 Instance={new=function(class)
     local p={ClassName=class,Name=class,Position=UDim2.fromOffset(0,0),Size=UDim2.fromOffset(0,0),Visible=true,AbsolutePosition=Vector2.new(0,0),AbsoluteSize=Vector2.new(1100,750)}
     local object=setmetatable({_p=p},{__index=function(self,k)if methods[k]then return methods[k]end;if signalNames[k]and not p[k]then p[k]=signal()end;return p[k]end,__newindex=function(self,k,v)p[k]=v end})

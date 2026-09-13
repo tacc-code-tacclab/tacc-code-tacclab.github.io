@@ -2,10 +2,12 @@
 
 ## File pronti
 
-- Gioco: `Talpa_Birbona_Roblox_V2.rbxlx`
+- Gioco: `Talpa_Birbona_Roblox_V5.rbxlx`
 - Icona esperienza: `assets/talpa-birbona-icon-512.png` (512×512)
 - Miniatura descrittiva: `assets/talpa-birbona-thumbnail-1920x1080.jpg` (1920×1080, 16:9)
-- Musica da caricare come asset audio Roblox: `../assets/avventura-orto.mp3` nel repository, oppure [scaricala dal sito](https://tacc-code-tacclab.github.io/videogames/talpa-birbona/assets/avventura-orto.mp3). Per mantenere leggero il pacchetto ZIP, l'audio è fornito separatamente.
+- Musica già configurata: asset Roblox `125223351505621` (`dsfg.mp3`, titolo interno “勇者の冒険曲”).
+- Effetti già configurati e differenziati: radice mangiata, formica che compare o morde, veleno versato, morte e completamento dell'orto.
+- Grafica V5: schermata illustrata con gli asset Roblox già caricati, colori più vivaci, profondità, particelle, veleno animato e zucca d'oro finale.
 
 ## Titolo e descrizione consigliati
 
@@ -13,27 +15,24 @@
 
 **Descrizione:**
 
-Scava a zig-zag, divora tutte le radici e sfuggi al contadino! Il veleno è letale al primo contatto: corre in discesa, ma rallenta nei tratti orizzontali, in salita e a ogni curva. Dal secondo orto le formiche aprono nuovi tunnel e possono portare il veleno verso la talpa. Completa 10 orti, raccogli punti e conserva i tuoi tre cuori!
+Scava a zig-zag, divora tutte le radici e sfuggi al contadino! Il veleno è letale al primo contatto: corre in discesa, ma rallenta nei tratti orizzontali, in salita e a ogni curva, e ogni versamento scompare completamente dopo 2,5 secondi. Dal secondo orto le formiche aprono nuovi tunnel e possono portare il veleno verso la talpa. Completa 20 orti e conquista la zucca d'oro finale!
 
 Comandi: frecce o WASD, levetta sinistra, D-pad oppure tocco. Spazio, P o Start mette in pausa.
 
 ## Pubblicazione del gioco
 
-1. Aprire `Talpa_Birbona_Roblox_V2.rbxlx` in Roblox Studio.
+1. Aprire `Talpa_Birbona_Roblox_V5.rbxlx` in Roblox Studio.
 2. Premere **Play** e verificare almeno il primo orto.
-3. Fermare la prova e scegliere **File → Publish to Roblox As…**.
+3. Fermare la prova e scegliere **File → Publish to Roblox**.
 4. Creare l'esperienza **Talpa Birbona** come privata oppure sovrascrivere il suo luogo iniziale.
 5. Nel Creator Dashboard aprire **Configure → Places**, selezionare il luogo iniziale e caricare l'icona e la miniatura indicate sopra.
 6. Compilare il questionario su maturità e conformità prima di cambiare l'audience. Il file viene pubblicato privato per impostazione predefinita.
 
-## Attivare la musica in Roblox
+## Musica ed effetti sonori
 
-Roblox non incorpora MP3 o MIDI dentro un file `.rbxlx`: l'audio deve prima diventare un asset moderato dell'account.
+La V5 contiene già l'ID della musica caricata dall'account `gianfrancri`, impostata a volume basso, quindi non occorre modificarlo. La musica parte dal menu, continua durante il gioco ed è controllabile con il pulsante `♪`. Gli effetti contestuali usano risorse interne di Roblox e non richiedono altri caricamenti.
 
-1. Caricare `avventura-orto.mp3` dal Creator Dashboard come asset audio.
-2. Copiare l'ID numerico dell'asset approvato.
-3. In Studio aprire `StarterGui → TalpaBirbona → MusicSoundId` e incollare l'ID nel campo **Value**.
-4. Ripubblicare il luogo. Comparirà anche il pulsante musicale `♪` nell'interfaccia.
+Se l'esperienza viene pubblicata con un account o un gruppo diverso dal proprietario dell'audio, bisogna concedere a quell'esperienza il permesso di utilizzare l'asset.
 
 ## Testo alternativo consigliato
 
