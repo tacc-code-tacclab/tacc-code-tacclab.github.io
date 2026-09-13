@@ -5,7 +5,7 @@ function drive(g,x,y){let ticks=0;while(g.status==='playing'&&Math.hypot(g.playe
 test('all ten garden layouts are completable, all crops appear, final victory and replay work',()=>{
  const g=new Game(),kinds=new Set();let expected=0;
  for(let level=1;level<=LAST_LEVEL;level++){
-  assert.equal(g.level,level);g.invulnerable=Infinity;const crops=g.plants.map(p=>({...p}));
+  assert.equal(g.level,level);g.invulnerable=Infinity;g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;const crops=g.plants.map(p=>({...p}));
   for(const plant of crops){kinds.add(plant.kind);expected+=CROPS[plant.kind].points;drive(g,plant.x,plant.y);}
   assert.equal(g.remaining,0);assert.equal(g.status,level===LAST_LEVEL?'complete':'won');assert(g.health>0);
   expected+=g.health*100;assert.equal(g.score,expected);assert(g.holes.length>1);
@@ -63,10 +63,11 @@ test('ants dig connected tunnels and fresh ant tunnels carry active poison',()=>
  breach.dig(7.5,6.5,'ant');breach.dig(8.5,6.5,'ant');
  assert(breach.poison[6*COLS+7]>0&&breach.poison[6*COLS+8]>0);assert(breach.takeEvents().some(e=>e.type==='poisonBreach'));
 });
-test('damage has a grace period and retry restores the level checkpoint',()=>{
- const g=new Game(4,900);g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;g.poison[1]=10;g.update(1/60);assert.equal(g.health,2);
- for(let i=0;i<60;i++)g.update(1/60);assert.equal(g.health,2);
- for(let i=0;i<240;i++)g.update(1/60);assert.equal(g.status,'lost');assert.equal(g.health,0);
+test('poison is instantly fatal despite grace and retry restores the level checkpoint',()=>{
+ const g=new Game(4,900);g.farmer.clock=1e6;g.antClock=Infinity;g.difficulty.antCount=0;g.invulnerable=1.5;g.poison[1]=10;g.update(1/60);
+ assert.equal(g.health,0);assert.equal(g.status,'lost');
+ const events=g.takeEvents();assert(events.some(e=>e.type==='hurt'&&e.source==='poison'&&e.fatal));assert(events.some(e=>e.type==='lose'&&e.source==='poison'));
+ g.update(1);assert.equal(g.health,0);
  g.score+=500;g.retry();assert.equal(g.score,900);assert.equal(g.level,4);assert.equal(g.health,3);assert.equal(g.remaining,g.total);assert(g.poison.every(x=>x===0));
 });
 test('diagonal digging leaves a connected escape route',()=>{

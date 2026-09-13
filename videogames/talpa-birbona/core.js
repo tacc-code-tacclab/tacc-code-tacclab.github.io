@@ -98,9 +98,22 @@
     }
     hurtPlayer(source,x=this.player.x,y=this.player.y) {
       if(this.invulnerable>0||this.status!=='playing') return false;
-      this.health--; this.invulnerable=1.8; this.events.push({type:'hurt',source,x,y});
-      if(this.health<=0) { this.status='lost'; this.events.push({type:'lose'}); }
+      this.health--; this.invulnerable=1.8; const fatal=this.health<=0;
+      this.events.push({type:'hurt',source,x,y,fatal});
+      if(fatal) { this.status='lost'; this.events.push({type:'lose',source}); }
       return true;
+    }
+    killPlayer(source,x=this.player.x,y=this.player.y) {
+      if(this.status!=='playing') return false;
+      this.health=0; this.invulnerable=0;
+      this.events.push({type:'hurt',source,x,y,fatal:true});
+      this.status='lost'; this.events.push({type:'lose',source});
+      return true;
+    }
+    poisonTouchesPlayer() {
+      const p=this.player;
+      if(this.poison[index(Math.floor(p.x),Math.floor(p.y))]<=0) return false;
+      return this.killPlayer('poison',p.x,p.y);
     }
     update(dt,dx=0,dy=0) {
       if(this.status!=='playing'||!Number.isFinite(dt)||dt<=0) return;
@@ -120,6 +133,8 @@
         if(Math.floor(nx)!==Math.floor(p.x)&&Math.floor(ny)!==Math.floor(p.y)) this.dig(nx,p.y);
         p.x=nx; p.y=ny; if(Math.abs(dx)>.01) p.facing=dx>0?1:-1; this.dig(p.x,p.y);
       }
+      // Poison is lethal on the first frame of contact, even during an ant grace period.
+      if(this.poisonTouchesPlayer()) return;
       for(const plant of this.plants) {
         if(!plant.eaten&&Math.hypot(plant.x-p.x,plant.y-p.y)<.72) {
           plant.eaten=true; this.remaining--; const crop=CROPS[plant.kind]; this.score+=crop.points;
@@ -151,10 +166,9 @@
         wave.frontier=next;
       }
       this.waves=this.waves.filter(w=>w.age<=13&&w.frontier.length);
-      if(this.poison[index(Math.floor(p.x),Math.floor(p.y))]>0&&this.invulnerable===0) {
-        this.hurtPlayer('poison',p.x,p.y);
-      }
-      if(this.status==='playing') this.updateAnts(dt);
+      if(this.poisonTouchesPlayer()) return;
+      this.updateAnts(dt);
+      if(this.status==='playing') this.poisonTouchesPlayer();
     }
     updateFarmer(dt) {
       const f=this.farmer;

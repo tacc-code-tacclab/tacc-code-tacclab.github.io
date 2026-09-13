@@ -9,13 +9,14 @@
   const W=1100,H=750,CELL=36,GX=46,GY=210;
   const comfortable=matchMedia('(any-pointer: coarse), (max-width: 760px)').matches;
   const game=new Game(1,0,{assist:comfortable}); let mode='menu', target=null, last=0, visualTime=0, toastUntil=0, biteUntil=0;
-  let muted=false, audioContext=null, atlasReady=false, particles=[], popups=[], savedBest=0;
+  let muted=false, audioContext=null, atlasReady=false, particles=[], popups=[], savedBest=0, death=null, summaryAt=0, poisonedMoleTile=null;
+  const spriteTiles=[], cropArts=[];
   const held=new Set(), touches=new DirectionState(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let canvasPointer=null, pointerOrigin=null, dragging=false;
-  const defaultTip='Muoviti: le formiche scavano tunnel che possono portarti il veleno!';
+  const defaultTip='Il veleno uccide al contatto; le formiche tolgono un cuore. Continua a muoverti!';
   $('tip').textContent=defaultTip;
-  if(comfortable)$('panel-note').textContent='10 orti · 3 cuori · comandi touch facilitati';
-  const atlas=new Image(); atlas.src='assets/characters.png';
+  if(comfortable)$('panel-note').textContent='10 orti · veleno letale · comandi touch facilitati';
+  const atlas=new Image();
   music.volume=.22;
   try{
     savedBest=Number(localStorage.getItem('talpa-birbona-best'))||0;
@@ -23,19 +24,54 @@
     if(preference!==null)muted=preference==='true';
   }catch{}
   $('play').disabled=true;
-  atlas.onload=()=>{atlasReady=true;$('play').disabled=false;};
+  atlas.onload=()=>{buildSpriteTiles();atlasReady=true;renderCropArts();$('play').disabled=false;};
   atlas.onerror=()=>{$('panel-text').textContent='Le immagini non si sono caricate. Ricarica la pagina per riprovare.';};
+  atlas.src='assets/characters.png';
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const px=x=>GX+x*CELL, py=y=>GY+y*CELL;
   function round(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.stroke();}}
   function ellipse(x,y,rx,ry,fill){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
   function line(points,color,width=3){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();}
   function text(t,x,y,size=16,color='#fff8dd',align='center',weight=600){ctx.font=`${weight} ${size}px Fredoka, sans-serif`;ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(t,x,y);}
-  function sprite(id,x,y,w,h=w,flip=false,angle=0,alpha=1){
-    if(!atlasReady)return;const s=atlas.naturalWidth/4;
-    ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,y);ctx.rotate(angle);if(flip)ctx.scale(-1,1);
-    ctx.drawImage(atlas,id%4*s,Math.floor(id/4)*s,s,s,-w/2,-h/2,w,h);ctx.restore();
+  function isolateLargestArtwork(tile){
+    const tileContext=tile.getContext('2d',{willReadFrequently:true}),width=tile.width,height=tile.height,total=width*height;
+    const image=tileContext.getImageData(0,0,width,height),labels=new Uint32Array(total),queue=new Int32Array(total);
+    let nextLabel=0,bestLabel=0,bestCount=0;
+    for(let start=0;start<total;start++){
+      if(image.data[start*4+3]<=8||labels[start])continue;
+      const label=++nextLabel;let head=0,tail=0,count=0;queue[tail++]=start;labels[start]=label;
+      while(head<tail){const cell=queue[head++],x=cell%width;count++;
+        const neighbors=[cell-width,cell+width,x?cell-1:-1,x<width-1?cell+1:-1];
+        for(const next of neighbors)if(next>=0&&next<total&&!labels[next]&&image.data[next*4+3]>8){labels[next]=label;queue[tail++]=next;}
+      }
+      if(count>bestCount){bestCount=count;bestLabel=label;}
+    }
+    for(let i=0;i<total;i++)if(labels[i]!==bestLabel)image.data[i*4+3]=0;
+    tileContext.putImageData(image,0,0);
   }
+  function buildSpriteTiles(){
+    const tileWidth=atlas.naturalWidth/4,tileHeight=atlas.naturalHeight/3;
+    for(let id=0;id<12;id++){
+      const tile=document.createElement('canvas');tile.width=tileWidth;tile.height=tileHeight;
+      tile.getContext('2d').drawImage(atlas,id%4*tileWidth,Math.floor(id/4)*tileHeight,tileWidth,tileHeight,0,0,tileWidth,tileHeight);
+      // The four middle-row crops contain detached pixels spilled from the row above in the source atlas.
+      if(id>=4&&id<=7)isolateLargestArtwork(tile);
+      spriteTiles[id]=tile;
+    }
+    poisonedMoleTile=document.createElement('canvas');poisonedMoleTile.width=tileWidth;poisonedMoleTile.height=tileHeight;
+    const deadContext=poisonedMoleTile.getContext('2d');deadContext.drawImage(spriteTiles[0],0,0);
+    deadContext.globalCompositeOperation='source-atop';deadContext.fillStyle='#874cc999';deadContext.fillRect(0,0,tileWidth,tileHeight);
+    deadContext.globalCompositeOperation='source-over';deadContext.strokeStyle='#fff4d8';deadContext.lineWidth=8;deadContext.lineCap='round';
+    const eyeX=tileWidth*.67,eyeY=tileHeight*.31,eyeSize=12;
+    deadContext.beginPath();deadContext.moveTo(eyeX-eyeSize,eyeY-eyeSize);deadContext.lineTo(eyeX+eyeSize,eyeY+eyeSize);deadContext.moveTo(eyeX+eyeSize,eyeY-eyeSize);deadContext.lineTo(eyeX-eyeSize,eyeY+eyeSize);deadContext.stroke();
+  }
+  function drawSprite(source,x,y,w,h=w,flip=false,angle=0,alpha=1){
+    if(!source)return;
+    ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,y);ctx.rotate(angle);if(flip)ctx.scale(-1,1);
+    ctx.drawImage(source,0,0,source.width,source.height,-w/2,-h/2,w,h);ctx.restore();
+  }
+  function sprite(id,x,y,w,h=w,flip=false,angle=0,alpha=1){drawSprite(spriteTiles[id],x,y,w,h,flip,angle,alpha);}
+  function renderCropArts(){for(const art of cropArts){const artContext=art.getContext('2d');artContext.clearRect(0,0,art.width,art.height);artContext.drawImage(spriteTiles[Number(art.dataset.sprite)],0,0,art.width,art.height);}}
   // Static earth texture is rendered once; gameplay does not allocate terrain every frame.
   const terrain=document.createElement('canvas');terrain.width=W;terrain.height=H;
   const tc=terrain.getContext('2d');
@@ -112,11 +148,16 @@
     }
     if(target&&mode==='playing'){const x=px(target.x),y=py(target.y);ctx.setLineDash([3,5]);ctx.strokeStyle='#f7d17b80';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,12,0,7);ctx.stroke();ctx.setLineDash([]);}
     const p=game.player;
-    const blink=game.invulnerable>0&&Math.floor(t*12)%2===0;
-    const bounce=p.moving&&!reduced?Math.sin(t*24)*1.5:0;
-    const bite=visualTime<biteUntil?Math.sin((biteUntil-visualTime)*32)*.08:0;
-    ellipse(px(p.x),py(p.y)+21,24,7,'#261f233b');
-    sprite(0,px(p.x),py(p.y)+bounce,73+(bite?3:0),73, p.facing<0,bite,blink?.45:1);
+    const playerX=px(p.x),playerY=py(p.y),blink=game.invulnerable>0&&Math.floor(t*12)%2===0;
+    if(death?.source==='poison'){
+      const age=Math.max(0,t-death.start),fall=reduced?1:Math.min(1,age/.28),angle=(p.facing<0?-1:1)*Math.PI*.48*fall;
+      ellipse(playerX,playerY+24,28,8,'#261f234f');ellipse(playerX,playerY,35+Math.sin(t*9)*3,29+Math.sin(t*9)*2,'#b990e54d');
+      drawSprite(poisonedMoleTile,playerX,playerY+8*fall,76,76,p.facing<0,angle,.94);
+      for(let i=0;i<4;i++){const phase=(age*.9+i*.23)%1;ellipse(playerX-24+i*16+Math.sin(t*5+i)*5,playerY+18-phase*58,3+phase*2,3+phase*2,'#e5c9ffbb');}
+    }else{
+      const bounce=p.moving&&!reduced?Math.sin(t*24)*1.5:0,bite=visualTime<biteUntil?Math.sin((biteUntil-visualTime)*32)*.08:0;
+      ellipse(playerX,playerY+21,24,7,'#261f233b');sprite(0,playerX,playerY+bounce,73+(bite?3:0),73,p.facing<0,bite,blink?.45:1);
+    }
     if(mode==='menu') {text('LA SOTTO C’È QUALCUNO…',W/2,H-23,12,'#e8ba8870');}
     for(const item of particles){const age=t-item.start;if(age>item.life)continue;ctx.globalAlpha=1-age/item.life;ellipse(item.x+item.vx*age,item.y+item.vy*age+95*age*age,item.size,item.size*.75,item.color);ctx.globalAlpha=1;}
     for(const item of popups){const age=t-item.start;if(age>1.4)continue;ctx.globalAlpha=1-age/1.4;text(item.text,item.x,item.y-age*40,22,item.color);ctx.globalAlpha=1;}
@@ -144,9 +185,17 @@
       if(game.remaining===1)toast('Ne resta una sola. Dai, che ci sei!');
     }else if(event.type==='warning'){beep('warning');toast('Il contadino versa quasi subito: scappa!',1.5);}
     else if(event.type==='antSpawn'&&event.count===1){beep('ant');toast('Le formiche scavano tunnel: il veleno può seguirle!',3.2);}
-    else if(event.type==='hurt'){beep('hurt');toast(event.source==='ant'?'Ahi, una formica! Continua a muoverti.':'Ahi! Scava nella terra marrone per uscire dal veleno.');}
+    else if(event.type==='hurt'){
+      beep('hurt');
+      if(event.source==='poison'&&event.fatal){death={source:'poison',start:visualTime};toast('Il veleno ha raggiunto la talpa: KO immediato!',1.2);
+        for(let i=0;i<(reduced?5:18);i++)particles.push({x:px(event.x),y:py(event.y),vx:(Math.random()-.5)*150,vy:-35-Math.random()*95,start:visualTime,life:.55+Math.random()*.45,size:3+Math.random()*5,color:i%2?'#b87be8':'#e4c9ff'});
+      }else toast('Ahi, una formica! Hai perso un cuore: continua a muoverti.');
+    }
     else if(event.type==='win'){beep('win');showSummary();}
-    else if(event.type==='lose'){showSummary();}
+    else if(event.type==='lose'){
+      if(event.source==='poison'){clearInput();mode='dying';summaryAt=visualTime+(reduced?.5:.95);$('pause').disabled=true;$('stop').disabled=true;document.body.classList.remove('playing');syncMusic();}
+      else showSummary();
+    }
     else if(event.type==='dig'&&Math.random()<.3&&!reduced){particles.push({x:px(event.x),y:py(event.y)+8,vx:(Math.random()-.5)*35,vy:-15,start:visualTime,life:.3,size:3,color:event.source==='ant'?'#f0a765':'#e2b180'});}
   }
   function clearInput(){held.clear();touches.clear();target=null;canvasPointer=null;pointerOrigin=null;dragging=false;document.querySelectorAll('.dpad .active').forEach(b=>b.classList.remove('active'));game.player.moving=false;$('tip').textContent=defaultTip;}
@@ -162,19 +211,21 @@
     syncMusic();$('play').focus({preventScroll:true});
   }
   function begin(){
-    clearInput();mode='playing';$('overlay').hidden=true;$('pause').disabled=false;document.body.classList.add('playing');canvas.focus({preventScroll:true});
+    clearInput();death=null;summaryAt=0;$('menu-card').classList.remove('poisoned');mode='playing';$('overlay').hidden=true;$('pause').disabled=false;document.body.classList.add('playing');canvas.focus({preventScroll:true});
     if(comfortable)document.querySelector('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
     syncMusic();
     const antCount=game.difficulty.antCount;
     toast(game.level===1?'Il contadino ora è rapido. Dal secondo orto scavano anche le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'} e veleno velocissimo!`,4);
   }
-  function showSummary(){mode='summary';savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
-    if(game.status==='lost')setPanel('IL CONTADINO TI HA BECCATA','Ops, che guaio!','Hai finito i cuori. Evita il viola, non fermarti vicino alle formiche e scava una nuova via nella terra marrone.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
+  function showSummary(){mode='summary';summaryAt=0;savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
+    const poisoned=game.status==='lost'&&death?.source==='poison';$('menu-card').classList.toggle('poisoned',poisoned);
+    if(poisoned)setPanel('IL VELENO HA RAGGIUNTO LA TALPA','Ops, che guaio!','Il veleno è letale al primo contatto. Cambia subito cunicolo quando il viola si avvicina.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
+    else if(game.status==='lost')setPanel('LE FORMICHE TI HANNO BECCATA','Ops, che guaio!','Hai finito i cuori. Non fermarti vicino alle formiche e cambia spesso strada.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='complete')setPanel('TUTTI E DIECI GLI ORTI COMPLETATI','Sei una birbona!','Hai divorato l’orto, seminato il contadino e schivato tutte le formiche. Il giardino è tuo!','GIOCA DI NUOVO',`${game.score.toLocaleString('it-IT')} punti · Record: ${savedBest.toLocaleString('it-IT')}`);
     else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima e le formiche apriranno nuovi passaggi al veleno: cambia spesso strada.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
   }
   function pause(help=false){if(mode!=='playing')return;mode=help?'help':'paused';
-    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Cambia strada toccando la terra oppure usa le frecce. Il veleno corre nei cunicoli, comprese le nuove gallerie scavate dalle formiche. Ogni contatto costa un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
+    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Cambia strada toccando la terra oppure usa le frecce. Il veleno corre nei cunicoli, comprese le nuove gallerie delle formiche, e uccide subito. Le formiche invece tolgono un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
   }
   $('play').addEventListener('click',()=>{
     if(!atlasReady)return;if(mode==='menu')game.start(1,0);else if(mode==='summary'){if(game.status==='won')game.next();else if(game.status==='lost')game.retry();else game.start(1,0);particles=[];popups=[];}
@@ -219,13 +270,15 @@
   for(const region of [canvas,document.querySelector('.dpad')]){
     for(const event of ['touchstart','touchmove'])region.addEventListener(event,e=>e.preventDefault(),{passive:false});
   }
-  for(const crop of CROPS){const item=document.createElement('div');item.className='crop';const art=document.createElement('span');art.className='crop-art';art.style.backgroundPosition=`${crop.sprite%4*100/3}% ${Math.floor(crop.sprite/4)*50}%`;art.setAttribute('aria-hidden','true');const name=document.createElement('span');name.className='crop-name';name.textContent=crop.name;const score=document.createElement('strong');score.textContent=`${crop.points} pt`;item.append(art,name,score);$('crop-list').append(item);}
+  for(const crop of CROPS){const item=document.createElement('div');item.className='crop';const art=document.createElement('canvas');art.className='crop-art';art.width=180;art.height=180;art.dataset.sprite=crop.sprite;art.setAttribute('aria-hidden','true');cropArts.push(art);const name=document.createElement('span');name.className='crop-name';name.textContent=crop.name;const score=document.createElement('strong');score.textContent=`${crop.points} pt`;item.append(art,name,score);$('crop-list').append(item);}
+  if(atlasReady)renderCropArts();
   function loop(now){const dt=Math.min(.06,(now-(last||now))/1000);last=now;visualTime+=dt;
     if(mode==='playing'){
       let {dx,dy}=touches.vector();for(const k of held){dx+=keyMap[k][0];dy+=keyMap[k][1];}
       if(target&&dx===0&&dy===0){const vector=targetVector(game.player,target,SPEED,dt);dx=vector.dx;dy=vector.dy;if(vector.arrived){target=null;$('tip').textContent=defaultTip;}}
       game.update(dt,dx,dy);game.takeEvents().forEach(emit);hud();
     }
+    if(mode==='dying'&&visualTime>=summaryAt)showSummary();
     particles=particles.filter(p=>visualTime-p.start<p.life);popups=popups.filter(p=>visualTime-p.start<1.4);
     if(visualTime>toastUntil)$('toast').classList.remove('on');draw(visualTime);requestAnimationFrame(loop);
   }

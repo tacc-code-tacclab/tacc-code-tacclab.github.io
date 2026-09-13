@@ -19,3 +19,9 @@ canvas,.dpad,.dpad *{touch-action:none}
 @media(max-width:760px){.hud{gap:10px}.pause{width:44px;height:44px;flex-shrink:0}.primary{min-height:46px}.secondary{min-height:40px}.small-button{min-height:40px}.game-bottom{min-height:48px}.game-bottom button{min-height:44px;max-width:72px;line-height:1.3}.game-bottom>span{line-height:1.45}.playfield:has(.overlay:not([hidden])){height:375px}.game-shell{scroll-margin-top:5px}.menu-card{padding-bottom:14px}.menu-note{font-size:9px}.rules{font-size:10px}}
 @media(max-width:360px){.dpad{grid-template-columns:54px 54px 54px;grid-template-rows:56px 56px;gap:6px}.dpad button{min-width:54px;min-height:56px}.touch-guide strong{font-size:14px}.touch-guide p{font-size:9px}}
 .small-button[aria-pressed="true"]{background:#eef3dc;border-color:#9aad75;color:#416037}
+
+/* Poison defeat and clean canvas previews for the sprite atlas. */
+.mascot{position:relative}
+.menu-card.poisoned .mascot{filter:hue-rotate(48deg) saturate(1.55) drop-shadow(0 8px 0 #6d3a7d26);transform:rotate(10deg)}
+.menu-card.poisoned .mascot::after{content:'×';position:absolute;left:64%;top:25%;color:#fff4d8;font:700 28px/1 'Fredoka',sans-serif;text-shadow:0 2px 0 #643f78}
+.crop-art{display:block;cursor:default;background-image:none}
