@@ -48,7 +48,7 @@
     preview.height = button.dataset.height;
     document.getElementById('status').textContent = 'Viewport ' + preview.width + ' × ' + preview.height + ' — existing session preserved';
   });
-  fetch('../index.html?v=5-touch', { cache: 'no-store' }).then(response => {
+  fetch('../index.html?v=5-touch2', { cache: 'no-store' }).then(response => {
     if (!response.ok) throw Error('Game source unavailable');
     return response.text();
   }).then(html => {
