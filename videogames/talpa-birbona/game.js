@@ -12,7 +12,7 @@
   let muted=false, audioContext=null, atlasReady=false, particles=[], popups=[], savedBest=0;
   const held=new Set(), touches=new DirectionState(), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let canvasPointer=null, pointerOrigin=null, dragging=false;
-  const defaultTip='Tocca una pianta o una radice. Evita il veleno viola e le formiche!';
+  const defaultTip='Muoviti: le formiche scavano tunnel che possono portarti il veleno!';
   $('tip').textContent=defaultTip;
   if(comfortable)$('panel-note').textContent='10 orti · 3 cuori · comandi touch facilitati';
   const atlas=new Image(); atlas.src='assets/characters.png';
@@ -92,10 +92,13 @@
       const x=px(c+.5),y=py(r+.5);round(x-19,y-19,38,38,14,'#80533e');round(x-16,y-16,32,32,12,'#513e36');
       if(c+1<COLS&&game.dug[r*COLS+c+1])round(x,y-16,CELL,32,2,'#513e36');
       if(r+1<ROWS&&game.dug[(r+1)*COLS+c])round(x-16,y,32,CELL,2,'#513e36');
+      if(game.antDug[r*COLS+c]){line([[x-10,y-7],[x-3,y-3],[x+7,y-6]],'#c98c5f99',1.6);line([[x-8,y+7],[x,y+4],[x+9,y+8]],'#c98c5f88',1.6);}
     }
+    const poisonFront=new Set(game.waves.flatMap(w=>w.frontier));
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(game.poison[r*COLS+c]>0){
-      const x=px(c+.5),y=py(r+.5),a=Math.min(.85,game.poison[r*COLS+c]/2);ctx.globalAlpha=a;
-      round(x-17,y-17,34,34,10,'#a666e8');ellipse(x+Math.sin(t*3+c)*5,y+Math.cos(t*2+r)*6,7,6,'#d9b5fa');ellipse(x+9,y-8,3,3,'#f4d9ff');ctx.globalAlpha=1;
+      const k=r*COLS+c,x=px(c+.5),y=py(r+.5),a=Math.min(.88,game.poison[k]/2);ctx.globalAlpha=a;
+      round(x-17,y-17,34,34,10,'#a666e8');ellipse(x+Math.sin(t*3+c)*5,y+Math.cos(t*2+r)*6,7,6,'#d9b5fa');ellipse(x+9,y-8,3,3,'#f4d9ff');
+      if(poisonFront.has(k)){ctx.lineWidth=3;round(x-19-Math.sin(t*10)*2,y-19-Math.sin(t*10)*2,38+Math.sin(t*10)*4,38+Math.sin(t*10)*4,12,null,'#f2d6ff');}ctx.globalAlpha=1;
     }
     for(const c of game.holes){const x=px(c+.5);ellipse(x,GY,22,7,'#7b593d');ellipse(x,GY,14,5,'#473a32');ellipse(x-22,GY,8,4,'#c2915e');ellipse(x+18,GY,7,4,'#c2915e');}
     game.plants.forEach(p=>roots(p,t));
@@ -139,12 +142,12 @@
       const crop=CROPS[event.kind];
       for(let i=0;i<(reduced?4:16);i++){particles.push({x:px(event.x),y:i%2?py(event.y):GY-25,vx:(Math.random()-.5)*180,vy:-50-Math.random()*120,start:visualTime,life:.6+Math.random()*.5,size:3+Math.random()*4,color:i%2?crop.color:'#b5d974'});}
       if(game.remaining===1)toast('Ne resta una sola. Dai, che ci sei!');
-    }else if(event.type==='warning'){beep('warning');toast('Occhio al contadino! Ora il veleno corre nei cunicoli.',2.2);}
-    else if(event.type==='antSpawn'&&event.count===1){beep('ant');toast('Attenta: le formiche hanno fiutato la talpa!',2.8);}
+    }else if(event.type==='warning'){beep('warning');toast('Il contadino versa quasi subito: scappa!',1.5);}
+    else if(event.type==='antSpawn'&&event.count===1){beep('ant');toast('Le formiche scavano tunnel: il veleno può seguirle!',3.2);}
     else if(event.type==='hurt'){beep('hurt');toast(event.source==='ant'?'Ahi, una formica! Continua a muoverti.':'Ahi! Scava nella terra marrone per uscire dal veleno.');}
     else if(event.type==='win'){beep('win');showSummary();}
     else if(event.type==='lose'){showSummary();}
-    else if(event.type==='dig'&&Math.random()<.3&&!reduced){particles.push({x:px(event.x),y:py(event.y)+8,vx:(Math.random()-.5)*35,vy:-15,start:visualTime,life:.3,size:3,color:'#e2b180'});}
+    else if(event.type==='dig'&&Math.random()<.3&&!reduced){particles.push({x:px(event.x),y:py(event.y)+8,vx:(Math.random()-.5)*35,vy:-15,start:visualTime,life:.3,size:3,color:event.source==='ant'?'#f0a765':'#e2b180'});}
   }
   function clearInput(){held.clear();touches.clear();target=null;canvasPointer=null;pointerOrigin=null;dragging=false;document.querySelectorAll('.dpad .active').forEach(b=>b.classList.remove('active'));game.player.moving=false;$('tip').textContent=defaultTip;}
   function hud(){
@@ -163,15 +166,15 @@
     if(comfortable)document.querySelector('.game-shell').scrollIntoView({block:'start',behavior:'instant'});
     syncMusic();
     const antCount=game.difficulty.antCount;
-    toast(game.level===1?'Primo orto: impara a scavare. Dal secondo arrivano le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica':'formiche'} e veleno più rapido!`,4);
+    toast(game.level===1?'Il contadino ora è rapido. Dal secondo orto scavano anche le formiche!':`Orto ${game.level}: fino a ${antCount} ${antCount===1?'formica che scava':'formiche che scavano'} e veleno velocissimo!`,4);
   }
   function showSummary(){mode='summary';savedBest=Math.max(savedBest,game.score);try{localStorage.setItem('talpa-birbona-best',String(savedBest));}catch{}
     if(game.status==='lost')setPanel('IL CONTADINO TI HA BECCATA','Ops, che guaio!','Hai finito i cuori. Evita il viola, non fermarti vicino alle formiche e scava una nuova via nella terra marrone.','RIPROVA QUESTO ORTO',`Riparti dall’orto ${game.level}. Record personale: ${savedBest.toLocaleString('it-IT')} punti.`);
     else if(game.status==='complete')setPanel('TUTTI E DIECI GLI ORTI COMPLETATI','Sei una birbona!','Hai divorato l’orto, seminato il contadino e schivato tutte le formiche. Il giardino è tuo!','GIOCA DI NUOVO',`${game.score.toLocaleString('it-IT')} punti · Record: ${savedBest.toLocaleString('it-IT')}`);
-    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà il veleno prima e potranno arrivare più formiche: lascia sempre una via di fuga.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
+    else setPanel(`ORTO ${game.level} COMPLETATO`,'Sgranocchiato!','Nel prossimo orto il contadino verserà prima e le formiche apriranno nuovi passaggi al veleno: cambia spesso strada.',`VAI ALL’ORTO ${game.level+1} →`,`+${game.bonus} punti per i cuori rimasti · Totale ${game.score.toLocaleString('it-IT')}`);
   }
   function pause(help=false){if(mode!=='playing')return;mode=help?'help':'paused';
-    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta in superficie o la sua radice: la talpa va lì da sola. Tocca la terra per cambiare strada, oppure premi Ferma. Puoi anche tenere premute le frecce. Evita il veleno viola e le formiche: ogni contatto costa un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
+    setPanel(help?'BASTA UN TOCCO. AL MORSO PENSA LEI.':'NESSUNA FRETTA',help?'Come si gioca?':'Pausa merenda',help?'Tocca una pianta o la sua radice: la talpa va lì da sola. Cambia strada toccando la terra oppure usa le frecce. Il veleno corre nei cunicoli, comprese le nuove gallerie scavate dalle formiche. Ogni contatto costa un cuore.':'La talpa si riposa e il contadino aspetta. Riprendi quando vuoi.','TORNA A SCAVARE',`Obiettivo: tutte le ${game.total} piante dell’orto. Il gioco finisce dopo l’orto 10.`);
   }
   $('play').addEventListener('click',()=>{
     if(!atlasReady)return;if(mode==='menu')game.start(1,0);else if(mode==='summary'){if(game.status==='won')game.next();else if(game.status==='lost')game.retry();else game.start(1,0);particles=[];popups=[];}

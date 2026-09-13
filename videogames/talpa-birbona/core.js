@@ -26,7 +26,7 @@
     start(level=1, score=0) {
       this.level = clamp(level,1,LAST_LEVEL); this.score=score; this.startScore=score;
       this.status='playing'; this.time=0; this.health=3; this.invulnerable=0;
-      this.player={x:1.5,y:0.5,facing:1,moving:false}; this.dug=Array(COLS*ROWS).fill(false);
+      this.player={x:1.5,y:0.5,facing:1,moving:false}; this.dug=Array(COLS*ROWS).fill(false); this.antDug=Array(COLS*ROWS).fill(false);
       this.poison=Array(COLS*ROWS).fill(0); this.holes=[]; this.waves=[]; this.ants=[]; this.events=[];
       this.randomState=9187+level*7919;
       const count=Math.min(10,3+level);
@@ -36,28 +36,43 @@
       }));
       this.remaining=count; this.total=count;
       this.difficulty={
-        interval:Math.max(1.8,4.9-(level-1)*.34),
-        warning:Math.max(.85,1.85-(level-1)*.111),
-        floodStep:Math.max(.15,.36-(level-1)*.023),
-        farmerSpeed:7.2+level,
+        interval:Math.max(1.2,3.4-(level-1)*.24),
+        warning:Math.max(.45,1.05-(level-1)*.065),
+        floodStep:Math.max(.08,.23-(level-1)*.016),
+        farmerSpeed:9.2+level*1.25,
         antCount:level===1?0:Math.min(5,Math.floor(level/2)),
         antSpeed:1.35+level*.16,
         antSpawn:Math.max(2.6,4.5-(level-2)*.22)
       };
-      this.farmer={x:6.5, mode:'waiting', target:1, clock:level===1?2.9:Math.max(.65,1.7-(level-2)*.13), previous:-1};
+      this.farmer={x:6.5, mode:'waiting', target:1, clock:level===1?1.8:Math.max(.35,1-(level-2)*.075), previous:-1};
       this.antClock=level===1?Infinity:Math.max(2.3,3.8-(level-2)*.16);
       if(this.assist) {
-        this.difficulty.interval*=1.12; this.difficulty.warning+=.3;
-        this.difficulty.floodStep*=1.15; this.difficulty.farmerSpeed*=.94;
-        this.difficulty.antSpeed*=.92; this.farmer.clock+=.8; this.antClock+=.6;
+        this.difficulty.interval*=1.08; this.difficulty.warning+=.15;
+        this.difficulty.floodStep*=1.08; this.difficulty.farmerSpeed*=.96;
+        this.difficulty.antSpeed*=.94; this.farmer.clock+=.35; this.antClock+=.45;
       }
       this.dig(this.player.x,this.player.y);
     }
     random() { this.randomState=(this.randomState*16807)%2147483647; return this.randomState/2147483647; }
-    dig(x,y) {
+    carryPoisonIntoAntTunnel(k,c,r) {
+      const neighbors=[[c+1,r],[c-1,r],[c,r+1],[c,r-1]]
+        .filter(([nc,nr])=>nc>=0&&nc<COLS&&nr>=0&&nr<ROWS).map(([nc,nr])=>index(nc,nr));
+      const poisoned=neighbors.find(nk=>this.poison[nk]>0);
+      if(poisoned===undefined)return;
+      this.poison[k]=Math.max(this.poison[k],4.2);
+      const wave=this.waves.find(candidate=>candidate.seen.has(poisoned));
+      if(wave){wave.seen.add(k);wave.frontier.push(k);}
+      else this.waves.push({frontier:[k],seen:new Set([poisoned,k]),clock:0,age:0});
+      this.events.push({type:'poisonBreach',x:c+.5,y:r+.5});
+    }
+    dig(x,y,source='mole') {
       const c=clamp(Math.floor(x),0,COLS-1), r=clamp(Math.floor(y),0,ROWS-1), k=index(c,r);
-      if(!this.dug[k]) { this.dug[k]=true; this.events.push({type:'dig',x:c+.5,y:r+.5}); }
-      if(r===0&&!this.holes.includes(c)) { this.holes.push(c); this.events.push({type:'hole',x:c+.5,y:0}); }
+      if(!this.dug[k]) {
+        this.dug[k]=true;if(source==='ant')this.antDug[k]=true;
+        this.events.push({type:'dig',source,x:c+.5,y:r+.5});
+        if(source==='ant')this.carryPoisonIntoAntTunnel(k,c,r);
+      }
+      if(r===0&&!this.holes.includes(c)) { this.holes.push(c); this.events.push({type:'hole',source,x:c+.5,y:0}); }
     }
     beginWave(c) {
       const k=index(c,0); this.poison[k]=Math.max(this.poison[k],4.2);
@@ -75,11 +90,11 @@
     spawnAnt() {
       const position=this.antPosition();
       const ant={x:position.x,y:position.y,vx:0,vy:0,facing:position.x<this.player.x?1:-1,phase:this.random()*Math.PI*2,cooldown:.45};
-      this.ants.push(ant); this.events.push({type:'antSpawn',x:ant.x,y:ant.y,count:this.ants.length});
+      this.ants.push(ant);this.dig(ant.x,ant.y,'ant');this.events.push({type:'antSpawn',x:ant.x,y:ant.y,count:this.ants.length});
     }
     moveAntAway(ant) {
       const position=this.antPosition();
-      ant.x=position.x; ant.y=position.y; ant.vx=0; ant.vy=0; ant.cooldown=1.15;
+      ant.x=position.x; ant.y=position.y; ant.vx=0; ant.vy=0; ant.cooldown=1.15;this.dig(ant.x,ant.y,'ant');
     }
     hurtPlayer(source,x=this.player.x,y=this.player.y) {
       if(this.invulnerable>0||this.status!=='playing') return false;
@@ -157,7 +172,7 @@
         const choices=candidates.length?candidates:this.holes;
         f.target=choices[Math.floor(this.random()*choices.length)]; f.previous=f.target; f.mode='walking';
       } else if(f.mode==='warning') {
-        this.beginWave(f.target); f.mode='pouring'; f.clock=.72;
+        this.beginWave(f.target); f.mode='pouring'; f.clock=.32;
       } else { f.mode='waiting'; f.clock=this.difficulty.interval; }
     }
     updateAnts(dt) {
@@ -170,6 +185,7 @@
         if(ant.cooldown>0) continue;
         const dx=this.player.x-ant.x,dy=this.player.y-ant.y,distance=Math.hypot(dx,dy);
         if(distance>.001) {
+          const oldX=ant.x,oldY=ant.y;
           const sway=Math.sin(this.time*1.8+ant.phase)*.16;
           const ux=dx/distance,uy=dy/distance;
           ant.vx=ux-uy*sway; ant.vy=uy+ux*sway;
@@ -177,6 +193,8 @@
           ant.vx/=length; ant.vy/=length; ant.facing=ant.vx>=0?1:-1;
           ant.x=clamp(ant.x+ant.vx*this.difficulty.antSpeed*dt,.45,COLS-.45);
           ant.y=clamp(ant.y+ant.vy*this.difficulty.antSpeed*dt,.45,ROWS-.45);
+          if(Math.floor(ant.x)!==Math.floor(oldX)&&Math.floor(ant.y)!==Math.floor(oldY))this.dig(ant.x,oldY,'ant');
+          this.dig(ant.x,ant.y,'ant');
         }
         if(Math.hypot(this.player.x-ant.x,this.player.y-ant.y)<.62) {
           this.hurtPlayer('ant',ant.x,ant.y); this.moveAntAway(ant);
