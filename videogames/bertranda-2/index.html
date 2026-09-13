@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>BERTRANDA 2 — Endless Realms</title>
-  <meta name="description" content="An endless horror shooter: haunted house, spirit forest, cemetery, catacombs and a demonic inferno.">
+  <meta name="description" content="Track the golden bullet on your map, survive five endless horror realms and break Bertranda's final seal. Play on PC or phone.">
   <meta name="theme-color" content="#071017">
   <meta property="og:type" content="website">
   <meta property="og:title" content="BERTRANDA 2 — Endless Realms">
-  <meta property="og:description" content="Five procedural worlds grow as you explore. Different creatures. A human-faced spider hunts you.">
+  <meta property="og:description" content="Find the golden bullet. Weaken Bertranda. Fire the final shot. Five endless realms for desktop and mobile.">
   <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/bertranda-2/">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-2/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=3-realms">
+  <link rel="stylesheet" href="game.css?v=4-gold">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -36,7 +36,7 @@
         <p class="eyebrow">Five endless realms · no way back</p>
         <h1 id="game-title"><span>BER</span>TRANDA <i>2</i></h1>
         <p class="subtitle">THE FIVE CORRUPTIONS</p>
-        <p class="story">Leave the haunted house for an enchanted forest, a grave-filled cemetery, skull-lined catacombs and a demonic inferno. Every realm grows as you explore. Hunt Bertranda to descend again: new paths, new horrors, no final border.</p>
+        <p class="story">One golden bullet is hidden in every realm. Follow your map through the swarms, collect it and weaken Bertranda. When her last seal is exposed, fire: your rifle delivers the golden finishing shot automatically. Only then does the next realm open.</p>
 
         <div class="settings-row">
           <fieldset>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="controls-summary" aria-label="Controls">
-          <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>E / F</b> LIGHT</span>
+          <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>E / F</b> LIGHT</span><span><b>M</b> MAP</span>
         </div>
         <div class="title-foot">
           <a href="../../#videogames">← All games</a>
@@ -88,13 +88,25 @@
     <section id="hud" class="hud" aria-label="Combat status" hidden>
       <div class="objective-card">
         <span>OBJECTIVE</span>
-        <strong id="objective-text">ELIMINATE BERTRANDA</strong>
+        <strong id="objective-text">1 · FIND THE GOLDEN BULLET</strong>
         <small id="wave-text">HAUNTED HOUSE · VERDIGRIS</small>
       </div>
 
+      <aside id="scout-map" class="scout-map" aria-label="Mission map">
+        <button id="map-toggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="map-details" aria-label="Open or close map. Keyboard shortcut M.">
+          <span class="map-label">◇ MAP <kbd>M</kbd></span>
+          <strong id="map-status">GOLD · LOCATING</strong>
+        </button>
+        <div id="map-details" class="map-details" hidden>
+          <canvas id="map-canvas" width="360" height="220" role="img" aria-label="Tactical map: cyan arrow is you, gold diamond is the bullet, pink circle is Bertranda. The line follows walkable paths."></canvas>
+          <div class="map-legend"><span class="you">▲ YOU</span><span class="gold">◆ GOLD</span><span class="monster">● BOSS</span></div>
+          <small id="map-hint">Follow gold · walk over bullet</small>
+        </div>
+      </aside>
+
       <div id="boss-wrap" class="boss-wrap">
         <div><span id="boss-name">BERTRANDA</span><small id="boss-phase">DESCENT 1 · HAUNTED HOUSE</small></div>
-        <i><b id="boss-fill"></b></i>
+        <i><b id="boss-fill"></b><span class="gold-threshold" aria-hidden="true"></span></i>
       </div>
 
       <div id="danger" class="danger" aria-live="assertive">SWARM INCOMING</div>
@@ -166,6 +178,7 @@
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
   <script src="world.js?v=3-realms"></script>
-  <script src="game.js?v=3-realms"></script>
+  <script src="expedition.js?v=4-gold"></script>
+  <script src="game.js?v=4-gold"></script>
 </body>
 </html>

@@ -47,6 +47,12 @@
     bossName: $("#boss-name"),
     bossFill: $("#boss-fill"),
     bossPhase: $("#boss-phase"),
+    mapWrap: $("#scout-map"),
+    mapToggle: $("#map-toggle"),
+    mapDetails: $("#map-details"),
+    mapCanvas: $("#map-canvas"),
+    mapStatus: $("#map-status"),
+    mapHint: $("#map-hint"),
     danger: $("#danger"),
     reticle: $("#reticle"),
     prompt: $("#prompt"),
@@ -114,6 +120,9 @@
   let lastKillAt = -20;
   let hudTimer = 0;
   let aimLockUntil = 0;
+  let scoutMap;
+  let mapOpen = !IS_TOUCH;
+  const goldenBullet = { status: "seeking", x: 0, z: 0, model: null, epoch: 0, hintAt: -10 };
 
   const enemies = [];
   const effects = [];
@@ -1193,16 +1202,26 @@
     const end = direct ? hit.point.clone() : assisted ? assisted.point.clone() : hit ? hit.point.clone() : fallback;
     const start = weapon.muzzle.getWorldPosition(new THREE.Vector3());
     const token = sessionId;
+    const epoch = goldenBullet.epoch;
+    const target = direct ? direct.creature : assisted ? assisted.creature : null;
+    // Only reserve the special round for a confirmed hit on an exposed boss.
+    // Missing, reloading and shooting other creatures never waste the relic.
+    const golden = target === boss && goldenBullet.status === "loaded" && bossExposed();
+    if (golden) {
+      goldenBullet.status = "fired";
+      audio.tone(740, 0.4, 0.14, "triangle", 430);
+      screenShake = Math.max(screenShake, 0.15);
+    }
     createTracer(start, end, () => {
-      if (sessionId !== token || gameState !== "playing") return;
+      if (sessionId !== token || goldenBullet.epoch !== epoch || gameState !== "playing") return;
       if (direct && direct.creature.alive) {
-        damageCreature(direct.creature, 26 * direct.multiplier, end, direct.multiplier > 1.1);
+        damageCreature(direct.creature, 26 * direct.multiplier, end, direct.multiplier > 1.1, golden);
       } else if (assisted && assisted.creature.alive) {
-        damageCreature(assisted.creature, 26 * (assisted.creature === boss ? 1.25 : 1.18), end, true);
+        damageCreature(assisted.creature, 26 * (assisted.creature === boss ? 1.25 : 1.18), end, true, golden);
       } else if (hit) {
         impactAt(end, 0x59fff1, 4);
       }
-    });
+    }, golden);
     if (assisted) {
       aimLockUntil = elapsed + 0.2;
       ui.reticle.classList.add("locked");
@@ -1212,8 +1231,22 @@
     }, 120);
   }
 
-  function damageCreature(creature, damage, point, weak) {
-    creature.hp -= damage;
+  function bossExposed() { return boss.hp <= boss.maxHp * 0.2 + 0.001; }
+
+  function damageCreature(creature, damage, point, weak, golden = false) {
+    if (!creature.alive) return;
+    if (creature === boss) {
+      if (golden && goldenBullet.status === "fired" && bossExposed()) {
+        goldenBullet.status = "spent";
+        creature.hp = 0;
+      } else {
+        creature.hp = Math.max(creature.maxHp * 0.2, creature.hp - damage);
+        if (bossExposed() && elapsed >= goldenBullet.hintAt) {
+          goldenBullet.hintAt = elapsed + 5;
+          showCaption(goldenBullet.status === "seeking" ? "Her last seal needs GOLD. Follow the map to the golden bullet." : "Seal exposed. Fire at Bertranda — the golden round loads automatically!", 3);
+        }
+      }
+    } else creature.hp -= damage;
     impactAt(point, weak ? 0xcaff55 : 0xff3bbd, weak ? 8 : 5);
     audio.hit();
     ui.reticle.classList.remove("hit");
@@ -1260,7 +1293,7 @@
   }
 
   function killBoss() {
-    if (!boss.alive) return;
+    if (!boss.alive || goldenBullet.status !== "spent") return;
     boss.alive = false;
     boss.hp = 0;
     gameState = "transitioning";
@@ -1271,7 +1304,7 @@
     const token = sessionId;
     const base = new THREE.Vector3(boss.x, 1.15, boss.z);
     boss.model.visible = false;
-    explosionAt(base.clone(), 2.55, 0xff3bbd, true);
+    explosionAt(base.clone(), 2.55, 0xffd45a, true);
     [140, 300, 470, 650, 820].forEach((delay, index) => {
       setTimeout(() => {
         if (sessionId !== token || gameState !== "transitioning") return;
@@ -1343,9 +1376,9 @@
     controls.fire = false;
     applySchemaLook();
     configureBossForSchema();
+    placeGoldenBullet();
     spawnOpeningSwarm();
     gameState = "playing";
-    ui.objective.textContent = "DESCENT " + schema + " · KILL BERTRANDA";
     updateOrientation();
     ui.reticle.classList.remove("reloading", "hit", "locked");
     ui.touchTorch.classList.add("pressed");
@@ -1354,7 +1387,7 @@
     updateHud();
     showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.6);
     const info = stageInfo();
-    showCaption(info.environment.name + " · " + info.cycle.name + " CORRUPTION · BERTRANDA HAS RETURNED", 4.2);
+    showCaption(info.environment.name + ". A new golden bullet is hidden here — follow the map.", 4.2);
   }
 
   function damagePlayer(amount) {
@@ -1374,6 +1407,7 @@
   function killPlayer() {
     if (gameState !== "playing") return;
     gameState = "dying";
+    ui.mapWrap.hidden = true;
     controls.fire = false;
     if (document.pointerLockElement) document.exitPointerLock();
     ui.scare.classList.remove("visible");
@@ -1391,19 +1425,20 @@
     }, 760);
   }
 
-  function createTracer(start, end, onImpact) {
+  function createTracer(start, end, onImpact, golden = false) {
     const distance = start.distanceTo(end);
     const duration = clamp(distance / 86, 0.13, 0.34);
-    const material = new THREE.MeshBasicMaterial({ color: 0xcaffff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+    const material = new THREE.MeshBasicMaterial({ color: golden ? 0xffdf65 : 0xcaffff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
     const bolt = new THREE.Mesh(boltGeometry, material);
     bolt.position.copy(start);
     bolt.scale.set(1.35, 1.35, 5.4);
+    if (golden) bolt.scale.multiplyScalar(2);
     bolt.lookAt(end);
     bolt.renderOrder = 6;
     scene.add(bolt);
 
     const trailGeometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-    const trailMaterial = new THREE.LineBasicMaterial({ color: 0x59fff1, transparent: true, opacity: 0.74, blending: THREE.AdditiveBlending, depthWrite: false });
+    const trailMaterial = new THREE.LineBasicMaterial({ color: golden ? 0xffbe38 : 0x59fff1, transparent: true, opacity: 0.74, blending: THREE.AdditiveBlending, depthWrite: false });
     const trail = new THREE.Line(trailGeometry, trailMaterial);
     trail.renderOrder = 5;
     scene.add(trail);
@@ -1519,6 +1554,93 @@
     }
   }
 
+  function clearGoldenBullet() {
+    goldenBullet.epoch += 1;
+    if (goldenBullet.model) {
+      scene.remove(goldenBullet.model);
+      disposeGroup(goldenBullet.model);
+      goldenBullet.model = null;
+    }
+  }
+
+  function placeGoldenBullet() {
+    clearGoldenBullet();
+    const site = BertrandaExpedition.chooseBulletSite(world, player);
+    goldenBullet.status = "seeking";
+    goldenBullet.x = site.x; goldenBullet.z = site.z;
+    goldenBullet.hintAt = -10;
+    const group = new THREE.Group();
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffdc69, emissive: 0xffa916, emissiveIntensity: 1.35, metalness: 0.65, roughness: 0.25 });
+    const casing = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.7, 10), gold);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.19, 0.36, 10), gold);
+    tip.position.y = 0.53;
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.09, 10), gold);
+    base.position.y = -0.36;
+    const glow = new THREE.MeshBasicMaterial({ color: 0xffd55a, transparent: true, opacity: 0.7, depthWrite: false });
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.63, 0.045, 5, 20), glow);
+    const seal = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 24), glow);
+    seal.rotation.x = -Math.PI / 2; seal.position.y = -0.9;
+    group.add(casing, tip, base, halo, seal);
+    group.position.set(site.x, 1.05, site.z);
+    goldenBullet.model = group; scene.add(group);
+    scoutMap.reset();
+    syncMapVisibility();
+  }
+
+  function updateGoldenBullet(dt) {
+    if (gameState !== "playing" || goldenBullet.status !== "seeking" || !goldenBullet.model) return;
+    const group = goldenBullet.model;
+    group.rotation.y += dt * 1.6;
+    group.position.y = 1.05 + Math.sin(elapsed * 3) * 0.12;
+    if (Math.hypot(player.x - goldenBullet.x, player.z - goldenBullet.z) >= 1.7 || !lineOfSight(player.x, player.z, goldenBullet.x, goldenBullet.z)) return;
+    goldenBullet.status = "loaded";
+    player.health = Math.min(100, player.health + 20);
+    player.invulnerable = Math.max(player.invulnerable, 1.2);
+    explosionAt(group.position.clone(), 0.72, 0xffd45a, true);
+    clearGoldenBullet();
+    scoutMap.reset();
+    audio.tone(660, 0.4, 0.12, "triangle", 660);
+    showDanger("GOLDEN BULLET FOUND", 2.3);
+    showCaption("+20 health. Weaken Bertranda, then fire: your golden finishing shot is automatic.", 4);
+    updateHud();
+  }
+
+  function syncMapVisibility() {
+    ui.mapWrap.hidden = false;
+    ui.mapDetails.hidden = !mapOpen;
+    ui.mapWrap.classList.toggle("expanded", mapOpen);
+    ui.mapToggle.setAttribute("aria-expanded", String(mapOpen));
+  }
+
+  function toggleMap() {
+    if (!canPlay()) return;
+    mapOpen = !mapOpen;
+    syncMapVisibility();
+    scoutMap.nextDraw = 0;
+    updateExpeditionHud();
+  }
+
+  function updateExpeditionHud() {
+    const seeking = goldenBullet.status === "seeking", target = seeking ? goldenBullet : boss;
+    scoutMap.update(world, player, target, boss, enemies, elapsed, mapOpen, seeking);
+    let nearest = 0, nearestDistance = Infinity;
+    scoutMap.route.forEach((p, index) => {
+      const distance = Math.hypot(p.x - player.x, p.z - player.z);
+      if (distance < nearestDistance) { nearest = index; nearestDistance = distance; }
+    });
+    const waypoint = scoutMap.route.slice(nearest).find(p => Math.hypot(p.x - player.x, p.z - player.z) > 3) || target;
+    const arrow = BertrandaExpedition.bearingArrow(player, waypoint, player.yaw);
+    ui.mapStatus.textContent = (seeking ? "GOLD" : "BERTRANDA") + " " + arrow + " " + (scoutMap.partial ? "~" : "") + Math.ceil(scoutMap.distance) + "m";
+    ui.mapHint.textContent = seeking ? "Follow gold · walk over bullet" : bossExposed() ? "Aim at Bertranda · FIRE" : "Weaken Bertranda to the gold mark";
+    ui.mapWrap.classList.toggle("gold-loaded", !seeking);
+    if (gameState !== "transitioning") {
+      ui.objective.textContent = seeking ? (IS_TOUCH ? "1 · FIND GOLD" : "1 · FIND THE GOLDEN BULLET")
+        : bossExposed() ? "3 · FIRE THE GOLDEN SHOT" : "2 · WEAKEN BERTRANDA";
+    }
+    ui.bossWrap.classList.toggle("sealed", bossExposed() && seeking);
+    ui.bossWrap.classList.toggle("finish-ready", bossExposed() && goldenBullet.status === "loaded");
+  }
+
   function spawnHealth(position) {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({ color: 0xcaff55, emissive: 0x54b72a, emissiveIntensity: 2.4, roughness: 0.36 });
@@ -1584,7 +1706,7 @@
     const bearing = Math.atan2(-(boss.x - player.x), -(boss.z - player.z)) - player.yaw;
     const direction = Math.atan2(Math.sin(bearing), Math.cos(bearing));
     const arrow = Math.abs(direction) < 0.5 ? "↑" : Math.abs(direction) > 2.5 ? "↓" : direction > 0 ? "←" : "→";
-    ui.bossName.textContent = boss.alive ? "BERTRANDA · " + Math.round(Math.hypot(boss.x - player.x, boss.z - player.z)) + "m " + arrow : "BERTRANDA DOWN";
+    ui.bossName.textContent = boss.alive ? (bossExposed() ? (goldenBullet.status === "seeking" ? "GOLD REQUIRED" : "GOLDEN SHOT READY") : "BERTRANDA") + " · " + Math.round(Math.hypot(boss.x - player.x, boss.z - player.z)) + "m " + arrow : "BERTRANDA DOWN";
     const phaseText = boss.phase === 1 ? "THE MOTHER BELOW" : boss.phase === 2 ? "SHELL SPLIT OPEN" : "FACE LOST · BERSERK";
     ui.bossPhase.textContent = "SCHEMA " + schema + " · " + info.environment.short + " · " + info.cycle.name + " · " + phaseText;
     ui.ammo.textContent = String(weapon.ammo).padStart(2, "0");
@@ -1599,6 +1721,7 @@
     ui.caption.classList.toggle("visible", captionUntil > elapsed);
     const aimLocked = weapon.reload <= 0 && (aimLockUntil > elapsed || Boolean(findAimAssistTarget()));
     ui.reticle.classList.toggle("locked", aimLocked);
+    updateExpeditionHud();
   }
 
   function showCaption(text, seconds) {
@@ -1620,6 +1743,7 @@
   }
 
   function clearSessionObjects() {
+    clearGoldenBullet();
     enemies.forEach((enemy) => {
       scene.remove(enemy.model);
       disposeGroup(enemy.model);
@@ -1675,8 +1799,8 @@
     ui.touchTorch.textContent = "LIGHT ON";
     applySchemaLook();
     configureBossForSchema();
+    placeGoldenBullet();
     spawnOpeningSwarm();
-    ui.objective.textContent = "DESCENT " + schema + " · KILL BERTRANDA";
     updateHud();
     audio.resetMusic();
   }
@@ -1698,7 +1822,7 @@
     updateOrientation();
     needsRender = true;
     showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.7);
-    showCaption("Explore without borders. Kill Bertranda to enter the next realm. Insects drain health on contact.", 5.2);
+    showCaption(IS_TOUCH ? "Tap MAP. Find the golden bullet, weaken Bertranda, then fire to enter the next realm." : "M opens your map. Find the golden bullet, weaken Bertranda, then fire to enter the next realm.", 5.2);
     if (!IS_TOUCH) requestPointer();
   }
 
@@ -1785,11 +1909,12 @@
   function bindKeyboardAndMouse() {
     window.addEventListener("keydown", (event) => {
       const typedKey = typeof event.key === "string" ? event.key.toLowerCase() : "";
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyR", "KeyE", "KeyF"].includes(event.code) && gameState === "playing") event.preventDefault();
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyR", "KeyE", "KeyF", "KeyM"].includes(event.code) && gameState === "playing") event.preventDefault();
       controls.keys.add(event.code);
       if (event.code === "Space" && gameState === "playing") controls.fire = true;
       if ((event.code === "KeyR" || typedKey === "r") && !event.repeat) startReload(true);
       if ((event.code === "KeyE" || event.code === "KeyF" || typedKey === "e" || typedKey === "f") && !event.repeat) toggleTorch();
+      if ((event.code === "KeyM" || typedKey === "m") && !event.repeat) toggleMap();
       if (event.code === "KeyP" && !event.repeat) {
         if (gameState === "playing") pauseGame();
         else if (gameState === "paused") resumeGame();
@@ -2002,7 +2127,7 @@
   }
 
   function init() {
-    if (!window.THREE || !window.BertrandaWorld) {
+    if (!window.THREE || !window.BertrandaWorld || !window.BertrandaExpedition) {
       ui.loading.innerHTML = "<strong>THE REALMS FAILED TO OPEN</strong><small>Reload to finish loading the game.</small>";
       return;
     }
@@ -2021,6 +2146,7 @@
     camera.rotation.order = "YXZ";
     scene.add(camera);
     clock = new THREE.Clock();
+    scoutMap = new BertrandaExpedition.ScoutMap(ui.mapCanvas);
 
     hemisphereLight = new THREE.HemisphereLight(0x9cfff4, 0x31072e, 0.84);
     scene.add(hemisphereLight);
@@ -2095,6 +2221,7 @@
         updateEnemies(dt);
         updateProjectiles(dt);
         updatePickups(dt);
+        updateGoldenBullet(dt);
         updateEffects(dt);
         hudTimer -= dt;
         if (hudTimer <= 0) {
@@ -2119,6 +2246,7 @@
   ui.resume.addEventListener("click", resumeGame);
   ui.restart.addEventListener("click", restartGame);
   ui.retry.addEventListener("click", restartGame);
+  ui.mapToggle.addEventListener("click", toggleMap);
 
   init();
 })();

@@ -59,6 +59,7 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
   const context = {
     console, document, navigator: { maxTouchPoints: touch ? 5 : 0 },
     BertrandaWorld: require('../world.js'),
+    BertrandaExpedition: require('../expedition.js'),
     matchMedia: () => ({ matches: touch }),
     innerWidth: width, innerHeight: height, devicePixelRatio: 3,
     screen: { orientation: new Element() },
@@ -84,6 +85,9 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
       explosionAt, impactAt, spawnHealth, spawnBurst, updateEffects, createTracer,
       effectiveEnemyCap, beginNextSchema, killBoss, stageInfo,
       spawnCreature, updateEnemies, currentFaceTexture, CREATURES,
+      goldenBullet, placeGoldenBullet, updateGoldenBullet, bossExposed,
+      fireWeapon, damageCreature, updateHud, toggleMap, updateExpeditionHud,
+      get scoutMap() { return scoutMap; }, get camera() { return camera; },
       get world() { return world; },
       controls, player, weapon, boss, settings, performanceState, effects, enemies,
       get state() { return gameState; }, get elapsed() { return elapsed; },
@@ -225,7 +229,11 @@ test('five corruption cycles progress past descent 25 with stable mobile budgets
     if (schema < 25) { g.beginNextSchema(); assert.ok(g.boss.hp > lastHP); lastHP = g.boss.hp; }
   }
   assert.equal(environments.size, 5); assert.equal(cycles.size, 5);
-  g.killBoss(); assert.equal(g.state, 'transitioning');
+  g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+  g.damageCreature(g.boss, g.boss.maxHp, new Three.Vector3(g.boss.x, 1, g.boss.z), true);
+  g.goldenBullet.status = 'fired';
+  g.damageCreature(g.boss, 26, new Three.Vector3(g.boss.x, 1, g.boss.z), true, true);
+  assert.equal(g.state, 'transitioning');
   h.timers.findLast(t => t.ms === 1700).fn(); assert.equal(g.state, 'playing');
   assert.equal(g.schema, 26); assert.equal(g.stageInfo().environment.kind, 'house');
   assert.equal(g.stageInfo().cycleIndex, 4);
@@ -296,4 +304,83 @@ test('desktop pointer unlock still pauses deliberately', () => {
   h.document.pointerLockElement = h.el('render-host'); h.document.emit('pointerlockchange');
   h.document.pointerLockElement = null; h.document.emit('pointerlockchange');
   assert.equal(h.game.state, 'paused');
+});
+
+test('ordinary fire cannot clear a realm without its golden bullet, even at zero attempted HP', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const point = new Three.Vector3(g.boss.x, 1, g.boss.z);
+  for (let i = 0; i < 5; i++) g.damageCreature(g.boss, 100000, point, true);
+  g.killBoss();
+  assert.equal(g.state, 'playing'); assert.equal(g.boss.alive, true);
+  assert.equal(g.boss.hp, g.boss.maxHp * 0.2);
+  assert.equal(g.goldenBullet.status, 'seeking');
+  g.updateHud(); assert.match(h.el('boss-name').textContent, /GOLD REQUIRED/);
+});
+
+test('gold is collected by proximity once, heals a little and survives reloads and misses', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const original = g.goldenBullet.model;
+  g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.player.health = 60;
+  g.updateGoldenBullet(0.01);
+  assert.equal(g.goldenBullet.status, 'loaded'); assert.equal(g.player.health, 80);
+  assert.equal(g.goldenBullet.model, null); assert.equal(original.parent, null);
+  g.updateGoldenBullet(0.5); assert.equal(g.player.health, 80);
+  g.weapon.ammo = 0; g.fireWeapon();
+  assert.ok(g.weapon.reload > 0); assert.equal(g.goldenBullet.status, 'loaded');
+  g.weapon.ammo = 32; g.weapon.reload = 0;
+  g.boss.alive = false; g.enemies.forEach(e => { e.alive = false; });
+  g.camera.rotation.x = 1.4; g.scene.updateMatrixWorld(true);
+  g.fireWeapon(); g.updateEffects(0.5);
+  assert.equal(g.goldenBullet.status, 'loaded', 'a miss cannot consume gold');
+  g.startGame(); assert.equal(g.goldenBullet.status, 'seeking');
+  assert.equal(g.player.health, 100); assert.ok(g.goldenBullet.model);
+});
+
+test('desktop and touch rifles fire a visible golden finisher and require a fresh relic next realm', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame();
+    g.player.x = g.goldenBullet.x; g.player.z = g.goldenBullet.z; g.updateGoldenBullet(0.01);
+    g.player.x = 34; g.player.z = 34; g.player.yaw = 0;
+    g.camera.position.set(34, 1.62, 34); g.camera.rotation.set(0, 0, 0, 'YXZ');
+    g.enemies.forEach(e => { e.alive = false; });
+    g.boss.x = 34; g.boss.z = 26; g.boss.model.position.set(34, 0.08, 26);
+    g.boss.model.rotation.set(0, 0, 0);
+    g.scene.updateMatrixWorld(true);
+    g.damageCreature(g.boss, g.boss.maxHp, new Three.Vector3(34, 1, 26), true);
+    assert.equal(g.state, 'playing'); assert.equal(g.goldenBullet.status, 'loaded');
+    g.fireWeapon();
+    assert.equal(g.goldenBullet.status, 'fired');
+    const shot = g.effects.findLast(e => e.kind === 'bolt');
+    assert.equal(shot.object.material.color.getHex(), 0xffdf65);
+    assert.equal(g.boss.alive, true, 'damage waits for the travelling projectile');
+    g.pauseGame(); g.animate(); assert.equal(g.goldenBullet.status, 'fired');
+    g.resumeGame(); g.updateEffects(0.5);
+    assert.equal(g.boss.alive, false); assert.equal(g.goldenBullet.status, 'spent');
+    assert.equal(g.state, 'transitioning');
+    h.timers.findLast(t => t.ms === 1700).fn();
+    assert.equal(g.schema, 2); assert.equal(g.state, 'playing');
+    assert.equal(g.goldenBullet.status, 'seeking'); assert.ok(g.goldenBullet.model);
+  }
+});
+
+test('map opens by M on PC or a touch button, without pausing or stealing held inputs', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame();
+    assert.equal(h.el('map-details').hidden, touch);
+    g.controls.fire = true; g.controls.moveX = 1;
+    if (touch) h.el('map-toggle').emit('click');
+    else h.context.emit('keydown', { code: 'KeyM', key: 'm' });
+    assert.equal(h.el('map-details').hidden, !touch);
+    assert.equal(g.state, 'playing'); assert.equal(g.controls.fire, true); assert.equal(g.controls.moveX, 1);
+    const before = h.el('map-details').hidden;
+    h.context.emit('keydown', { code: 'KeyM', key: 'm', repeat: true });
+    assert.equal(h.el('map-details').hidden, before);
+    g.pauseGame(); h.el('map-toggle').emit('click');
+    assert.equal(h.el('map-details').hidden, before);
+    g.resumeGame();
+    if (touch) {
+      h.context.innerWidth = 390; h.context.innerHeight = 844; g.updateOrientation();
+      h.el('map-toggle').emit('click'); assert.equal(h.el('map-details').hidden, before);
+    }
+  }
 });
