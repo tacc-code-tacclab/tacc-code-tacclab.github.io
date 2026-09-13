@@ -8,11 +8,11 @@
   const IS_TOUCH = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
   const MAX_SCHEMAS = 25;
   const ENVIRONMENTS = [
-    { name: "ST. DYMPHNA ASYLUM", short: "ASYLUM", kind: "hospital", wall: 0x87958d, floor: 0x56645f, ceiling: 0x718078 },
+    { name: "THE HOUSE OF INFESTATION", short: "HAUNTED HOUSE", kind: "house" },
+    { name: "THE WHISPERING FOREST", short: "SPIRIT FOREST", kind: "forest" },
     { name: "CEMETERY OF LOST FACES", short: "CEMETERY", kind: "cemetery", wall: 0x46514c, floor: 0x28352d, ceiling: 0x17211d },
-    { name: "THE WHISPERING FOREST", short: "SPIRIT FOREST", kind: "forest", wall: 0x183c29, floor: 0x16271b, ceiling: 0x101b15 },
-    { name: "CASTLE OF THE EIGHT LEGS", short: "HORROR CASTLE", kind: "castle", wall: 0x4d4c54, floor: 0x302f37, ceiling: 0x3d3943 },
-    { name: "CATACOMBS OF BERTRANDA", short: "CATACOMBS", kind: "catacombs", wall: 0x5c5142, floor: 0x352f29, ceiling: 0x453b31 }
+    { name: "CATACOMBS OF BERTRANDA", short: "CATACOMBS", kind: "catacombs" },
+    { name: "THE INFERNAL ABYSS", short: "HELL", kind: "hell" }
   ];
   const CORRUPTION_CYCLES = [
     { name: "VERDIGRIS", background: 0x03110d, sky: 0x79c997, ground: 0x061d13, moon: 0x65ff8d, accent: 0x67ff9a },
@@ -23,9 +23,9 @@
   ];
 
   function stageInfo(value) {
-    const stageIndex = clamp((value || schema) - 1, 0, MAX_SCHEMAS - 1);
+    const stageIndex = Math.max(0, (value || schema) - 1);
     const environmentIndex = stageIndex % ENVIRONMENTS.length;
-    const cycleIndex = Math.floor(stageIndex / ENVIRONMENTS.length);
+    const cycleIndex = Math.min(4, Math.floor(stageIndex / ENVIRONMENTS.length));
     return {
       environment: ENVIRONMENTS[environmentIndex],
       environmentIndex,
@@ -44,6 +44,7 @@
     objective: $("#objective-text"),
     wave: $("#wave-text"),
     bossWrap: $("#boss-wrap"),
+    bossName: $("#boss-name"),
     bossFill: $("#boss-fill"),
     bossPhase: $("#boss-phase"),
     danger: $("#danger"),
@@ -72,16 +73,13 @@
     restart: $("#restart-button"),
     death: $("#death-screen"),
     retry: $("#retry-button"),
-    win: $("#win-screen"),
-    again: $("#again-button"),
-    finalTime: $("#final-time"),
-    finalKills: $("#final-kills"),
     scare: $("#jumpscare")
   };
 
   const settings = {
     difficulty: "normal",
     quality: "deep",
+    realm: "1",
     muted: false
   };
 
@@ -89,9 +87,6 @@
   let scene;
   let camera;
   let clock;
-  let wallMesh;
-  let floorMesh;
-  let ceilingMesh;
   let flashlight;
   let flashlightHalo;
   let hemisphereLight;
@@ -119,21 +114,11 @@
   let lastKillAt = -20;
   let hudTimer = 0;
   let aimLockUntil = 0;
-  let baseColliderCount = 0;
 
-  const flickerLights = [];
-  const propColliders = [];
-  const shotBlockers = [];
-  const rifts = [];
   const enemies = [];
   const effects = [];
   const projectiles = [];
   const pickups = [];
-  const infestationProps = [];
-  const infestationMaterials = [];
-  const stageDecor = [];
-  const interiorProps = [];
-  const interiorColliders = [];
   const faceTextures = {};
   const raycaster = new THREE.Raycaster();
   const aimPoint = new THREE.Vector2(0, 0);
@@ -142,9 +127,6 @@
   const boltGeometry = new THREE.OctahedronGeometry(0.12, 0);
   const blastGeometry = new THREE.IcosahedronGeometry(0.55, 1);
   const blastRingGeometry = new THREE.RingGeometry(0.25, 0.34, 18);
-  const growthGeometry = new THREE.DodecahedronGeometry(0.52, 0);
-  const growthRingGeometry = new THREE.TorusGeometry(0.56, 0.08, 6, 14);
-  const growthSpikeGeometry = new THREE.ConeGeometry(0.1, 0.72, 5);
 
   const controls = {
     keys: new Set(),
@@ -387,97 +369,21 @@
   });
 
   const CELL = 4;
-  const MAP_W = 25;
-  const MAP_H = 19;
-  const ORIGIN_X = -(MAP_W * CELL) / 2;
-  const ORIGIN_Z = -(MAP_H * CELL) / 2;
-  const grid = Array.from({ length: MAP_H }, (_, z) =>
-    Array.from({ length: MAP_W }, (_, x) => (x === 0 || z === 0 || x === MAP_W - 1 || z === MAP_H - 1 ? 1 : 0))
-  );
-
-  const wallV = (x, z1, z2, openings) => {
-    const gaps = openings || [];
-    for (let z = z1; z <= z2; z += 1) if (!gaps.includes(z)) grid[z][x] = 1;
-  };
-  const wallH = (z, x1, x2, openings) => {
-    const gaps = openings || [];
-    for (let x = x1; x <= x2; x += 1) if (!gaps.includes(x)) grid[z][x] = 1;
-  };
-  wallV(8, 1, 7, [3, 6]);
-  wallV(16, 1, 7, [4, 6]);
-  wallH(8, 1, 23, [4, 7, 12, 16, 20]);
-  wallV(10, 9, 17, [11, 13, 16]);
-  wallV(18, 9, 17, [12, 14, 16]);
-  wallH(13, 1, 9, [4, 7]);
-  wallH(14, 11, 23, [14, 17, 21]);
-
-  const worldFromCell = (cx, cz) => ({
-    x: ORIGIN_X + (cx + 0.5) * CELL,
-    z: ORIGIN_Z + (cz + 0.5) * CELL
-  });
-
-  const cellFromWorld = (x, z) => ({
-    x: Math.floor((x - ORIGIN_X) / CELL),
-    z: Math.floor((z - ORIGIN_Z) / CELL)
-  });
-
-  const isWalkableCell = (x, z) => x > 0 && z > 0 && x < MAP_W - 1 && z < MAP_H - 1 && grid[z][x] === 0;
+  const MAP_W = 33, MAP_H = 33;
+  let world;
+  let nearbyCell = "";
   const floorCells = [];
-  for (let z = 1; z < MAP_H - 1; z += 1) {
-    for (let x = 1; x < MAP_W - 1; x += 1) {
+  const worldFromCell = (x, z) => ({ x: (x + 0.5) * CELL, z: (z + 0.5) * CELL });
+  const cellFromWorld = (x, z) => ({ x: Math.floor(x / CELL), z: Math.floor(z / CELL) });
+  const isWalkableCell = (x, z) => world ? world.walkable(x, z) : false;
+  function refreshNearbyCells() {
+    const center = cellFromWorld(player.x, player.z);
+    const key = center.x + "," + center.z + ":" + world.generation;
+    if (key === nearbyCell) return;
+    nearbyCell = key; floorCells.length = 0;
+    for (let z = center.z - 10; z <= center.z + 10; z++) for (let x = center.x - 10; x <= center.x + 10; x++) {
       if (isWalkableCell(x, z)) floorCells.push({ x, z });
     }
-  }
-
-  function makeTexture(kind) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 256;
-    const context = canvas.getContext("2d");
-    if (kind === "wall") {
-      context.fillStyle = "#40545a";
-      context.fillRect(0, 0, 256, 256);
-      context.fillStyle = "rgba(104,255,235,.09)";
-      for (let y = 0; y < 256; y += 18) context.fillRect(0, y, 256, 2);
-      for (let i = 0; i < 1700; i += 1) {
-        const shade = 35 + Math.random() * 45;
-        context.fillStyle = "rgba(" + (shade + 8) + "," + (shade + 30) + "," + (shade + 34) + "," + Math.random() * 0.17 + ")";
-        context.fillRect(Math.random() * 256, Math.random() * 256, Math.random() * 8 + 1, Math.random() * 15 + 2);
-      }
-      context.fillStyle = "rgba(50,255,104,.14)";
-      for (let i = 0; i < 16; i += 1) context.fillRect(Math.random() * 256, Math.random() * 256, Math.random() * 58, Math.random() * 43);
-    } else if (kind === "floor") {
-      context.fillStyle = "#202b35";
-      context.fillRect(0, 0, 256, 256);
-      context.strokeStyle = "#41636e";
-      context.lineWidth = 3;
-      for (let y = 0; y <= 256; y += 32) {
-        context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(256, y + (Math.random() - 0.5) * 3);
-        context.stroke();
-      }
-      for (let i = 0; i < 600; i += 1) {
-        const value = 30 + Math.random() * 42;
-        context.fillStyle = "rgba(" + value + "," + (value + 18) + "," + (value + 27) + "," + Math.random() * 0.22 + ")";
-        context.fillRect(Math.random() * 256, Math.random() * 256, Math.random() * 12 + 2, Math.random() * 2 + 1);
-      }
-    } else {
-      context.fillStyle = "#263640";
-      context.fillRect(0, 0, 256, 256);
-      context.strokeStyle = "rgba(89,255,241,.16)";
-      for (let x = 0; x < 256; x += 24) {
-        context.beginPath();
-        context.moveTo(x, 0);
-        context.lineTo(x + 18, 256);
-        context.stroke();
-      }
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.LinearMipMapLinearFilter;
-    return texture;
   }
 
   function addBox(x, y, z, width, height, depth, material, parent) {
@@ -485,10 +391,6 @@
     mesh.position.set(x, y, z);
     (parent || scene).add(mesh);
     return mesh;
-  }
-
-  function addCollider(x, z, width, depth) {
-    propColliders.push({ x1: x - width / 2, x2: x + width / 2, z1: z - depth / 2, z2: z + depth / 2 });
   }
 
   function cylinderBetween(a, b, radius, material, parent, segments) {
@@ -523,359 +425,36 @@
     return mesh;
   }
 
-  function buildHouse() {
-    const wallTexture = makeTexture("wall");
-    wallTexture.repeat.set(1.35, 1.35);
-    const floorTexture = makeTexture("floor");
-    floorTexture.repeat.set(MAP_W * 0.7, MAP_H * 0.7);
-    const ceilingTexture = makeTexture("ceiling");
-    ceilingTexture.repeat.set(8, 6);
-
-    const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, color: 0xb7e0dc, roughness: 0.91, metalness: 0.03 });
-    const wallCells = [];
-    for (let z = 0; z < MAP_H; z += 1) {
-      for (let x = 0; x < MAP_W; x += 1) if (grid[z][x] === 1) wallCells.push({ x, z });
-    }
-    const geometry = new THREE.BoxGeometry(CELL, 4.5, CELL);
-    wallMesh = new THREE.InstancedMesh(geometry, wallMaterial, wallCells.length);
-    const dummy = new THREE.Object3D();
-    const tint = new THREE.Color();
-    wallCells.forEach((cell, index) => {
-      const world = worldFromCell(cell.x, cell.z);
-      dummy.position.set(world.x, 2.25, world.z);
-      dummy.updateMatrix();
-      wallMesh.setMatrixAt(index, dummy.matrix);
-      const shade = 0.82 + ((cell.x * 13 + cell.z * 11) % 12) / 68;
-      tint.setRGB(shade * 0.72, shade * 0.96, shade);
-      wallMesh.setColorAt(index, tint);
-    });
-    scene.add(wallMesh);
-    shotBlockers.push(wallMesh);
-
-    const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, color: 0x738b9a, roughness: 1 });
-    floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(MAP_W * CELL, MAP_H * CELL), floorMaterial);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = 0;
-    scene.add(floorMesh);
-
-    const ceilingMaterial = new THREE.MeshStandardMaterial({ map: ceilingTexture, color: 0x728c96, side: THREE.DoubleSide, roughness: 1 });
-    ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(MAP_W * CELL, MAP_H * CELL), ceilingMaterial);
-    ceilingMesh.rotation.x = Math.PI / 2;
-    ceilingMesh.position.y = 4.48;
-    scene.add(ceilingMesh);
-
-    const darkWood = new THREE.MeshStandardMaterial({ color: 0x3a2417, roughness: 0.86 });
-    const oldWood = new THREE.MeshStandardMaterial({ color: 0x6c4929, roughness: 0.92 });
-    const cloth = new THREE.MeshStandardMaterial({ color: 0x8b1e68, roughness: 1 });
-    const metal = new THREE.MeshStandardMaterial({ color: 0x57919b, roughness: 0.45, metalness: 0.56 });
-
-    const addTable = (cx, cz, rotation) => {
-      const world = worldFromCell(cx, cz);
-      const group = new THREE.Group();
-      group.position.set(world.x, 0, world.z);
-      group.rotation.y = rotation || 0;
-      addBox(0, 1.04, 0, 2.55, 0.18, 1.42, oldWood, group);
-      [[-1.02, -0.5], [1.02, -0.5], [-1.02, 0.5], [1.02, 0.5]].forEach((pair) => addBox(pair[0], 0.52, pair[1], 0.16, 1.04, 0.16, darkWood, group));
-      scene.add(group);
-      interiorProps.push(group);
-      const turn = Math.abs(Math.sin(rotation || 0)) > 0.5;
-      addCollider(world.x, world.z, turn ? 1.55 : 2.7, turn ? 2.7 : 1.55);
-    };
-    addTable(5, 4, 0);
-    addTable(13, 3, Math.PI / 2);
-    addTable(14, 10, 0);
-    addTable(21, 16, 0);
-
-    const addBed = (cx, cz, rotation) => {
-      const world = worldFromCell(cx, cz);
-      const group = new THREE.Group();
-      group.position.set(world.x, 0, world.z);
-      group.rotation.y = rotation || 0;
-      addBox(0, 0.42, 0, 3.15, 0.55, 1.65, oldWood, group);
-      addBox(0, 0.78, 0, 2.96, 0.28, 1.48, cloth, group);
-      addBox(-1.46, 1.2, 0, 0.2, 2, 1.83, darkWood, group);
-      scene.add(group);
-      interiorProps.push(group);
-      const turn = Math.abs(Math.sin(rotation || 0)) > 0.5;
-      addCollider(world.x, world.z, turn ? 1.8 : 3.3, turn ? 3.3 : 1.8);
-    };
-    addBed(2, 6, 0);
-    addBed(11, 6, Math.PI / 2);
-    addBed(21, 5, 0);
-    addBed(7, 16, Math.PI / 2);
-
-    const addCabinet = (cx, cz, rotation) => {
-      const world = worldFromCell(cx, cz);
-      const group = new THREE.Group();
-      group.position.set(world.x, 0, world.z);
-      group.rotation.y = rotation || 0;
-      addBox(0, 1.55, 0, 2.4, 3.1, 0.72, darkWood, group);
-      for (let y = 0.44; y < 2.9; y += 0.6) addBox(0, y, 0.4, 2.5, 0.09, 0.82, oldWood, group);
-      scene.add(group);
-      interiorProps.push(group);
-      const turn = Math.abs(Math.sin(rotation || 0)) > 0.5;
-      addCollider(world.x, world.z, turn ? 0.9 : 2.6, turn ? 2.6 : 0.9);
-    };
-    addCabinet(6, 1, 0);
-    addCabinet(17, 6, Math.PI / 2);
-    addCabinet(23, 11, Math.PI / 2);
-    addCabinet(11, 16, Math.PI / 2);
-
-    const rugMaterial = new THREE.MeshBasicMaterial({ color: 0xc11981, side: THREE.DoubleSide });
-    [[4, 3, 0], [12, 4, Math.PI / 2], [20, 3, 0], [6, 10, 0], [14, 16, Math.PI / 2]].forEach((def) => {
-      const world = worldFromCell(def[0], def[1]);
-      const rug = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.4), rugMaterial);
-      rug.rotation.x = -Math.PI / 2;
-      rug.rotation.z = def[2];
-      rug.position.set(world.x, 0.012, world.z);
-      scene.add(rug);
-      interiorProps.push(rug);
-    });
-
-    const lampCells = [[4, 4], [12, 4], [20, 4], [4, 10], [14, 10], [21, 11], [5, 16], [14, 16], [21, 16]];
-    lampCells.forEach((cell, index) => {
-      const world = worldFromCell(cell[0], cell[1]);
-      const fixture = new THREE.Group();
-      fixture.position.set(world.x, 4.05, world.z);
-      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.42, 5), metal);
-      cord.position.y = 0.18;
-      fixture.add(cord);
-      const shade = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.34, 9, 1, true), metal);
-      shade.position.y = -0.12;
-      fixture.add(shade);
-      scene.add(fixture);
-      interiorProps.push(fixture);
-      const colour = index % 3 === 0 ? 0x59fff1 : index % 3 === 1 ? 0xcaff55 : 0xff4fbd;
-      const light = new THREE.PointLight(colour, 1.7, 24, 1.8);
-      light.position.set(world.x, 3.63, world.z);
-      scene.add(light);
-      flickerLights.push({ light, base: light.intensity, phase: index * 2.13, index });
-    });
-
-    const riftMaterial = new THREE.MeshStandardMaterial({ color: 0x350b35, emissive: 0xff24ad, emissiveIntensity: 2.4, roughness: 0.56 });
-    [[2, 2], [22, 2], [3, 11], [22, 11], [3, 16], [20, 16]].forEach((cell, index) => {
-      const world = worldFromCell(cell[0], cell[1]);
-      const group = new THREE.Group();
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 6, 19), riftMaterial);
-      ring.rotation.x = -Math.PI / 2;
-      group.add(ring);
-      for (let i = 0; i < 5; i += 1) {
-        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.52, 5), riftMaterial);
-        const angle = i / 5 * TAU;
-        tooth.position.set(Math.cos(angle) * 0.7, 0.18, Math.sin(angle) * 0.7);
-        tooth.rotation.z = Math.PI / 2;
-        tooth.rotation.y = -angle;
-        group.add(tooth);
-      }
-      const glow = new THREE.PointLight(index % 2 ? 0x59fff1 : 0xff3bbd, 0.72, 6, 2);
-      glow.position.y = 0.35;
-      group.add(glow);
-      group.position.set(world.x, 0.035, world.z);
-      scene.add(group);
-      rifts.push({ group, ring, glow, phase: index * 1.6, index, x: world.x, z: world.z });
-    });
+  function buildWorld() {
+    world = new BertrandaWorld.World(THREE, scene, { touch: IS_TOUCH });
+    world.setSchema(schema, stageInfo().cycle);
+    const spawn = worldFromCell(8, 8);
+    world.update(spawn.x, spawn.z, true);
   }
-
-  function clearInfestation() {
-    infestationProps.forEach((group) => scene.remove(group));
-    infestationProps.length = 0;
-    stageDecor.forEach((group) => {
-      scene.remove(group);
-      disposeGroup(group);
-    });
-    stageDecor.length = 0;
-    infestationMaterials.forEach((material) => material.dispose());
-    infestationMaterials.length = 0;
-    propColliders.length = baseColliderCount;
+  function currentFaceTexture(type = "boss") {
+    if (type !== "boss") return faceTextures[type === "spirit" ? "bat" : type === "demon" ? "roach" : type];
+    return faceTextures.tiers ? faceTextures.tiers[stageInfo().cycleIndex] : faceTextures.bertranda;
   }
-
-  function currentFaceTexture() {
-    const info = stageInfo();
-    return faceTextures.tiers ? faceTextures.tiers[info.cycleIndex] : faceTextures.bertranda;
-  }
-
   function applyFaceTier() {
-    const texture = currentFaceTexture();
-    if (boss.face && boss.face.material) {
-      boss.face.material.map = texture;
-      boss.face.material.needsUpdate = true;
-    }
-    enemies.forEach((enemy) => {
-      if (!enemy.face || !enemy.face.material) return;
-      enemy.face.material.map = texture;
-      enemy.face.material.needsUpdate = true;
-    });
+    if (boss.face) { boss.face.material.map = currentFaceTexture(); boss.face.material.needsUpdate = true; }
+    enemies.forEach(enemy => { enemy.face.material.map = currentFaceTexture(enemy.type); enemy.face.material.needsUpdate = true; });
   }
-
-  function addEnvironmentProp(info, world, index, materials) {
-    const group = new THREE.Group();
-    const kind = info.environment.kind;
-    const dark = materials.dark;
-    const stone = materials.stone;
-    const accent = materials.accent;
-    group.position.set(world.x, 0, world.z);
-    group.rotation.y = (index * 1.71 + info.cycleIndex * 0.43) % TAU;
-    group.userData.phase = index * 0.73;
-    group.userData.kind = kind;
-
-    if (kind === "hospital") {
-      addBox(0, 0.5, 0, 2.35, 0.16, 1.05, stone, group);
-      addBox(0, 0.68, 0, 2.18, 0.2, 0.93, accent, group);
-      [[-0.95, -0.38], [0.95, -0.38], [-0.95, 0.38], [0.95, 0.38]].forEach((point) => addBox(point[0], 0.25, point[1], 0.08, 0.5, 0.08, dark, group));
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 1.9, 6), dark);
-      pole.position.set(-1.18, 1.1, 0.42);
-      group.add(pole);
-      const bag = addBox(-1.18, 1.86, 0.42, 0.24, 0.38, 0.08, accent, group);
-      bag.material = accent;
-      addCollider(world.x, world.z, 2.6, 1.35);
-    } else if (kind === "cemetery") {
-      addBox(0, 0.13, 0, 1.45, 0.26, 0.65, dark, group);
-      const slab = addBox(0, 0.95, 0, 0.88, 1.65 + (index % 3) * 0.22, 0.3, stone, group);
-      slab.rotation.z = (index % 2 ? -1 : 1) * 0.045;
-      addBox(0, 1.32, 0.19, 0.18, 0.82, 0.12, accent, group);
-      addBox(0, 1.48, 0.19, 0.64, 0.16, 0.12, accent, group);
-      addCollider(world.x, world.z, 1.2, 0.9);
-    } else if (kind === "forest") {
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.44, 3.7, 7), dark);
-      trunk.position.y = 1.85;
-      trunk.rotation.z = (index % 2 ? -1 : 1) * 0.08;
-      group.add(trunk);
-      [-1, 1].forEach((side) => {
-        cylinderBetween(new THREE.Vector3(0, 2.55, 0), new THREE.Vector3(side * 0.95, 3.55, (index % 3 - 1) * 0.3), 0.09, dark, group, 6);
-      });
-      const spirit = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 6), accent);
-      spirit.position.set((index % 2 ? -1 : 1) * 0.72, 2.45 + index % 3 * 0.28, 0.4);
-      group.add(spirit);
-      // Emissive spirits remain bright without adding one shader light per tree.
-      if (!IS_TOUCH && settings.quality === "high") {
-        const glow = new THREE.PointLight(info.cycle.accent, 0.72, 7, 2);
-        glow.position.copy(spirit.position);
-        group.add(glow);
-      }
-      group.userData.spirit = spirit;
-      addCollider(world.x, world.z, 1.15, 1.15);
-    } else if (kind === "castle") {
-      const column = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 3.5, 8), stone);
-      column.position.y = 1.75;
-      group.add(column);
-      addBox(0, 0.16, 0, 1.25, 0.32, 1.25, dark, group);
-      addBox(0, 3.42, 0, 1.15, 0.28, 1.15, dark, group);
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.58, 7), accent);
-      flame.position.set(0, 3.86, 0);
-      group.add(flame);
-      group.userData.spirit = flame;
-      addCollider(world.x, world.z, 1.25, 1.25);
-    } else {
-      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.43, 8, 6), stone);
-      skull.scale.set(0.82, 1, 0.75);
-      skull.position.set(0, 0.54, 0);
-      group.add(skull);
-      [-1, 1].forEach((side) => {
-        const socket = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4), dark);
-        socket.position.set(side * 0.15, 0.62, 0.32);
-        group.add(socket);
-        cylinderBetween(new THREE.Vector3(side * 0.15, 0.12, -0.65), new THREE.Vector3(-side * 0.45, 0.32, 0.62), 0.07, accent, group, 6);
-      });
-      addBox(0, 0.15, -0.08, 1.5, 0.18, 1.25, dark, group);
-      addCollider(world.x, world.z, 1.35, 1.15);
-    }
-
-    scene.add(group);
-    stageDecor.push(group);
-  }
-
-  function configureInteriorForStage(info) {
-    const showInterior = info.environment.kind === "hospital" || info.environment.kind === "castle";
-    interiorProps.forEach((object) => {
-      object.visible = showInterior;
-    });
-    propColliders.length = baseColliderCount;
-    if (showInterior) interiorColliders.forEach((collider) => propColliders.push({ ...collider }));
-  }
-
-  function addInfestationForSchema(currentSchema) {
-    const info = stageInfo(currentSchema);
-    configureInteriorForStage(info);
-    const color = info.cycle.accent;
-    const accent = new THREE.MeshStandardMaterial({
-      color,
-      emissive: color,
-      emissiveIntensity: 1.25 + info.cycleIndex * 0.35,
-      roughness: 0.42,
-      metalness: 0.08,
-      flatShading: true
-    });
-    const stone = new THREE.MeshStandardMaterial({ color: info.environment.wall, roughness: 0.94, metalness: info.environment.kind === "hospital" ? 0.18 : 0.03, flatShading: true });
-    const dark = new THREE.MeshStandardMaterial({ color: info.cycle.ground, roughness: 0.84, metalness: 0.12, flatShading: true });
-    infestationMaterials.push(accent, stone, dark);
-    const playerSpawn = worldFromCell(3, 16);
-    const bossSpawn = worldFromCell(21, 10);
-    const wanted = 5 + info.environmentIndex + info.cycleIndex;
-    let placed = 0;
-    let attempt = 0;
-    while (placed < wanted && attempt < floorCells.length * 2) {
-      const cell = floorCells[((currentSchema - 1) * 41 + attempt * 29) % floorCells.length];
-      const world = worldFromCell(cell.x, cell.z);
-      attempt += 1;
-      if (Math.hypot(world.x - playerSpawn.x, world.z - playerSpawn.z) < 7) continue;
-      if (Math.hypot(world.x - bossSpawn.x, world.z - bossSpawn.z) < 6) continue;
-      if (!circleFree(world.x, world.z, 0.82)) continue;
-      addEnvironmentProp(info, world, placed, { accent, stone, dark });
-      placed += 1;
-    }
-
-    const growthCount = 2 + info.cycleIndex;
-    for (let index = 0; index < growthCount; index += 1) {
-      const cell = floorCells[(currentSchema * 53 + index * 71) % floorCells.length];
-      const world = worldFromCell(cell.x, cell.z);
-      if (!circleFree(world.x, world.z, 0.6)) continue;
-      const group = new THREE.Group();
-      const pod = new THREE.Mesh(growthGeometry, accent);
-      pod.position.y = 0.55;
-      pod.scale.set(0.7 + info.cycleIndex * 0.1, 1.05 + info.cycleIndex * 0.13, 0.7 + info.cycleIndex * 0.1);
-      group.add(pod);
-      const ring = new THREE.Mesh(growthRingGeometry, accent);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 0.12;
-      group.add(ring);
-      group.position.set(world.x, 0, world.z);
-      group.userData.phase = index * 1.3;
-      scene.add(group);
-      infestationProps.push(group);
-      addCollider(world.x, world.z, 1.15, 1.15);
-    }
-  }
-
   function applySchemaLook() {
     if (!scene) return;
     const info = stageInfo();
-    scene.background.setHex(info.cycle.background);
-    scene.fog.color.setHex(info.cycle.background);
-    if (hemisphereLight) {
-      hemisphereLight.color.setHex(info.cycle.sky);
-      hemisphereLight.groundColor.setHex(info.cycle.ground);
-    }
-    if (ambientLight) ambientLight.color.setHex(info.cycle.sky);
-    if (moonLight) moonLight.color.setHex(info.cycle.moon);
-    if (wallMesh && wallMesh.material) {
-      wallMesh.material.color.setHex(info.environment.wall);
-      wallMesh.material.emissive = new THREE.Color(info.cycle.ground);
-      wallMesh.material.emissiveIntensity = 0.08 + info.cycleIndex * 0.04;
-    }
-    if (floorMesh && floorMesh.material) floorMesh.material.color.setHex(info.environment.floor);
-    if (ceilingMesh) {
-      ceilingMesh.visible = !["cemetery", "forest"].includes(info.environment.kind);
-      ceilingMesh.material.color.setHex(info.environment.ceiling);
-    }
-    flickerLights.forEach((entry) => {
-      const base = new THREE.Color(info.cycle.accent);
-      entry.light.color.copy(base).offsetHSL(entry.index % 3 * 0.025, 0, entry.index % 2 ? 0.05 : -0.06);
-    });
+    const sky = info.environment.kind === "hell" ? 0x210707 : info.environment.kind === "forest" ? 0x102c29 : info.environment.kind === "cemetery" ? 0x172330 : info.cycle.background;
+    scene.background.setHex(sky).lerp(new THREE.Color(info.cycle.background), 0.45);
+    scene.fog.color.copy(scene.background);
+    hemisphereLight.color.setHex(info.cycle.sky);
+    hemisphereLight.groundColor.setHex(info.cycle.ground);
+    hemisphereLight.intensity = ["forest", "cemetery", "hell"].includes(info.environment.kind) ? 1.1 : 0.92;
+    ambientLight.color.setHex(info.cycle.sky); ambientLight.intensity = 0.48;
+    moonLight.color.setHex(info.environment.kind === "hell" ? 0xff7948 : info.cycle.moon); moonLight.intensity = 0.7;
+    world.setSchema(schema, info.cycle); world.update(player.x, player.z, true); refreshNearbyCells();
     document.body.dataset.schema = String(schema);
     document.body.dataset.cycle = String(info.cycleIndex + 1);
     document.body.dataset.environment = info.environment.kind;
-    applyFaceTier();
-    applyQuality();
+    applyFaceTier(); applyQuality();
   }
 
   function buildWeapon() {
@@ -1003,7 +582,7 @@
         parts.push({ kind: "leg", object: leg, side, pair });
       });
     });
-    const face = facePlane(currentFaceTexture(), 0.67, 0.67);
+    const face = facePlane(currentFaceTexture("roach"), 0.67, 0.67);
     face.position.set(0, 0.55, 0.69);
     root.add(face);
     return { root, parts, face };
@@ -1038,7 +617,7 @@
       root.add(wing);
       wings.push({ kind: "wing", object: wing, side });
     });
-    const face = facePlane(currentFaceTexture(), 0.72, 0.72);
+    const face = facePlane(currentFaceTexture("bat"), 0.72, 0.72);
     face.position.set(0, 0.08, 0.35);
     root.add(face);
     return { root, parts: wings, face };
@@ -1060,11 +639,54 @@
     head.scale.set(0.84, 0.75, 1.05);
     head.position.set(0, 0.42, 0.34);
     root.add(head);
-    const face = facePlane(currentFaceTexture(), 0.7, 0.78);
+    const face = facePlane(currentFaceTexture("snake"), 0.7, 0.78);
     face.position.set(0, 0.52, 0.69);
     root.add(face);
     return { root, parts, face };
   }
+
+  function buildSpiritModel() {
+    const root = new THREE.Group(), parts = [];
+    const veil = new THREE.MeshBasicMaterial({ color: stageInfo().cycle.accent, transparent: true, opacity: 0.46, side: THREE.DoubleSide, depthWrite: false });
+    const body = new THREE.Mesh(new THREE.ConeGeometry(0.64, 1.8, 9, 1, true), veil);
+    body.rotation.z = Math.PI; body.position.y = -0.12; root.add(body);
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.2, 6), veil);
+      arm.position.set(side * 0.52, 0.3, 0); arm.rotation.z = side * 0.45;
+      root.add(arm); parts.push({ object: arm, side });
+    }
+    const face = facePlane(currentFaceTexture("spirit"), 0.8, 0.94);
+    face.position.set(0, 0.7, 0.32); root.add(face);
+    return { root, parts, face };
+  }
+
+  function buildDemonModel() {
+    const root = new THREE.Group(), parts = [];
+    const skin = new THREE.MeshStandardMaterial({ color: 0xb83b42, emissive: 0x661324, emissiveIntensity: 0.65, roughness: 0.65, flatShading: true });
+    const bone = new THREE.MeshStandardMaterial({ color: 0xffcf86, roughness: 0.8 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 6), skin);
+    body.scale.set(0.9, 1.3, 0.64); body.position.y = 1.25; root.add(body);
+    for (const side of [-1, 1]) {
+      const limb = new THREE.Group(); limb.position.set(side * 0.35, 0.7, 0);
+      cylinderBetween(new THREE.Vector3(), new THREE.Vector3(side * 0.13, -0.65, 0.12), 0.17, skin, limb);
+      root.add(limb); parts.push({ object: limb, side });
+      cylinderBetween(new THREE.Vector3(side * 0.45, 1.65, 0), new THREE.Vector3(side * 0.93, 0.82, 0.24), 0.16, skin, root);
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.84, 6), bone);
+      horn.position.set(side * 0.32, 2.45, 0); horn.rotation.z = -side * 0.3; root.add(horn);
+      const wing = makeWing(side, skin); wing.position.set(side * 0.3, 1.7, -0.25); wing.rotation.x = -0.8; root.add(wing);
+    }
+    const face = facePlane(currentFaceTexture("demon"), 0.88, 1.03);
+    face.position.set(0, 2, 0.42); root.add(face);
+    return { root, parts, face };
+  }
+
+  const CREATURES = {
+    roach: { build: buildRoachModel, health: 28, speed: 2.7, damage: 4, radius: 0.52, contact: 0.85, baseY: 0.03, aimY: 0.55 },
+    bat: { build: buildBatModel, health: 22, speed: 3.4, damage: 3, radius: 0.48, contact: 1.02, baseY: 1.95, aimY: 0.08 },
+    snake: { build: buildSnakeModel, health: 38, speed: 2.3, damage: 5, radius: 0.58, contact: 0.92, baseY: 0.02, aimY: 0.52 },
+    spirit: { build: buildSpiritModel, health: 32, speed: 2.55, damage: 4, radius: 0.6, contact: 0.8, baseY: 1.12, aimY: 0.7 },
+    demon: { build: buildDemonModel, health: 60, speed: 2.6, damage: 6, radius: 0.65, contact: 1.02, baseY: 0.03, aimY: 1.8 }
+  };
 
   function difficultyConfig() {
     const base = settings.difficulty === "quiet"
@@ -1072,8 +694,8 @@
       : settings.difficulty === "nightmare"
         ? { bossHp: 1280, damage: 1.05, cap: 20, interval: 1, speed: 1.02 }
         : { bossHp: 900, damage: 0.72, cap: 14, interval: 1.55, speed: 0.88 };
-    const escalation = schema - 1;
-    const finalSurge = schema === MAX_SCHEMAS ? 1.55 : 1;
+    const escalation = Math.min(50, schema - 1);
+    const finalSurge = schema >= MAX_SCHEMAS ? 1.55 : 1;
     return {
       bossHp: Math.round(base.bossHp * (1 + escalation * 0.12) * finalSurge),
       damage: base.damage * (1 + escalation * 0.027),
@@ -1095,18 +717,22 @@
     return cap;
   }
 
-  function chooseSpawnCell() {
+  function chooseSpawnCell(minDistance = 18) {
     const candidates = floorCells.filter((cell) => {
       const world = worldFromCell(cell.x, cell.z);
       const distance = Math.hypot(world.x - player.x, world.z - player.z);
-      if (distance < 18) return false;
-      return rifts.some((rift) => Math.hypot(rift.x - world.x, rift.z - world.z) < 5.2);
+      return distance >= minDistance && distance < minDistance + 16;
     });
     return candidates[Math.floor(Math.random() * candidates.length)] || floorCells[Math.floor(Math.random() * floorCells.length)];
   }
 
   function chooseEnemyType() {
     const roll = Math.random();
+    const kind = stageInfo().environment.kind;
+    if (kind === "forest") return roll < 0.65 ? "spirit" : roll < 0.88 ? "bat" : "snake";
+    if (kind === "cemetery") return roll < 0.48 ? "spirit" : roll < 0.8 ? "bat" : "roach";
+    if (kind === "catacombs") return roll < 0.5 ? "snake" : roll < 0.78 ? "roach" : "spirit";
+    if (kind === "hell") return roll < 0.72 ? "demon" : roll < 0.88 ? "bat" : "snake";
     if (wave <= 1) return roll < 0.64 ? "roach" : roll < 0.84 ? "snake" : "bat";
     if (wave === 2) return roll < 0.42 ? "roach" : roll < 0.7 ? "snake" : "bat";
     return roll < 0.34 ? "roach" : roll < 0.62 ? "snake" : "bat";
@@ -1115,11 +741,9 @@
   function spawnCreature(forcedType, silent) {
     if (enemies.filter((enemy) => enemy.alive).length >= effectiveEnemyCap()) return;
     const type = forcedType || chooseEnemyType();
-    const built = type === "roach" ? buildRoachModel() : type === "bat" ? buildBatModel() : buildSnakeModel();
-    const health = type === "roach" ? 28 : type === "bat" ? 22 : 38;
-    const speed = type === "roach" ? 2.7 : type === "bat" ? 3.4 : 2.3;
-    const damage = type === "roach" ? 5 : type === "bat" ? 4 : 7;
-    const radius = type === "roach" ? 0.52 : type === "bat" ? 0.48 : 0.58;
+    const profile = CREATURES[type];
+    const built = profile.build();
+    const { health, speed, damage, radius } = profile;
     const creature = {
       type,
       model: built.root,
@@ -1142,9 +766,9 @@
     };
     const cell = chooseSpawnCell();
     const world = worldFromCell(cell.x, cell.z);
-    creature.x = world.x + (Math.random() - 0.5) * 1.2;
-    creature.z = world.z + (Math.random() - 0.5) * 1.2;
-    creature.model.position.set(creature.x, type === "bat" ? 2.05 : 0.03, creature.z);
+    creature.x = world.x;
+    creature.z = world.z;
+    creature.model.position.set(creature.x, profile.baseY, creature.z);
     tagCreature(creature.model, creature);
     creature.face.userData.weak = type === "bat" ? 2.05 : 1.78;
     scene.add(creature.model);
@@ -1155,41 +779,45 @@
     }
   }
 
-  // One reverse breadth-first search per player cell, shared by the whole swarm.
-  // The maze grid is fixed across schemas; decorative props do not change it.
-  const navigation = { goal: -1, next: new Int16Array(MAP_W * MAP_H), queue: new Int16Array(MAP_W * MAP_H) };
+  // A moving local navigation window keeps memory bounded in an endless world.
+  const navigation = { goal: "", originX: 0, originZ: 0, next: new Int16Array(MAP_W * MAP_H), queue: new Int16Array(MAP_W * MAP_H) };
   function findPath(start, goal) {
+    if (!isWalkableCell(goal.x, goal.z)) {
+      // Trees and gravestones occupy only part of a cell: path to the nearest
+      // free centre, then use precise pursuit for the final approach.
+      let nearest = null, best = Infinity;
+      for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+        if (!isWalkableCell(goal.x + dx, goal.z + dz) || dx * dx + dz * dz >= best) continue;
+        nearest = { x: goal.x + dx, z: goal.z + dz }; best = dx * dx + dz * dz;
+      }
+      if (nearest) goal = nearest;
+    }
     if (!isWalkableCell(goal.x, goal.z) || !isWalkableCell(start.x, start.z)) return [];
-    const startKey = start.z * MAP_W + start.x;
-    const goalKey = goal.z * MAP_W + goal.x;
-    if (startKey === goalKey) return [worldFromCell(goal.x, goal.z)];
-    if (navigation.goal !== goalKey) {
-      navigation.goal = goalKey;
+    const key = goal.x + "," + goal.z + ":" + world.generation;
+    if (navigation.goal !== key) {
+      navigation.goal = key; navigation.originX = goal.x - 16; navigation.originZ = goal.z - 16;
       navigation.next.fill(-1);
-      navigation.next[goalKey] = goalKey;
-      navigation.queue[0] = goalKey;
-      let head = 0;
-      let tail = 1;
+      const root = 16 * MAP_W + 16;
+      navigation.next[root] = root; navigation.queue[0] = root;
+      let head = 0, tail = 1;
       while (head < tail) {
-        const cell = navigation.queue[head++];
-        const x = cell % MAP_W;
-        const z = Math.floor(cell / MAP_W);
-        for (const offset of [1, -1, MAP_W, -MAP_W]) {
-          const neighbour = cell + offset;
-          const nx = neighbour % MAP_W;
-          const nz = Math.floor(neighbour / MAP_W);
-          if (Math.abs(nx - x) + Math.abs(nz - z) !== 1 || !isWalkableCell(nx, nz) || navigation.next[neighbour] !== -1) continue;
-          navigation.next[neighbour] = cell;
-          navigation.queue[tail++] = neighbour;
+        const cell = navigation.queue[head++], x = cell % MAP_W, z = Math.floor(cell / MAP_W);
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, nz = z + dz, next = nz * MAP_W + nx;
+          if (nx < 0 || nz < 0 || nx >= MAP_W || nz >= MAP_H || navigation.next[next] !== -1) continue;
+          if (!isWalkableCell(nx + navigation.originX, nz + navigation.originZ)) continue;
+          navigation.next[next] = cell; navigation.queue[tail++] = next;
         }
       }
     }
-    const path = [];
-    let cursor = startKey;
-    while (cursor !== goalKey && path.length < MAP_W * MAP_H) {
-      cursor = navigation.next[cursor];
-      if (cursor < 0) return [];
-      path.push(worldFromCell(cursor % MAP_W, Math.floor(cursor / MAP_W)));
+    const sx = start.x - navigation.originX, sz = start.z - navigation.originZ;
+    if (sx < 0 || sz < 0 || sx >= MAP_W || sz >= MAP_H) return [];
+    let cursor = sz * MAP_W + sx;
+    const goalIndex = 16 * MAP_W + 16, path = [];
+    if (cursor === goalIndex) return [worldFromCell(goal.x, goal.z)];
+    while (cursor !== goalIndex && path.length < MAP_W * MAP_H) {
+      cursor = navigation.next[cursor]; if (cursor < 0) return [];
+      path.push(worldFromCell(cursor % MAP_W + navigation.originX, Math.floor(cursor / MAP_W) + navigation.originZ));
     }
     return path;
   }
@@ -1199,8 +827,7 @@
     const steps = Math.ceil(distance / 0.4);
     for (let i = 1; i < steps; i += 1) {
       const amount = i / steps;
-      const cell = cellFromWorld(lerp(ax, bx, amount), lerp(az, bz, amount));
-      if (!isWalkableCell(cell.x, cell.z)) return false;
+      if (!circleFree(lerp(ax, bx, amount), lerp(az, bz, amount), 0.08)) return false;
     }
     return true;
   }
@@ -1212,12 +839,15 @@
       creature.path = findPath(cellFromWorld(creature.x, creature.z), cellFromWorld(player.x, player.z));
       creature.pathIndex = 0;
     }
-    let target = creature.path[creature.pathIndex];
+    // Follow the actual player position in the last few metres. Previously an
+    // enemy stopped at the cell centre and could never reach a player at its edge.
+    const close = Math.hypot(player.x - creature.x, player.z - creature.z) < 10 && lineOfSight(creature.x, creature.z, player.x, player.z);
+    let target = close ? player : creature.path[creature.pathIndex];
     if (!target) return;
     let dx = target.x - creature.x;
     let dz = target.z - creature.z;
     let distance = Math.hypot(dx, dz);
-    if (distance < 0.22) {
+    if (distance < 0.22 && !close) {
       creature.pathIndex += 1;
       target = creature.path[creature.pathIndex];
       if (!target) return;
@@ -1227,8 +857,9 @@
     }
     if (distance < 0.001) return;
     const amount = Math.min(distance, speed * dt);
-    creature.x += dx / distance * amount;
-    creature.z += dz / distance * amount;
+    const stepX = dx / distance * amount, stepZ = dz / distance * amount;
+    if (circleFree(creature.x + stepX, creature.z, 0.24)) creature.x += stepX;
+    if (circleFree(creature.x, creature.z + stepZ, 0.24)) creature.z += stepZ;
     const targetRotation = Math.atan2(dx, dz);
     let delta = (targetRotation - creature.model.rotation.y + Math.PI) % TAU - Math.PI;
     if (delta < -Math.PI) delta += TAU;
@@ -1250,26 +881,39 @@
       });
       creature.model.position.set(creature.x, 1.95 + Math.sin(elapsed * 4 + creature.seed) * 0.46, creature.z);
       creature.model.rotation.z = Math.sin(elapsed * 3 + creature.seed) * 0.13;
-    } else {
+    } else if (creature.type === "snake") {
       creature.parts.forEach((part) => {
         part.object.position.x = Math.sin(creature.gait * 0.75 - part.index * 0.7) * (0.08 + part.index * 0.015);
         part.object.position.y = 0.25 - part.index * 0.008 + Math.abs(Math.sin(creature.gait - part.index * 0.55)) * 0.035;
       });
       creature.model.position.set(creature.x, 0.02, creature.z);
+    } else if (creature.type === "spirit") {
+      creature.model.position.set(creature.x, 1.12 + Math.sin(elapsed * 2.4 + creature.seed) * 0.3, creature.z);
+      creature.model.rotation.z = Math.sin(elapsed * 2 + creature.seed) * 0.08;
+      creature.parts.forEach(part => { part.object.rotation.z = part.side * (0.35 + Math.sin(creature.gait) * 0.2); });
+    } else if (creature.type === "demon") {
+      creature.model.position.set(creature.x, 0.03, creature.z);
+      creature.parts.forEach(part => { part.object.rotation.x = Math.sin(creature.gait + part.side * Math.PI / 2) * 0.32; });
     }
     creature.attackCooldown = Math.max(0, creature.attackCooldown - dt);
   }
 
   function updateEnemies(dt) {
-    const speedScale = difficultyConfig().speed;
-    enemies.forEach((creature) => {
-      if (!creature.alive) return;
-      moveCreature(creature, dt, creature.speed * speedScale * (1 + (wave - 1) * 0.035));
+    const config = difficultyConfig();
+    const speedScale = config.speed;
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const creature = enemies[i];
+      if (!creature.alive) continue;
+      if (Math.hypot(player.x - creature.x, player.z - creature.z) > 64) {
+        scene.remove(creature.model); disposeGroup(creature.model); creature.alive = false; enemies.splice(i, 1); continue;
+      }
+      moveCreature(creature, dt, creature.speed * speedScale * (1 + Math.min(0.8, (wave - 1) * 0.035)));
       animateCreature(creature, dt);
       const distance = Math.hypot(player.x - creature.x, player.z - creature.z);
-      if (distance < creature.radius + 0.62 && creature.attackCooldown <= 0) {
-        creature.attackCooldown = creature.type === "bat" ? 0.72 : 0.92;
-        damagePlayer(creature.damage * difficultyConfig().damage);
+      if (distance < CREATURES[creature.type].contact + 0.42 && creature.attackCooldown <= 0 && lineOfSight(creature.x, creature.z, player.x, player.z)) {
+        if (!damagePlayer(Math.max(2, creature.damage * config.damage))) continue;
+        creature.attackCooldown = 0.9;
+        showCaption("CONTACT · −" + Math.ceil(Math.max(2, creature.damage * config.damage)) + " VITALS", 0.8);
         const push = Math.max(0.001, distance);
         const nx = (player.x - creature.x) / push;
         const nz = (player.z - creature.z) / push;
@@ -1278,11 +922,17 @@
           player.z += nz * 0.45;
         }
       }
-    });
+    }
   }
 
   function updateBoss(dt) {
     if (!boss.alive) return;
+    // Bertranda follows an endless expedition without accumulating distant actors.
+    if (Math.hypot(player.x - boss.x, player.z - boss.z) > 60) {
+      const cell = chooseSpawnCell(28), point = worldFromCell(cell.x, cell.z);
+      boss.x = point.x; boss.z = point.z; boss.path = []; boss.repath = 0;
+      showCaption("Bertranda is following your trail.", 2);
+    }
     const ratio = boss.hp / boss.maxHp;
     const nextPhase = ratio <= 0.32 ? 3 : ratio <= 0.66 ? 2 : 1;
     if (nextPhase > boss.phase) {
@@ -1290,7 +940,7 @@
       audio.phase();
       showDanger(nextPhase === 2 ? "BERTRANDA IS MOLTING" : "BERTRANDA HAS LOST HER FACE", 2.8);
       showCaption(nextPhase === 2 ? "Her joints split wider. Keep firing." : "She is faster without the skin.", 3.8);
-      for (let i = 0; i < nextPhase + 1; i += 1) spawnCreature(i % 2 ? "bat" : "roach");
+      for (let i = 0; i < nextPhase + 1; i += 1) spawnCreature();
     }
     const speed = (boss.speed + (boss.phase - 1) * 0.48) * difficultyConfig().speed;
     moveCreature(boss, dt, speed);
@@ -1353,18 +1003,12 @@
     projectiles.splice(index, 1);
   }
 
-  function circleFree(x, z, radius) {
-    const r = radius || 0.38;
-    const samples = [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r], [r * 0.72, r * 0.72], [-r * 0.72, r * 0.72], [r * 0.72, -r * 0.72], [-r * 0.72, -r * 0.72]];
-    if (samples.some((sample) => {
-      const cell = cellFromWorld(x + sample[0], z + sample[1]);
-      return !isWalkableCell(cell.x, cell.z);
-    })) return false;
-    return !propColliders.some((box) => x + r > box.x1 && x - r < box.x2 && z + r > box.z1 && z - r < box.z2);
+  function circleFree(x, z, radius = 0.38) {
+    return world.free(x, z, radius);
   }
 
   function setPlayerSpawn() {
-    const spawn = worldFromCell(3, 16);
+    const spawn = worldFromCell(8, 8);
     player.x = spawn.x;
     player.z = spawn.z;
     player.yaw = -Math.PI / 2;
@@ -1503,7 +1147,7 @@
     if (boss.alive) candidates.push(boss);
     let best = null;
     candidates.forEach((creature) => {
-      const height = creature === boss ? 1.65 : creature.type === "bat" ? creature.model.position.y + 0.08 : 0.5;
+      const height = creature === boss ? 1.65 : CREATURES[creature.type].aimY + creature.model.position.y;
       const point = new THREE.Vector3(creature.x, height, creature.z);
       const distance = point.distanceTo(camera.position);
       if (distance > 50 || !lineOfSight(player.x, player.z, creature.x, creature.z)) return;
@@ -1536,7 +1180,7 @@
 
     raycaster.setFromCamera(aimPoint, camera);
     raycaster.far = 52;
-    const targets = [wallMesh];
+    const targets = [...world.blockers];
     if (boss.alive) targets.push(boss.model);
     enemies.forEach((enemy) => {
       if (enemy.alive) targets.push(enemy.model);
@@ -1621,9 +1265,9 @@
     boss.hp = 0;
     gameState = "transitioning";
     controls.fire = false;
-    const finalSchema = schema >= MAX_SCHEMAS;
-    ui.objective.textContent = finalSchema ? "ALL BERTRANDAS DESTROYED" : "SCHEMA " + schema + " CLEARED";
-    showDanger(finalSchema ? "FINAL BODY DESTROYED" : "BERTRANDA DOWN · THE NEXT REALM IS OPENING", 3);
+    const finalSchema = schema % MAX_SCHEMAS === 0;
+    ui.objective.textContent = "DESCENT " + schema + " CLEARED";
+    showDanger(finalSchema ? "CORRUPTION CYCLE CLEARED · THE DESCENT CONTINUES" : "BERTRANDA DOWN · THE NEXT REALM IS OPENING", 3);
     const token = sessionId;
     const base = new THREE.Vector3(boss.x, 1.15, boss.z);
     boss.model.visible = false;
@@ -1643,8 +1287,7 @@
     });
     setTimeout(() => {
       if (sessionId !== token || gameState !== "transitioning") return;
-      if (finalSchema) finishWin();
-      else beginNextSchema();
+      beginNextSchema();
     }, 1700);
   }
 
@@ -1661,12 +1304,13 @@
     boss.attackCooldown = 1.35;
     boss.webCooldown = Math.max(2.1, 3.65 - schema * 0.24);
     boss.gait = 0;
-    const bossSpawn = worldFromCell(21, 10);
+    const bossCell = chooseSpawnCell(24);
+    const bossSpawn = worldFromCell(bossCell.x, bossCell.z);
     boss.x = bossSpawn.x;
     boss.z = bossSpawn.z;
     boss.model.position.set(boss.x, 0.08, boss.z);
     boss.model.rotation.set(0, Math.PI, 0);
-    const finalScale = schema === MAX_SCHEMAS ? 0.22 : 0;
+    const finalScale = schema >= MAX_SCHEMAS ? 0.22 : 0;
     boss.model.scale.setScalar(1 + info.cycleIndex * 0.12 + info.environmentIndex * 0.025 + finalScale);
     boss.model.visible = true;
     applyFaceTier();
@@ -1676,26 +1320,16 @@
     const base = settings.difficulty === "quiet" ? 3 : settings.difficulty === "nightmare" ? 5 : 4;
     const count = Math.min(effectiveEnemyCap(), base + Math.min(3, schema - 1));
     for (let i = 0; i < count; i += 1) {
-      spawnCreature(i % 3 === 0 ? "bat" : i % 3 === 1 ? "snake" : "roach", true);
+      spawnCreature(null, true);
     }
   }
 
   function clearBetweenSchemas() {
-    enemies.forEach((enemy) => {
-      scene.remove(enemy.model);
-      disposeGroup(enemy.model);
-    });
-    enemies.length = 0;
-    projectiles.forEach((projectile) => {
-      scene.remove(projectile.mesh);
-      disposeGroup(projectile.mesh);
-    });
-    projectiles.length = 0;
+    clearSessionObjects();
   }
 
   function beginNextSchema() {
     clearBetweenSchemas();
-    clearInfestation();
     schema += 1;
     schemaElapsed = 0;
     wave = 1;
@@ -1707,26 +1341,25 @@
     weapon.cooldown = 0;
     weapon.recoil = 0;
     controls.fire = false;
-    addInfestationForSchema(schema);
     applySchemaLook();
     configureBossForSchema();
     spawnOpeningSwarm();
     gameState = "playing";
-    ui.objective.textContent = "SCHEMA " + schema + " / " + MAX_SCHEMAS + " · KILL BERTRANDA";
+    ui.objective.textContent = "DESCENT " + schema + " · KILL BERTRANDA";
     updateOrientation();
     ui.reticle.classList.remove("reloading", "hit", "locked");
     ui.touchTorch.classList.add("pressed");
     ui.touchTorch.textContent = "LIGHT ON";
     audio.resetMusic();
     updateHud();
-    showDanger("SCHEMA " + schema + " / " + MAX_SCHEMAS, 2.6);
+    showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.6);
     const info = stageInfo();
     showCaption(info.environment.name + " · " + info.cycle.name + " CORRUPTION · BERTRANDA HAS RETURNED", 4.2);
   }
 
   function damagePlayer(amount) {
-    if (gameState !== "playing" || player.invulnerable > 0) return;
-    player.invulnerable = 0.28;
+    if (gameState !== "playing" || player.invulnerable > 0) return false;
+    player.invulnerable = 0.55;
     player.health = Math.max(0, player.health - amount);
     screenShake = Math.max(screenShake, 0.3);
     audio.hurt();
@@ -1735,6 +1368,7 @@
     ui.damageFlash.classList.add("visible");
     setTimeout(() => ui.damageFlash.classList.remove("visible"), 310);
     if (player.health <= 0) killPlayer();
+    return true;
   }
 
   function killPlayer() {
@@ -1755,18 +1389,6 @@
       ui.death.classList.add("is-visible");
       gameState = "dead";
     }, 760);
-  }
-
-  function finishWin() {
-    gameState = "won";
-    updateOrientation();
-    if (document.pointerLockElement) document.exitPointerLock();
-    ui.hud.hidden = true;
-    ui.touch.hidden = true;
-    ui.finalTime.textContent = formatTime(elapsed);
-    ui.finalKills.textContent = String(kills);
-    ui.win.hidden = false;
-    ui.win.classList.add("is-visible");
   }
 
   function createTracer(start, end, onImpact) {
@@ -1945,27 +1567,8 @@
     if (wave > 1 && Math.floor(schemaElapsed) % 24 < 2) showDanger("SCHEMA " + schema + " · WAVE " + wave + " — MORE FACES", 1.5);
   }
 
-  function animateHouse() {
-    flickerLights.forEach((entry) => {
-      const flicker = 0.92 + Math.sin(elapsed * 5.7 + entry.phase) * 0.055 + Math.sin(elapsed * 17.3 + entry.phase) * 0.025;
-      entry.light.intensity = entry.base * flicker;
-    });
-    rifts.forEach((rift) => {
-      rift.ring.rotation.z = elapsed * 0.22 + rift.phase;
-      rift.glow.intensity = 0.5 + Math.sin(elapsed * 3.1 + rift.phase) * 0.18;
-      rift.group.scale.setScalar(0.96 + Math.sin(elapsed * 2.2 + rift.phase) * 0.04);
-    });
-    infestationProps.forEach((group) => {
-      const pulse = 0.96 + Math.sin(elapsed * 2.8 + group.userData.phase) * 0.045;
-      group.scale.setScalar(pulse);
-      group.rotation.y = Math.sin(elapsed * 0.35 + group.userData.phase) * 0.08;
-    });
-    stageDecor.forEach((group) => {
-      if (!group.userData.spirit) return;
-      const pulse = 0.82 + Math.sin(elapsed * 3.4 + group.userData.phase) * 0.18;
-      group.userData.spirit.scale.setScalar(pulse);
-      group.userData.spirit.rotation.y += 0.018;
-    });
+  function animateWorld() {
+    world.animate(elapsed);
     const beam = settings.quality === "low" ? 8.4 : settings.quality === "deep" ? 8 : 7.6;
     flashlight.intensity = player.torch ? beam : 0;
     flashlightHalo.intensity = player.torch && settings.quality !== "low" ? 0.92 : 0;
@@ -1978,11 +1581,16 @@
     ui.healthFill.style.transform = "scaleX(" + healthRatio + ")";
     ui.healthText.textContent = String(Math.ceil(player.health));
     ui.bossFill.style.transform = "scaleX(" + bossRatio + ")";
+    const bearing = Math.atan2(-(boss.x - player.x), -(boss.z - player.z)) - player.yaw;
+    const direction = Math.atan2(Math.sin(bearing), Math.cos(bearing));
+    const arrow = Math.abs(direction) < 0.5 ? "↑" : Math.abs(direction) > 2.5 ? "↓" : direction > 0 ? "←" : "→";
+    ui.bossName.textContent = boss.alive ? "BERTRANDA · " + Math.round(Math.hypot(boss.x - player.x, boss.z - player.z)) + "m " + arrow : "BERTRANDA DOWN";
     const phaseText = boss.phase === 1 ? "THE MOTHER BELOW" : boss.phase === 2 ? "SHELL SPLIT OPEN" : "FACE LOST · BERSERK";
     ui.bossPhase.textContent = "SCHEMA " + schema + " · " + info.environment.short + " · " + info.cycle.name + " · " + phaseText;
     ui.ammo.textContent = String(weapon.ammo).padStart(2, "0");
     ui.weaponState.textContent = weapon.reload > 0 ? "RELOADING " + Math.ceil(weapon.reload * 10) / 10 + "s" : weapon.ammo <= 5 ? "LOW · PRESS R" : "AUTO · LIGHT " + (player.torch ? "ON" : "OFF") + " · E/F";
-    ui.wave.textContent = "SCHEMA " + schema + " / " + MAX_SCHEMAS + " · " + info.environment.short + " · " + info.cycle.name + " · " + kills + " DESTROYED";
+    const sector = cellFromWorld(player.x, player.z);
+    ui.wave.textContent = info.environment.short + " · " + info.cycle.name + " · SECTOR " + Math.floor(sector.x / 16) + ":" + Math.floor(sector.z / 16) + " · " + kills + " KILLS";
     const activeStreak = elapsed - lastKillAt < 3.2 ? streak : 0;
     ui.streak.textContent = activeStreak > 1 ? activeStreak + "× DETONATION STREAK" : "MOVE · AIM · DETONATE";
     ui.prompt.textContent = weapon.reload > 0 ? "RELOADING SALT CELLS" : "";
@@ -2043,10 +1651,9 @@
   function resetSession() {
     sessionId += 1;
     clearSessionObjects();
-    clearInfestation();
     elapsed = 0;
     schemaElapsed = 0;
-    schema = 1;
+    schema = clamp(Number(settings.realm) || 1, 1, 5);
     wave = 1;
     kills = 0;
     streak = 0;
@@ -2067,10 +1674,9 @@
     ui.touchTorch.classList.add("pressed");
     ui.touchTorch.textContent = "LIGHT ON";
     applySchemaLook();
-    addInfestationForSchema(schema);
     configureBossForSchema();
     spawnOpeningSwarm();
-    ui.objective.textContent = "SCHEMA 1 / " + MAX_SCHEMAS + " · KILL BERTRANDA";
+    ui.objective.textContent = "DESCENT " + schema + " · KILL BERTRANDA";
     updateHud();
     audio.resetMusic();
   }
@@ -2085,16 +1691,14 @@
     ui.pause.classList.remove("is-visible");
     ui.death.hidden = true;
     ui.death.classList.remove("is-visible");
-    ui.win.hidden = true;
-    ui.win.classList.remove("is-visible");
     ui.hud.hidden = false;
     ui.touch.hidden = !IS_TOUCH;
     gameState = "playing";
     resetSession();
     updateOrientation();
     needsRender = true;
-    showDanger("SCHEMA 1 / " + MAX_SCHEMAS + " · BERTRANDA IS IN THE ASYLUM", 2.7);
-    showCaption("Survive 25 schemas. Five realms. Five corruptions. R reloads · E/F controls the light.", 5.2);
+    showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.7);
+    showCaption("Explore without borders. Kill Bertranda to enter the next realm. Insects drain health on contact.", 5.2);
     if (!IS_TOUCH) requestPointer();
   }
 
@@ -2342,12 +1946,6 @@
     document.body.dataset.quality = settings.quality;
     if (!scene) return;
     scene.fog.density = (settings.quality === "low" ? 0.012 : settings.quality === "deep" ? 0.0155 : 0.018) + cycleIndex * 0.0008;
-    flickerLights.forEach((entry) => {
-      entry.light.visible = IS_TOUCH ? entry.index % 4 === 0 : settings.quality === "high" || settings.quality === "deep" && entry.index % 2 === 0 || settings.quality === "low" && entry.index % 3 === 0;
-    });
-    rifts.forEach((rift) => {
-      rift.glow.visible = !IS_TOUCH && (settings.quality === "high" || settings.quality === "deep" && rift.index % 2 === 0);
-    });
     if (flashlightHalo) flashlightHalo.visible = !IS_TOUCH && settings.quality !== "low";
     if (weapon.muzzleLight) weapon.muzzleLight.visible = !IS_TOUCH && settings.quality !== "low";
     needsRender = true;
@@ -2404,8 +2002,8 @@
   }
 
   function init() {
-    if (!window.THREE) {
-      ui.loading.innerHTML = "<strong>THE REALMS FAILED TO OPEN</strong><small>Three.js is missing.</small>";
+    if (!window.THREE || !window.BertrandaWorld) {
+      ui.loading.innerHTML = "<strong>THE REALMS FAILED TO OPEN</strong><small>Reload to finish loading the game.</small>";
       return;
     }
     renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
@@ -2432,10 +2030,7 @@
     moonLight.position.set(-20, 18, -12);
     scene.add(moonLight);
 
-    buildHouse();
-    interiorColliders.push(...propColliders.map((collider) => ({ ...collider })));
-    propColliders.length = 0;
-    baseColliderCount = 0;
+    buildWorld();
     buildWeapon();
     flashlight = new THREE.SpotLight(0xd6fff8, 8, 56, Math.PI / 4.65, 0.46, 1.1);
     flashlight.position.set(0.12, -0.06, 0.05);
@@ -2446,6 +2041,9 @@
     camera.add(flashlightHalo);
 
     faceTextures.bertranda = loadFaceTexture("assets/bertranda-face-v2.png");
+    faceTextures.roach = loadFaceTexture("../bertranda/assets/roach-face-v2.png");
+    faceTextures.bat = loadFaceTexture("../bertranda/assets/bat-face-v2.png");
+    faceTextures.snake = loadFaceTexture("../bertranda/assets/snake-face-v2.png");
     faceTextures.tiers = [
       faceTextures.bertranda,
       loadFaceTexture("assets/bertranda-face-tier2.png"),
@@ -2490,6 +2088,7 @@
         schemaElapsed += dt;
         audio.updateMusic();
         updatePlayer(dt);
+        refreshNearbyCells();
         updateWeapon(dt);
         updateSpawning(dt);
         updateBoss(dt);
@@ -2508,7 +2107,9 @@
         if (gameState === "transitioning") audio.updateMusic();
       }
     }
-    animateHouse();
+    if (gameState === "playing") world.update(player.x, player.z);
+    animateWorld();
+    world.cull(camera);
     renderer.render(scene, camera);
     needsRender = false;
   }
@@ -2518,7 +2119,6 @@
   ui.resume.addEventListener("click", resumeGame);
   ui.restart.addEventListener("click", restartGame);
   ui.retry.addEventListener("click", restartGame);
-  ui.again.addEventListener("click", restartGame);
 
   init();
 })();

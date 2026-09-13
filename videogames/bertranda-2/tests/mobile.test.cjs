@@ -58,6 +58,7 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
   }
   const context = {
     console, document, navigator: { maxTouchPoints: touch ? 5 : 0 },
+    BertrandaWorld: require('../world.js'),
     matchMedia: () => ({ matches: touch }),
     innerWidth: width, innerHeight: height, devicePixelRatio: 3,
     screen: { orientation: new Element() },
@@ -82,6 +83,8 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
       worldFromCell, cellFromWorld, isWalkableCell, floorCells, navigation,
       explosionAt, impactAt, spawnHealth, spawnBurst, updateEffects, createTracer,
       effectiveEnemyCap, beginNextSchema, killBoss, stageInfo,
+      spawnCreature, updateEnemies, currentFaceTexture, CREATURES,
+      get world() { return world; },
       controls, player, weapon, boss, settings, performanceState, effects, enemies,
       get state() { return gameState; }, get elapsed() { return elapsed; },
       get schema() { return schema; }, get renderer() { return renderer; },
@@ -162,8 +165,9 @@ test('R/E keyboard and mobile reload/light buttons remain functional', () => {
 });
 
 test('shared navigation paths reach goals without crossing walls; exhausted paths respect cooldown', () => {
-  const h = harness(); const g = h.game;
-  for (const goal of g.floorCells.filter((_, i) => i % 37 === 0)) {
+  const h = harness(); const g = h.game; g.startGame();
+  assert.ok(g.floorCells.length > 100);
+  for (const goal of [g.cellFromWorld(g.player.x, g.player.z)]) {
     for (const start of g.floorCells) {
       const route = g.findPath(start, goal);
       assert.ok(route.length > 0);
@@ -177,7 +181,7 @@ test('shared navigation paths reach goals without crossing walls; exhausted path
       assert.deepEqual({ ...previous }, { ...goal });
     }
   }
-  const creature = { repath: 0.5, path: [], pathIndex: 0 };
+  const creature = { repath: 0.5, path: [], pathIndex: 0, x: -1000, z: -1000 };
   g.moveCreature(creature, 0.016, 1); assert.equal(creature.repath, 0.484);
 });
 
@@ -211,7 +215,7 @@ test('explosions cap fragments without growing mobile light count or dropping pr
   g.updateEffects(2); assert.equal(impacts, 1);
 });
 
-test('all 25 schemas retain progression and stable mobile light/enemy budgets', () => {
+test('five corruption cycles progress past descent 25 with stable mobile budgets', () => {
   const h = harness(); const g = h.game; g.startGame(); const lights = h.visibleLights();
   const environments = new Set(); const cycles = new Set(); let lastHP = g.boss.hp;
   for (let schema = 1; schema <= 25; schema++) {
@@ -222,7 +226,69 @@ test('all 25 schemas retain progression and stable mobile light/enemy budgets', 
   }
   assert.equal(environments.size, 5); assert.equal(cycles.size, 5);
   g.killBoss(); assert.equal(g.state, 'transitioning');
-  h.timers.findLast(t => t.ms === 1700).fn(); assert.equal(g.state, 'won');
+  h.timers.findLast(t => t.ms === 1700).fn(); assert.equal(g.state, 'playing');
+  assert.equal(g.schema, 26); assert.equal(g.stageInfo().environment.kind, 'house');
+  assert.equal(g.stageInfo().cycleIndex, 4);
+});
+
+test('each creature uses its own face family; only Bertranda uses the woman', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  const woman = g.currentFaceTexture('boss');
+  for (const type of ['roach', 'bat', 'snake', 'spirit', 'demon']) {
+    g.spawnCreature(type, true);
+    const creature = g.enemies.at(-1);
+    assert.equal(creature.type, type);
+    assert.notEqual(creature.face.material.map, woman);
+    assert.equal(creature.face.material.map, g.currentFaceTexture(type));
+  }
+  assert.notEqual(g.currentFaceTexture('roach'), g.currentFaceTexture('bat'));
+  assert.notEqual(g.currentFaceTexture('bat'), g.currentFaceTexture('snake'));
+  assert.notEqual(g.currentFaceTexture('roach'), g.currentFaceTexture('snake'));
+});
+
+test('the title-screen realm choice starts each biome with a valid spawn and native enemies', () => {
+  const h = harness(); const g = h.game;
+  for (let realm = 1; realm <= 5; realm++) {
+    g.settings.realm = String(realm); g.startGame();
+    assert.equal(g.schema, realm);
+    assert.ok(g.world.free(g.player.x, g.player.z));
+    assert.equal(g.world.schema, realm);
+    assert.ok(g.enemies.length >= 4);
+    assert.equal(g.world.chunks.size, 9);
+    if (realm === 1) assert.ok(g.enemies.every(e => ['roach', 'bat', 'snake'].includes(e.type)));
+    if (realm === 5) assert.ok(g.enemies.every(e => ['demon', 'bat', 'snake'].includes(e.type)));
+  }
+});
+
+test('insects pursue the player at a tile edge and inflict small, rate-limited contact damage', () => {
+  for (const type of ['roach', 'bat', 'snake']) {
+    const h = harness(); const g = h.game; g.startGame();
+    g.spawnCreature(type, true); const creature = g.enemies.at(-1);
+    creature.x = 32.4; creature.z = 32.4; creature.attackCooldown = 0;
+    g.player.x = 35.3; g.player.z = 35.3; g.player.health = 100;
+    const startDistance = Math.hypot(creature.x - g.player.x, creature.z - g.player.z);
+    g.clock.delta = 1 / 60;
+    for (let i = 0; i < 100; i++) g.animate();
+    assert.ok(g.player.health < 100, type + ' must hurt the player');
+    assert.ok(g.player.health >= 90, 'contact is not instant death');
+    assert.ok(Math.hypot(creature.x - g.player.x, creature.z - g.player.z) < startDistance);
+    const health = g.player.health;
+    g.updateEnemies(0.001); assert.equal(g.player.health, health, 'no repeated damage in the same frame');
+  }
+});
+
+test('a wall prevents melee damage even when the enemy is close in world space', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  let wall;
+  for (let z = 0; z < 16 && !wall; z++) for (let x = 0; x < 16; x++) {
+    if (!g.isWalkableCell(x, z)) { wall = { x, z }; break; }
+  }
+  assert.ok(wall);
+  g.spawnCreature('roach', true); const enemy = g.enemies.at(-1);
+  const p = g.worldFromCell(wall.x, wall.z);
+  g.player.x = p.x; g.player.z = p.z; enemy.x = p.x + 0.6; enemy.z = p.z;
+  enemy.attackCooldown = 0; enemy.repath = 1; g.player.health = 100;
+  g.updateEnemies(0.01); assert.equal(g.player.health, 100);
 });
 
 test('desktop pointer unlock still pauses deliberately', () => {

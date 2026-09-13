@@ -72,6 +72,7 @@ h1 span{color:var(--mould-bright);text-shadow:0 0 24px rgba(202,255,85,.45)}h1 i
 @media (prefers-reduced-motion:reduce){.cover-scene,.cover-face,.loading-mark,.vhs{animation:none}}
 
 /* Mobile play surface: no long-press menus or full-screen animated film layer. */
+.realm-select{margin:16px 0;border:0;padding:0;min-width:0}.realm-select legend{margin-bottom:7px;color:#b6ccd0;font-size:9px;letter-spacing:.15em}.realm-select .segmented{display:flex;flex-wrap:wrap;gap:4px}.realm-select .segmented button{flex:1 1 85px;padding:9px 6px;font-size:10px}
 #game{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .rotate-screen{position:absolute;z-index:90;inset:0;display:grid;place-items:center;padding:28px;background:#06110f;text-align:center}
 .rotate-screen[hidden]{display:none}

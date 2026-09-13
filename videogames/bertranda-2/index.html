@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <title>BERTRANDA 2 — Twenty-Five Descents</title>
-  <meta name="description" content="A 25-schema first-person horror shooter across an asylum, cemetery, spirit forest, horror castle and catacombs.">
+  <title>BERTRANDA 2 — Endless Realms</title>
+  <meta name="description" content="An endless horror shooter: haunted house, spirit forest, cemetery, catacombs and a demonic inferno.">
   <meta name="theme-color" content="#071017">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="BERTRANDA 2 — Twenty-Five Descents">
-  <meta property="og:description" content="Five haunted realms repeat through verdigris, ash, violet, rot and inferno. Bertranda ages. Her face remains.">
+  <meta property="og:title" content="BERTRANDA 2 — Endless Realms">
+  <meta property="og:description" content="Five procedural worlds grow as you explore. Different creatures. A human-faced spider hunts you.">
   <meta property="og:url" content="https://tacc-code-tacclab.github.io/videogames/bertranda-2/">
   <link rel="canonical" href="https://tacc-code-tacclab.github.io/videogames/bertranda-2/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="game.css?v=2-mobile">
+  <link rel="stylesheet" href="game.css?v=3-realms">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
   <main id="game" aria-label="Bertranda 2 first-person horror shooter">
-    <div id="render-host" aria-label="First-person view across Bertranda's 25 haunted schemas"></div>
+    <div id="render-host" aria-label="First-person view across five endless haunted realms"></div>
 
     <div id="loading" class="loading" role="status" aria-live="polite">
       <span class="loading-mark" aria-hidden="true"></span>
@@ -30,13 +30,13 @@
       <div class="title-art" aria-hidden="true">
         <img class="cover-face" src="assets/bertranda-face-v2.png" alt="">
         <span class="specimen-label">DEGENERATION 01 / 05 · FACE RETAINED</span>
-        <span class="tape-code">DESCENT FEED · 01 / 25</span>
+        <span class="tape-code">DESCENT FEED · 01 / ∞</span>
       </div>
       <div class="title-copy">
-        <p class="eyebrow">Twenty-five descents · one surviving face</p>
+        <p class="eyebrow">Five endless realms · no way back</p>
         <h1 id="game-title"><span>BER</span>TRANDA <i>2</i></h1>
         <p class="subtitle">THE FIVE CORRUPTIONS</p>
-        <p class="story">Cross the asylum, cemetery, spirit forest, horror castle and catacombs five times. The world turns from verdigris to ash, violet, rot and inferno. Every return makes the vermin stronger and Bertranda older, thinner and less human.</p>
+        <p class="story">Leave the haunted house for an enchanted forest, a grave-filled cemetery, skull-lined catacombs and a demonic inferno. Every realm grows as you explore. Hunt Bertranda to descend again: new paths, new horrors, no final border.</p>
 
         <div class="settings-row">
           <fieldset>
@@ -57,10 +57,21 @@
           </fieldset>
         </div>
 
+        <fieldset class="realm-select">
+          <legend>STARTING REALM</legend>
+          <div class="segmented" data-setting="realm">
+            <button type="button" data-value="1" class="selected">1 · House</button>
+            <button type="button" data-value="2">2 · Forest</button>
+            <button type="button" data-value="3">3 · Cemetery</button>
+            <button type="button" data-value="4">4 · Catacombs</button>
+            <button type="button" data-value="5">5 · Hell</button>
+          </div>
+        </fieldset>
+
         <div class="title-actions">
           <button id="start-button" class="primary" type="button" disabled>LOAD THE BLASTER</button>
           <button id="mute-button" class="secondary" type="button" aria-pressed="false">MUSIC + SOUND ON</button>
-          <a class="secondary" href="roblox/Bertranda2.rbxlx" download>ROBLOX FILE</a>
+          <a class="secondary" href="roblox/Bertranda2.rbxlx" download>ROBLOX EDITION</a>
         </div>
 
         <div class="controls-summary" aria-label="Controls">
@@ -69,7 +80,7 @@
         <div class="title-foot">
           <a href="../../#videogames">← All games</a>
           <span class="game-visitor-counter" data-game-visitors="bertranda-2" data-counter-label="BERTRANDA 2">BERTRANDA 2 · … VISITORS</span>
-          <span>Five realms · five corruptions · headphones recommended</span>
+          <span>Endless maps · five corruptions · headphones recommended</span>
         </div>
       </div>
     </section>
@@ -78,11 +89,11 @@
       <div class="objective-card">
         <span>OBJECTIVE</span>
         <strong id="objective-text">ELIMINATE BERTRANDA</strong>
-        <small id="wave-text">SCHEMA 1 / 25 · ASYLUM · VERDIGRIS</small>
+        <small id="wave-text">HAUNTED HOUSE · VERDIGRIS</small>
       </div>
 
       <div id="boss-wrap" class="boss-wrap">
-        <div><span>BERTRANDA</span><small id="boss-phase">SCHEMA 1 · ASYLUM · VERDIGRIS</small></div>
+        <div><span id="boss-name">BERTRANDA</span><small id="boss-phase">DESCENT 1 · HAUNTED HOUSE</small></div>
         <i><b id="boss-fill"></b></i>
       </div>
 
@@ -123,7 +134,7 @@
         <h2 id="pause-title">PAUSED</h2>
         <p>The faces will begin moving again when you return.</p>
         <button id="resume-button" class="primary" type="button">RETURN TO FIRE</button>
-        <button id="restart-button" class="secondary" type="button">RESTART THE 25 DESCENTS</button>
+        <button id="restart-button" class="secondary" type="button">RESTART THE DESCENT</button>
         <a class="secondary" href="../../#videogames">LEAVE THE DESCENT</a>
       </div>
     </section>
@@ -148,24 +159,13 @@
       </div>
     </section>
 
-    <section id="win-screen" class="screen modal win-screen" hidden aria-labelledby="win-title">
-      <div class="modal-card">
-        <p class="eyebrow">ALL TWENTY-FIVE SCHEMAS CLEARED</p>
-        <h2 id="win-title">THE FACE IS QUIET</h2>
-        <p id="win-copy">The asylum, graves, forest, castle and catacombs are silent. Bertranda's final infernal face has stopped moving.</p>
-        <div class="results"><span>TIME <strong id="final-time">00:00</strong></span><span>KILLS <strong id="final-kills">0</strong></span><span>SCHEMAS <strong>25 / 25</strong></span></div>
-        <button id="again-button" class="primary" type="button">PLAY AGAIN</button>
-        <a class="secondary" href="roblox/Bertranda2.rbxlx" download>DOWNLOAD ROBLOX PLACE</a>
-        <a class="secondary" href="../../#videogames">ALL GAMES</a>
-      </div>
-    </section>
-
     <div class="vhs" aria-hidden="true"></div>
     <div id="jumpscare" class="jumpscare" aria-hidden="true"><img src="assets/bertranda-face-tier5.png" alt=""></div>
   </main>
 
   <noscript>This game needs JavaScript enabled.</noscript>
   <script src="../lovecraft/three.min.js"></script>
-  <script src="game.js?v=2-mobile"></script>
+  <script src="world.js?v=3-realms"></script>
+  <script src="game.js?v=3-realms"></script>
 </body>
 </html>
