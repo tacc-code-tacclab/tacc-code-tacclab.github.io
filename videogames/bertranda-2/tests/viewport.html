@@ -17,6 +17,7 @@
   <button data-width="667" data-height="375">Small landscape 667 × 375</button>
   <button data-width="390" data-height="844">Portrait 390 × 844</button>
   <button data-width="568" data-height="320">Compact landscape 568 × 320</button>
+  <button data-width="568" data-height="250">Browser bars 568 × 250</button>
   <button data-width="1280" data-height="720">Desktop 1280 × 720</button>
   <button id="layout-button">HUD + map preview (no 3D)</button>
 </nav>
@@ -31,7 +32,7 @@
       '<script>Object.defineProperty(navigator,"maxTouchPoints",{get:()=>5});<\/script>';
     let html = gameHTML.replace('<head>', '<head>' + setup)
       .replace(/<script src="\.\.\/game-counter[^>]*><\/script>/, '');
-    if (layoutOnly) html = html.replace(/<script src="game\.js[^>]*><\/script>/, '<script src="tests/layout-preview.js"><\/script>');
+    if (layoutOnly) html = html.replace(/<script src="game\.js[^>]*><\/script>/, '<script src="tests/layout-preview.js?v=5-touch"><\/script>');
     preview.srcdoc = html;
     document.getElementById('status').textContent = layoutOnly ? 'Layout only: production CSS and 2D map, no 3D combat or FPS measurement.' : 'Ready. Start, rotate, fire, reload, toggle light, pause and resume.';
   }
@@ -47,7 +48,7 @@
     preview.height = button.dataset.height;
     document.getElementById('status').textContent = 'Viewport ' + preview.width + ' × ' + preview.height + ' — existing session preserved';
   });
-  fetch('../index.html?v=4-gold', { cache: 'no-store' }).then(response => {
+  fetch('../index.html?v=5-touch', { cache: 'no-store' }).then(response => {
     if (!response.ok) throw Error('Game source unavailable');
     return response.text();
   }).then(html => {

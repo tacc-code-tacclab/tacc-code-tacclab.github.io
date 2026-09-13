@@ -14,6 +14,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/bertranda-face-v2.png" as="image" type="image/png">
   <link rel="stylesheet" href="game.css?v=4-gold">
+  <link rel="stylesheet" href="mobile.css?v=5-touch">
   <script src="../game-counter.js?v=20260805-visitors1" defer></script>
 </head>
 <body>
@@ -77,6 +78,7 @@
         <div class="controls-summary" aria-label="Controls">
           <span><b>WASD / ARROWS</b> MOVE</span><span><b>MOUSE</b> AIM</span><span><b>CLICK / SPACE</b> FIRE</span><span><b>SHIFT</b> SPRINT</span><span><b>R</b> RELOAD</span><span><b>E / F</b> LIGHT</span><span><b>M</b> MAP</span>
         </div>
+        <p class="mobile-guide">PLAY IN LANDSCAPE · Left thumb moves; push the stick fully to run. Drag on the right to aim. AUTO fires when a creature enters your sights. Hold and drag FIRE for manual shooting.</p>
         <div class="title-foot">
           <a href="../../#videogames">← All games</a>
           <span class="game-visitor-counter" data-game-visitors="bertranda-2" data-counter-label="BERTRANDA 2">BERTRANDA 2 · … VISITORS</span>
@@ -111,6 +113,7 @@
 
       <div id="danger" class="danger" aria-live="assertive">SWARM INCOMING</div>
       <div id="reticle" class="reticle" aria-hidden="true"><i></i></div>
+      <div id="aim-target" class="aim-target" aria-hidden="true" hidden></div>
       <div id="prompt" class="prompt" role="status" aria-live="polite"></div>
       <div id="subtitle" class="caption" role="status" aria-live="polite"></div>
 
@@ -134,10 +137,11 @@
     <section id="touch-controls" class="touch-controls" aria-label="Touch controls" hidden>
       <div id="move-pad" class="move-pad" aria-label="Movement joystick"><i id="move-knob"></i></div>
       <div id="look-pad" class="look-pad" aria-label="Drag to aim"></div>
-      <button id="touch-fire" class="touch-button fire" type="button">FIRE</button>
+      <button id="touch-fire" class="touch-button fire" type="button" aria-label="Hold to fire. Drag this button to aim while shooting."><span>FIRE</span></button>
       <button id="touch-run" class="touch-button run" type="button">RUN</button>
-      <button id="touch-reload" class="touch-button reload" type="button">R</button>
-      <button id="touch-torch" class="touch-button torch" type="button">LIGHT ON</button>
+      <button id="touch-reload" class="touch-button reload" type="button" aria-label="Reload">↻</button>
+      <button id="touch-torch" class="touch-button torch" type="button" aria-label="Turn light off" aria-pressed="true">☼</button>
+      <button id="touch-auto" class="touch-button auto" type="button" aria-label="Automatic firing" aria-pressed="true">AUTO ON</button>
     </section>
 
     <section id="pause-screen" class="screen modal" hidden aria-labelledby="pause-title">
@@ -179,6 +183,6 @@
   <script src="../lovecraft/three.min.js"></script>
   <script src="world.js?v=3-realms"></script>
   <script src="expedition.js?v=4-gold"></script>
-  <script src="game.js?v=4-gold"></script>
+  <script src="game.js?v=5-touch"></script>
 </body>
 </html>

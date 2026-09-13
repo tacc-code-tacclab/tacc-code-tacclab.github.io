@@ -87,6 +87,7 @@ function harness({ touch = true, width = 844, height = 390 } = {}) {
       spawnCreature, updateEnemies, currentFaceTexture, CREATURES,
       goldenBullet, placeGoldenBullet, updateGoldenBullet, bossExposed,
       fireWeapon, damageCreature, updateHud, toggleMap, updateExpeditionHud,
+      updatePlayer, updateWeapon, updateTouchAim, shouldAutoFire, findAimAssistTarget, touchAssist,
       get scoutMap() { return scoutMap; }, get camera() { return camera; },
       get world() { return world; },
       controls, player, weapon, boss, settings, performanceState, effects, enemies,
@@ -270,7 +271,7 @@ test('the title-screen realm choice starts each biome with a valid spawn and nat
 
 test('insects pursue the player at a tile edge and inflict small, rate-limited contact damage', () => {
   for (const type of ['roach', 'bat', 'snake']) {
-    const h = harness(); const g = h.game; g.startGame();
+    const h = harness(); const g = h.game; g.startGame(); g.settings.touchAuto = false;
     g.spawnCreature(type, true); const creature = g.enemies.at(-1);
     creature.x = 32.4; creature.z = 32.4; creature.attackCooldown = 0;
     g.player.x = 35.3; g.player.z = 35.3; g.player.health = 100;
@@ -383,4 +384,95 @@ test('map opens by M on PC or a touch button, without pausing or stealing held i
       h.el('map-toggle').emit('click'); assert.equal(h.el('map-details').hidden, before);
     }
   }
+});
+
+function faceTarget(h, x = 34, z = 26) {
+  const g = h.game;
+  g.enemies.forEach(e => { e.alive = false; });
+  g.player.x = 34; g.player.z = 34; g.player.yaw = 0; g.player.pitch = 0;
+  g.camera.position.set(34, 1.62, 34); g.camera.rotation.set(0, 0, 0, 'YXZ');
+  g.boss.x = x; g.boss.z = z; g.boss.model.position.set(x, 0.08, z);
+  g.boss.model.rotation.set(0, 0, 0);
+  g.scene.updateMatrixWorld(true);
+}
+
+test('one right thumb can aim and fire while the other moves; pointer cancellation releases both', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  h.el('move-pad').emit('pointerdown', { pointerId: 1, clientX: 63, clientY: 10 });
+  const fire = h.el('touch-fire');
+  fire.emit('pointerdown', { pointerId: 2, clientX: 700, clientY: 280 });
+  fire.emit('pointermove', { pointerId: 2, clientX: 728, clientY: 267 });
+  assert.equal(g.controls.fireTouch, true); assert.equal(g.controls.aimTouch, true);
+  assert.ok(g.controls.moveY > 0); assert.equal(g.controls.runTouch, true);
+  assert.equal(g.controls.lookDX, 28); assert.equal(g.controls.lookDY, -13);
+  const yaw = g.player.yaw, pitch = g.player.pitch;
+  g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw < yaw, 'drag right turns right');
+  assert.ok(g.player.pitch > pitch, 'drag up looks up');
+  fire.emit('pointerup', { pointerId: 9 }); assert.equal(g.controls.fireTouch, true);
+  fire.emit('lostpointercapture', { pointerId: 2 });
+  assert.equal(g.controls.fireTouch, false); assert.equal(g.controls.aimTouch, false);
+  assert.ok(g.controls.moveY > 0, 'ending aim does not steal the movement finger');
+  h.el('move-pad').emit('pointercancel', { pointerId: 1 });
+  assert.equal(g.controls.moveY, 0); assert.equal(g.controls.runTouch, false);
+});
+
+test('holding the touch trigger resumes firing after an automatic reload', () => {
+  const h = harness(); const g = h.game; g.startGame();
+  g.settings.touchAuto = false; g.boss.alive = false; g.enemies.forEach(e => { e.alive = false; });
+  h.el('touch-fire').emit('pointerdown', { pointerId: 4, clientX: 700, clientY: 280 });
+  g.weapon.ammo = 1; g.updateWeapon(0.02); assert.equal(g.weapon.ammo, 0);
+  g.updateWeapon(0.2); assert.ok(g.weapon.reload > 0); assert.equal(g.controls.fireTouch, true);
+  g.updateWeapon(1.2); assert.equal(g.weapon.ammo, 32);
+  g.updateWeapon(0.02); assert.equal(g.weapon.ammo, 31);
+  h.el('touch-fire').emit('pointerup', { pointerId: 4 });
+  g.updateWeapon(0.2); assert.equal(g.weapon.ammo, 31);
+});
+
+test('phone AUTO shoots an acquired target; the same idle desktop scene never fires', () => {
+  for (const touch of [true, false]) {
+    const h = harness({ touch }); const g = h.game; g.startGame(); faceTarget(h);
+    const hp = g.boss.hp;
+    for (let i = 0; i < 55; i++) g.animate();
+    if (touch) {
+      assert.ok(g.weapon.ammo < 32); assert.ok(g.boss.hp < hp);
+      assert.equal(g.weapon.model.scale.x, 0.72);
+    } else {
+      assert.equal(g.weapon.ammo, 32); assert.equal(g.boss.hp, hp);
+      assert.equal(g.player.yaw, 0); assert.equal(g.player.pitch, 0);
+      assert.equal(g.weapon.model.scale.x, 1);
+    }
+  }
+});
+
+test('AUTO can be disabled; a deliberate swipe takes priority over magnetic aiming', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h, 36.5, 26);
+  h.el('touch-auto').emit('click'); assert.equal(g.settings.touchAuto, false);
+  for (let i = 0; i < 50; i++) g.animate();
+  assert.equal(g.weapon.ammo, 32); assert.ok(g.player.yaw < -0.1, 'gentle assist brings the target toward centre');
+  const yaw = g.player.yaw;
+  g.controls.lookDX = -50; g.updatePlayer(1 / 60);
+  assert.ok(g.player.yaw > yaw, 'the player can swipe away from the target');
+  h.context.emit('blur'); assert.equal(g.touchAssist.target, null); assert.equal(g.touchAssist.ready, false);
+});
+
+test('automatic targeting respects walls and the portrait gameplay gate', () => {
+  const h = harness(); const g = h.game; g.startGame(); faceTarget(h);
+  let wall;
+  for (let z = 1; z < 15 && !wall; z++) for (let x = 1; x < 15; x++) {
+    if (!g.world.walkable(x,z) && g.world.walkable(x-1,z) && g.world.walkable(x+1,z)) { wall={x,z}; break; }
+  }
+  assert.ok(wall);
+  const p = g.worldFromCell(wall.x-1,wall.z), b = g.worldFromCell(wall.x+1,wall.z);
+  Object.assign(g.player,p,{yaw:-Math.PI/2}); Object.assign(g.boss,b);
+  g.boss.model.position.set(b.x,0.08,b.z);
+  g.camera.position.set(p.x,1.62,p.z); g.camera.rotation.set(0,-Math.PI/2,0,'YXZ'); g.scene.updateMatrixWorld(true);
+  assert.equal(g.findAimAssistTarget(), null);
+  g.updateTouchAim(0.2); assert.equal(g.touchAssist.target, null);
+  faceTarget(h); for (let i=0;i<40;i++) g.animate();
+  h.context.innerWidth=390; h.context.innerHeight=844; g.updateOrientation();
+  const hp=g.boss.hp, ammo=g.weapon.ammo;
+  for (let i=0;i<40;i++) g.animate();
+  assert.equal(g.boss.hp,hp); assert.equal(g.weapon.ammo,ammo);
+  assert.equal(g.controls.fireTouch,false); assert.equal(g.touchAssist.target,null);
 });

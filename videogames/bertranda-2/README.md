@@ -37,7 +37,11 @@ The tactical map shows walls/terrain, the player and heading, the golden bullet,
 - `M` or the MAP button: expand/collapse the tactical map
 - `P`: pause
 
-Mobile controls include a movement pad, drag-to-aim zone, fire, run, reload, light and MAP buttons. The map starts collapsed on touch devices, leaving only a small direction/distance button near the top left. Its expanded view scales to landscape height above the movement pad; aiming and fire stay available. Desktop starts with the map expanded. The mobile HUD stays compact along the top edge so the aiming area remains clear.
+The touch interface uses a single 24-pixel status row and a 112-pixel-wide map that starts collapsed. The expanded map hides its legend and keeps a short canvas above the left joystick, including short landscape viewports with browser bars. Small visual icons retain generous touch areas. The central aiming area stays clear. Desktop keeps its existing HUD and expanded map.
+
+On phones, the left joystick moves and pushing it to its outer edge sprints, removing the separate RUN button. Drag anywhere in the broad right-hand area to aim, or hold and drag FIRE to shoot and aim with the same thumb. The trigger continues after reloading while held. Pointer cancellation, blur and rotation release held input.
+
+Phone AUTO firing is enabled by default and can be switched off with the AUTO button. It fires only after a target near the reticle has been acquired, with line-of-sight checks. Gentle aim assistance helps track ground insects and flying enemies; deliberate swipes take priority. A small target bracket shows what is selected. Mouse/keyboard aiming and firing remain manual and unchanged. Mobile camera shake/bobbing is reduced, the weapon is smaller, exposure is slightly higher and full-screen boss-hit flashes are disabled to keep enemies visible.
 
 On touch devices, play in landscape. Start/Resume requests fullscreen and landscape lock where supported; other browsers (including iPhone browsers without orientation-lock support) show a rotate prompt. Portrait play and hidden tabs freeze the simulation without opening the pause menu or losing progress. A transient browser blur only clears held controls. Use the pause button to pause manually.
 
@@ -49,7 +53,7 @@ On touch devices, play in landscape. Start/Resume requests fullscreen and landsc
 
 Mobile Deep keeps its default look with capped decorative particles and enemies, and adaptive render resolution. The world retains at most nine render sectors and 32 cached sector grids; shared instanced geometry, chunk culling and one new sector per frame keep streaming bounded. A moving shared navigation field replaces repeated per-enemy searches. Simulation uses bounded time steps so a slower frame rate does not make movement run in slow motion. Static menus and background tabs do not continuously render the 3D scene.
 
-The map uses a small 2D canvas at up to five redraws per second, with no drawing while collapsed. Its independent route search runs at most twice per second when cells change. The golden pickup adds five simple meshes and no dynamic lights.
+The map uses a small 2D canvas at up to five redraws per second, with no drawing while collapsed. Its independent route search runs at most twice per second when cells change. Touch aim acquisition is throttled separately. The golden pickup adds five simple meshes and no dynamic lights.
 
 ## Roblox
 
@@ -61,4 +65,4 @@ Serve the repository with a local HTTP server and open `videogames/bertranda-2/`
 
 ## Regression checks
 
-Run `node --test videogames/bertranda-2/tests/*.test.cjs` from the repository root. Tests use the bundled Three.js geometry and production game logic with browser I/O mocked. They cover golden bullet placement/reachability, required collection, visible finishing shots and progression on desktop and touch, map input/throttling, contact damage, portrait identity, seam connectivity, distant coordinates, bounded streaming and mobile input. `tests/viewport.html` provides a touch-layout/rotation preview at 844×390, 667×375 and 390×844; it is not a hardware FPS benchmark.
+Run `node --test videogames/bertranda-2/tests/*.test.cjs` from the repository root. Tests use the bundled Three.js geometry and production game logic with browser I/O mocked. They cover golden bullet placement/reachability, finishing shots and progression, map input/throttling, one-thumb aim/fire, multi-touch ownership, continuous fire across reloads, optional mobile automatic fire, wall occlusion, unchanged desktop aiming/firing, portrait suspension, contact damage, faces and bounded worlds. `tests/viewport.html` provides landscape, portrait and desktop previews, including 568×250 with simulated browser bars. Its optional HUD/map mode uses the production styles and map without WebGL; neither preview is a hardware FPS benchmark.

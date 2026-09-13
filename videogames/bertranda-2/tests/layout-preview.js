@@ -6,12 +6,12 @@
   $('title-screen').classList.remove('is-visible');
   $('hud').hidden = false;
   $('touch-controls').hidden = false;
-  document.body.dataset.touch = 'true';
   $('objective-text').textContent = '1 · FIND GOLD';
   $('wave-text').textContent = 'HAUNTED HOUSE · VERDIGRIS · SECTOR 0:0';
   $('boss-name').textContent = 'GOLDEN SHOT READY · 84m ↗';
   $('health-text').textContent = '100';
   $('ammo-text').textContent = '32';
+  $('touch-auto').classList.add('enabled');
   $('render-host').style.background = 'radial-gradient(ellipse at 50% 60%, #35624b, #132721 65%, #091710)';
   const world = new BertrandaWorld.World(THREE, new THREE.Scene());
   world.setSchema(1, { accent: 0x67ff9a });
@@ -21,6 +21,9 @@
   const map = new BertrandaExpedition.ScoutMap($('map-canvas'));
   let open = true, time = 0;
   function draw() {
+    const touch = innerWidth < 1100;
+    document.body.dataset.touch = String(touch);
+    $('touch-controls').hidden = !touch || innerWidth < innerHeight;
     $('map-details').hidden = !open;
     $('scout-map').classList.toggle('expanded', open);
     $('map-toggle').setAttribute('aria-expanded', String(open));

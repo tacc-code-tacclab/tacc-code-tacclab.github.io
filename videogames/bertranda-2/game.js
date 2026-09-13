@@ -55,6 +55,7 @@
     mapHint: $("#map-hint"),
     danger: $("#danger"),
     reticle: $("#reticle"),
+    aimTarget: $("#aim-target"),
     prompt: $("#prompt"),
     caption: $("#subtitle"),
     healthFill: $("#health-fill"),
@@ -74,6 +75,7 @@
     touchRun: $("#touch-run"),
     touchReload: $("#touch-reload"),
     touchTorch: $("#touch-torch"),
+    touchAuto: $("#touch-auto"),
     pause: $("#pause-screen"),
     resume: $("#resume-button"),
     restart: $("#restart-button"),
@@ -86,6 +88,7 @@
     difficulty: "normal",
     quality: "deep",
     realm: "1",
+    touchAuto: true,
     muted: false
   };
 
@@ -131,6 +134,7 @@
   const faceTextures = {};
   const raycaster = new THREE.Raycaster();
   const aimPoint = new THREE.Vector2(0, 0);
+  const touchAssist = { target: null, scanTimer: 0, acquired: 0, ready: false, inhibitUntil: 0 };
   const fragmentGeometry = new THREE.TetrahedronGeometry(0.12, 0);
   const sparkGeometry = new THREE.SphereGeometry(0.055, 5, 4);
   const boltGeometry = new THREE.OctahedronGeometry(0.12, 0);
@@ -144,6 +148,8 @@
     lookDX: 0,
     lookDY: 0,
     fire: false,
+    fireTouch: false,
+    aimTouch: false,
     runTouch: false
   };
 
@@ -494,6 +500,7 @@
     root.add(weapon.muzzleLight);
     root.position.set(0.34, -0.34, -0.62);
     root.rotation.set(-0.04, -0.04, 0);
+    if (IS_TOUCH) root.scale.setScalar(0.72);
     camera.add(root);
     weapon.model = root;
   }
@@ -1068,18 +1075,27 @@
       player.bobAmount = lerp(player.bobAmount, 0, Math.min(1, dt * 7));
     }
 
-    const lookSpeed = IS_TOUCH ? 0.0031 : 0.00215;
-    player.yaw -= controls.lookDX * lookSpeed;
-    player.pitch = clamp(player.pitch - controls.lookDY * lookSpeed, -1.1, 1.1);
+    const lookDX = controls.lookDX, lookDY = controls.lookDY;
+    const lookSpeed = IS_TOUCH ? clamp(1.15 / Math.min(innerWidth, innerHeight), 0.0024, 0.0046) : 0.00215;
+    player.yaw -= lookDX * lookSpeed;
+    player.pitch = clamp(player.pitch - lookDY * lookSpeed * (IS_TOUCH ? 0.78 : 1), -1.1, 1.1);
     controls.lookDX = 0;
     controls.lookDY = 0;
+    if (IS_TOUCH) {
+      camera.position.set(player.x, player.height, player.z);
+      camera.rotation.set(player.pitch, player.yaw, 0, "YXZ");
+      camera.updateMatrixWorld(true);
+      updateTouchAim(dt, lookDX, lookDY);
+    }
 
-    const bobY = Math.abs(Math.sin(player.bob)) * 0.066 * player.bobAmount;
-    const sway = Math.sin(player.bob * 0.5) * 0.015 * player.bobAmount;
-    const shakeX = (Math.random() - 0.5) * screenShake;
-    const shakeY = (Math.random() - 0.5) * screenShake * 0.72;
-    camera.position.set(player.x + shakeX, player.height + bobY + shakeY, player.z + (Math.random() - 0.5) * screenShake);
+    const stability = IS_TOUCH ? 0.18 : 1;
+    const bobY = Math.abs(Math.sin(player.bob)) * 0.066 * player.bobAmount * stability;
+    const sway = Math.sin(player.bob * 0.5) * 0.015 * player.bobAmount * stability;
+    const shakeX = (Math.random() - 0.5) * screenShake * stability;
+    const shakeY = (Math.random() - 0.5) * screenShake * 0.72 * stability;
+    camera.position.set(player.x + shakeX, player.height + bobY + shakeY, player.z + (Math.random() - 0.5) * screenShake * stability);
     camera.rotation.set(player.pitch + shakeY * 0.08, player.yaw + shakeX * 0.06, sway, "YXZ");
+    if (IS_TOUCH) camera.updateMatrixWorld(true);
     screenShake = Math.max(0, screenShake - dt * (1.7 + screenShake * 7));
     player.invulnerable = Math.max(0, player.invulnerable - dt);
   }
@@ -1089,7 +1105,9 @@
     player.torch = !player.torch;
     audio.tone(player.torch ? 580 : 270, 0.07, 0.055, "square", player.torch ? 70 : -40);
     ui.touchTorch.classList.toggle("pressed", player.torch);
-    ui.touchTorch.textContent = player.torch ? "LIGHT ON" : "LIGHT OFF";
+    ui.touchTorch.textContent = IS_TOUCH ? "☼" : player.torch ? "LIGHT ON" : "LIGHT OFF";
+    ui.touchTorch.setAttribute("aria-label", player.torch ? "Turn light off" : "Turn light on");
+    ui.touchTorch.setAttribute("aria-pressed", String(player.torch));
     showCaption(player.torch ? "WEAPON LIGHT ON · E/F" : "WEAPON LIGHT OFF · E/F", 1.25);
     updateHud();
   }
@@ -1130,7 +1148,7 @@
         ui.reticle.classList.remove("reloading");
         audio.tone(820, 0.08, 0.055, "square", 130);
       }
-    } else if (controls.fire && weapon.cooldown <= 0) {
+    } else if (weapon.cooldown <= 0 && (controls.fire || (IS_TOUCH && controls.fireTouch) || shouldAutoFire())) {
       fireWeapon();
     }
 
@@ -1162,13 +1180,62 @@
       if (distance > 50 || !lineOfSight(player.x, player.z, creature.x, creature.z)) return;
       const projected = point.clone().project(camera);
       if (projected.z < -1 || projected.z > 1) return;
-      const screenDistance = Math.hypot(projected.x, projected.y);
-      const limit = (IS_TOUCH ? 0.29 : 0.2) + (creature === boss ? 0.035 : 0);
+      // Use height-relative screen distance on phones, so a wide landscape
+      // viewport doesn't distort the assist cone horizontally.
+      const screenDistance = Math.hypot(projected.x * (IS_TOUCH ? camera.aspect : 1), projected.y);
+      const limit = IS_TOUCH ? (distance < 6 ? 1.05 : 0.64) + (creature === boss ? 0.1 : 0) : 0.2 + (creature === boss ? 0.035 : 0);
       if (screenDistance > limit) return;
-      const score = screenDistance + distance * 0.0008;
+      const score = screenDistance + distance * 0.0008 - (IS_TOUCH && touchAssist.target?.creature === creature ? 0.08 : 0);
       if (!best || score < best.score) best = { creature, point, score };
     });
     return best;
+  }
+
+  function updateTouchAim(dt, lookDX = 0, lookDY = 0) {
+    if (!IS_TOUCH || !canPlay()) return;
+    touchAssist.scanTimer -= dt;
+    if (touchAssist.scanTimer <= 0 || (touchAssist.target && !touchAssist.target.creature.alive)) {
+      const next = findAimAssistTarget();
+      if (next?.creature !== touchAssist.target?.creature) touchAssist.acquired = 0;
+      touchAssist.target = next;
+      touchAssist.scanTimer = 0.09;
+    }
+    const target = touchAssist.target;
+    touchAssist.ready = false;
+    ui.aimTarget.hidden = !target;
+    if (!target) return;
+    const creature = target.creature;
+    target.point.set(creature.x, creature === boss ? 1.65 : CREATURES[creature.type].aimY + creature.model.position.y, creature.z);
+    const dx = creature.x - player.x, dz = creature.z - player.z;
+    const yaw = Math.atan2(-dx, -dz) - player.yaw;
+    const errorYaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
+    const errorPitch = Math.atan2(target.point.y - player.height, Math.hypot(dx, dz)) - player.pitch;
+    const pull = 1 - Math.exp(-dt * 4.5);
+    // A deliberate swipe always takes priority over the magnet. Vertical
+    // assistance makes low insects and flying bats reachable with one thumb.
+    if (Math.abs(lookDX) < 1.5) player.yaw += clamp(errorYaw * pull, -dt * 0.9, dt * 0.9);
+    if (Math.abs(lookDY) < 1.5) player.pitch = clamp(player.pitch + clamp(errorPitch * pull, -dt * 1.3, dt * 1.3), -1.1, 1.1);
+    camera.rotation.set(player.pitch, player.yaw, 0, "YXZ");
+    camera.updateMatrixWorld(true);
+    const projected = target.point.clone().project(camera);
+    const aimDistance = Math.hypot(projected.x * camera.aspect, projected.y);
+    touchAssist.acquired += dt;
+    touchAssist.ready = projected.z > -1 && projected.z < 1 && aimDistance < 0.34 && touchAssist.acquired >= 0.14;
+    ui.aimTarget.style.left = (50 + projected.x * 50) + "%";
+    ui.aimTarget.style.top = (50 - projected.y * 50) + "%";
+    ui.aimTarget.classList.toggle("ready", touchAssist.ready);
+  }
+
+  function shouldAutoFire() {
+    const target = touchAssist.target?.creature;
+    return IS_TOUCH && settings.touchAuto && canPlay() && elapsed >= touchAssist.inhibitUntil && touchAssist.ready && target?.alive && lineOfSight(player.x, player.z, target.x, target.z);
+  }
+
+  function toggleTouchAuto() {
+    if (!IS_TOUCH || !canPlay()) return;
+    settings.touchAuto = !settings.touchAuto;
+    updateHud();
+    showCaption(settings.touchAuto ? "AUTO FIRE ON · aim near a creature" : "MANUAL FIRE · hold FIRE and drag to aim", 2);
   }
 
   function fireWeapon() {
@@ -1363,6 +1430,7 @@
 
   function beginNextSchema() {
     clearBetweenSchemas();
+    if (IS_TOUCH) resetInputs();
     schema += 1;
     schemaElapsed = 0;
     wave = 1;
@@ -1382,7 +1450,9 @@
     updateOrientation();
     ui.reticle.classList.remove("reloading", "hit", "locked");
     ui.touchTorch.classList.add("pressed");
-    ui.touchTorch.textContent = "LIGHT ON";
+    ui.touchTorch.textContent = IS_TOUCH ? "☼" : "LIGHT ON";
+    ui.touchTorch.setAttribute("aria-label", "Turn light off");
+    ui.touchTorch.setAttribute("aria-pressed", "true");
     audio.resetMusic();
     updateHud();
     showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.6);
@@ -1706,7 +1776,7 @@
     const bearing = Math.atan2(-(boss.x - player.x), -(boss.z - player.z)) - player.yaw;
     const direction = Math.atan2(Math.sin(bearing), Math.cos(bearing));
     const arrow = Math.abs(direction) < 0.5 ? "↑" : Math.abs(direction) > 2.5 ? "↓" : direction > 0 ? "←" : "→";
-    ui.bossName.textContent = boss.alive ? (bossExposed() ? (goldenBullet.status === "seeking" ? "GOLD REQUIRED" : "GOLDEN SHOT READY") : "BERTRANDA") + " · " + Math.round(Math.hypot(boss.x - player.x, boss.z - player.z)) + "m " + arrow : "BERTRANDA DOWN";
+    ui.bossName.textContent = boss.alive ? (bossExposed() ? (goldenBullet.status === "seeking" ? "GOLD REQUIRED" : IS_TOUCH ? "GOLD READY" : "GOLDEN SHOT READY") : "BERTRANDA") + " · " + Math.round(Math.hypot(boss.x - player.x, boss.z - player.z)) + "m " + arrow : "BERTRANDA DOWN";
     const phaseText = boss.phase === 1 ? "THE MOTHER BELOW" : boss.phase === 2 ? "SHELL SPLIT OPEN" : "FACE LOST · BERSERK";
     ui.bossPhase.textContent = "SCHEMA " + schema + " · " + info.environment.short + " · " + info.cycle.name + " · " + phaseText;
     ui.ammo.textContent = String(weapon.ammo).padStart(2, "0");
@@ -1719,8 +1789,13 @@
     ui.prompt.classList.toggle("visible", weapon.reload > 0);
     ui.danger.classList.toggle("visible", dangerUntil > elapsed);
     ui.caption.classList.toggle("visible", captionUntil > elapsed);
-    const aimLocked = weapon.reload <= 0 && (aimLockUntil > elapsed || Boolean(findAimAssistTarget()));
+    const aimLocked = weapon.reload <= 0 && (aimLockUntil > elapsed || (IS_TOUCH ? touchAssist.ready : Boolean(findAimAssistTarget())));
     ui.reticle.classList.toggle("locked", aimLocked);
+    if (IS_TOUCH) {
+      ui.touchAuto.textContent = settings.touchAuto ? "AUTO ON" : "AUTO OFF";
+      ui.touchAuto.setAttribute("aria-pressed", String(settings.touchAuto));
+      ui.touchAuto.classList.toggle("enabled", settings.touchAuto);
+    }
     updateExpeditionHud();
   }
 
@@ -1776,6 +1851,7 @@
     sessionId += 1;
     clearSessionObjects();
     elapsed = 0;
+    touchAssist.inhibitUntil = 0.35;
     schemaElapsed = 0;
     schema = clamp(Number(settings.realm) || 1, 1, 5);
     wave = 1;
@@ -1796,7 +1872,9 @@
     controls.fire = false;
     ui.reticle.classList.remove("reloading", "hit", "locked");
     ui.touchTorch.classList.add("pressed");
-    ui.touchTorch.textContent = "LIGHT ON";
+    ui.touchTorch.textContent = IS_TOUCH ? "☼" : "LIGHT ON";
+    ui.touchTorch.setAttribute("aria-label", "Turn light off");
+    ui.touchTorch.setAttribute("aria-pressed", "true");
     applySchemaLook();
     configureBossForSchema();
     placeGoldenBullet();
@@ -1822,7 +1900,7 @@
     updateOrientation();
     needsRender = true;
     showDanger("DESCENT " + schema + " · " + stageInfo().environment.short, 2.7);
-    showCaption(IS_TOUCH ? "Tap MAP. Find the golden bullet, weaken Bertranda, then fire to enter the next realm." : "M opens your map. Find the golden bullet, weaken Bertranda, then fire to enter the next realm.", 5.2);
+    showCaption(IS_TOUCH ? "Left thumb: move. Right thumb: aim. AUTO shoots for you. Find GOLD on the map." : "M opens your map. Find the golden bullet, weaken Bertranda, then fire to enter the next realm.", 5.2);
     if (!IS_TOUCH) requestPointer();
   }
 
@@ -1867,7 +1945,15 @@
   function resetInputs() {
     controls.keys.clear();
     controls.fire = false;
+    controls.fireTouch = false;
+    controls.aimTouch = false;
     controls.runTouch = false;
+    touchAssist.target = null;
+    touchAssist.ready = false;
+    touchAssist.acquired = 0;
+    touchAssist.scanTimer = 0;
+    touchAssist.inhibitUntil = elapsed + 0.35;
+    ui.aimTarget.hidden = true;
     controls.moveX = controls.moveY = controls.lookDX = controls.lookDY = 0;
     touchResetters.forEach((reset) => reset());
     ui.moveKnob.style.transform = "";
@@ -1978,6 +2064,7 @@
       }
       controls.moveX = x / limit;
       controls.moveY = -y / limit;
+      controls.runTouch = Math.hypot(controls.moveX, controls.moveY) > 0.9;
       ui.moveKnob.style.transform = "translate(" + x + "px," + y + "px)";
     };
     ui.movePad.addEventListener("pointerdown", (event) => {
@@ -1995,6 +2082,7 @@
       movePointer = null;
       controls.moveX = 0;
       controls.moveY = 0;
+      controls.runTouch = false;
       ui.moveKnob.style.transform = "";
     };
     ui.movePad.addEventListener("pointerup", endMove);
@@ -2002,31 +2090,40 @@
     ui.movePad.addEventListener("lostpointercapture", endMove);
     touchResetters.push(() => { movePointer = null; });
 
-    let lookPointer = null;
-    let lookX = 0;
-    let lookY = 0;
-    ui.lookPad.addEventListener("pointerdown", (event) => {
-      if (!canPlay() || lookPointer !== null) return;
-      event.preventDefault();
-      lookPointer = event.pointerId;
-      lookX = event.clientX;
-      lookY = event.clientY;
-      ui.lookPad.setPointerCapture(event.pointerId);
-    });
-    ui.lookPad.addEventListener("pointermove", (event) => {
-      if (event.pointerId !== lookPointer) return;
-      controls.lookDX += (event.clientX - lookX) * 1.15;
-      controls.lookDY += (event.clientY - lookY) * 1.15;
-      lookX = event.clientX;
-      lookY = event.clientY;
-    });
-    const endLook = (event) => {
-      if (event.pointerId === lookPointer) lookPointer = null;
+    const aimingSurfaces = new Set();
+    const bindAimSurface = (element, shoots) => {
+      let pointer = null, x = 0, y = 0;
+      element.addEventListener("pointerdown", event => {
+        if (!canPlay() || pointer !== null) return;
+        event.preventDefault();
+        pointer = event.pointerId; x = event.clientX || 0; y = event.clientY || 0;
+        element.setPointerCapture(pointer);
+        aimingSurfaces.add(element); controls.aimTouch = true;
+        if (shoots) {
+          controls.fireTouch = true; controls.fire = true;
+          element.classList.add("pressed");
+        }
+      });
+      element.addEventListener("pointermove", event => {
+        if (pointer !== event.pointerId) return;
+        event.preventDefault();
+        controls.lookDX += clamp(event.clientX - x, -100, 100);
+        controls.lookDY += clamp(event.clientY - y, -100, 100);
+        x = event.clientX; y = event.clientY;
+      });
+      const end = event => {
+        if (pointer !== event.pointerId) return;
+        pointer = null;
+        aimingSurfaces.delete(element); controls.aimTouch = aimingSurfaces.size > 0;
+        if (shoots) { controls.fireTouch = false; controls.fire = false; element.classList.remove("pressed"); }
+      };
+      element.addEventListener("pointerup", end);
+      element.addEventListener("pointercancel", end);
+      element.addEventListener("lostpointercapture", end);
+      touchResetters.push(() => { pointer = null; aimingSurfaces.delete(element); });
     };
-    ui.lookPad.addEventListener("pointerup", endLook);
-    ui.lookPad.addEventListener("pointercancel", endLook);
-    ui.lookPad.addEventListener("lostpointercapture", endLook);
-    touchResetters.push(() => { lookPointer = null; });
+    bindAimSurface(ui.lookPad, false);
+    bindAimSurface(ui.touchFire, true);
 
     const holdButton = (button, start, stop) => {
       let pointer = null;
@@ -2049,11 +2146,6 @@
       button.addEventListener("lostpointercapture", end);
       touchResetters.push(() => { pointer = null; });
     };
-    holdButton(ui.touchFire, () => {
-      controls.fire = true;
-    }, () => {
-      controls.fire = false;
-    });
     holdButton(ui.touchRun, () => {
       controls.runTouch = true;
     }, () => {
@@ -2061,13 +2153,14 @@
     });
     ui.touchReload.addEventListener("click", () => startReload(true));
     ui.touchTorch.addEventListener("click", toggleTorch);
+    ui.touchAuto.addEventListener("click", toggleTouchAuto);
   }
 
   function applyQuality() {
     if (!renderer) return;
     updateRenderSize();
     const cycleIndex = stageInfo().cycleIndex;
-    renderer.toneMappingExposure = (settings.quality === "low" ? 1.46 : settings.quality === "deep" ? 1.55 : 1.62) + cycleIndex * 0.035;
+    renderer.toneMappingExposure = (settings.quality === "low" ? 1.46 : settings.quality === "deep" ? 1.55 : 1.62) + cycleIndex * 0.035 + (IS_TOUCH ? 0.12 : 0);
     document.body.dataset.quality = settings.quality;
     if (!scene) return;
     scene.fog.density = (settings.quality === "low" ? 0.012 : settings.quality === "deep" ? 0.0155 : 0.018) + cycleIndex * 0.0008;
@@ -2183,6 +2276,7 @@
     bindKeyboardAndMouse();
     bindTouchControls();
     window.addEventListener("resize", onResize);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", onResize);
     if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", onResize);
     document.addEventListener("fullscreenchange", onResize);
     document.body.dataset.touch = String(IS_TOUCH);
