@@ -1,6 +1,8 @@
 # Ateneo Bandi
 
-Public academic-call search in TACC Lab's Services section, independent of games.
+Public academic-call search in TACC Lab's Services section.
+The private email service uses its own Supabase project, `ateneo-bandi`
+(`blyqhuqalgduhbixunye`), physically separate from game databases.
 
 ## National catalogs
 
@@ -52,6 +54,6 @@ Test fixtures are small excerpts of official MUR HTML, without contact details.
 `data/professor-watch.json` is an auditable public subset for full professors in
 BIOS-08/A (BIO/11; 05/E2; 05/BIOS-08) OR BIOS-14/A (BIO/18; 05/I1; 05/BIOS-14).
 It contains no email address. An enabled three-day ChatGPT automation verifies the
-original sources, stores private run records in Supabase and sends through Gmail.
+original sources, stores private run records in the dedicated Supabase project and sends through Gmail.
 See `backend/README.md`. There are no public email subscriptions. Users can save,
 restore, delete and share searches locally without an account.

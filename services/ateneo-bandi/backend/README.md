@@ -3,12 +3,15 @@
 The public service has no email signup and no authenticated database access.
 The administrator's explicitly requested report runs every three days through a
 ChatGPT automation. It reads the national MUR professor index and original calls,
-checks equivalent sector codes, saves a private audit record in the existing
-Supabase research project, and **sends an actual email through the connected Gmail
-account**. Supabase is the database, not the mail transport. No SMTP/Resend provider
-or new paid project has been activated.
+checks equivalent sector codes, saves a private audit record in the dedicated
+Supabase project **ateneo-bandi** (`blyqhuqalgduhbixunye`), and **sends an actual email
+through the connected Gmail account**. Supabase is the database, not the mail
+transport. This is a separate database with independent project credentials;
+it shares no database or runtime dependency with the games. No SMTP/Resend provider
+or paid project has been activated.
 
-`002_private_digest.sql` documents the deployed schema. The allowed recipient and
+`003_dedicated_ateneo.sql` documents the schema applied to the dedicated project.
+`002_private_digest.sql` is a historical baseline, not a deployment instruction. The allowed recipient and
 criteria are set privately in `ateneo_private.digest_settings`. The automation
 also pins the authorized address and checks `enabled` before sending. Browser
 roles have neither schema access nor table policies. Project administration is
@@ -58,3 +61,21 @@ The index started its current national collection on 12 September 2026; early
 weeks are incomplete and historic rankings must be labelled accordingly. No
 week-on-week trend is claimed without comparable collection coverage. The weekly
 report checks source freshness and records delivery only after Gmail returns an ID.
+
+## Dedicated project (21 September 2026)
+
+- Organization: `tacclab`; region: Frankfurt (`eu-central-1`).
+- Project: `ateneo-bandi` / `blyqhuqalgduhbixunye`; see `project.json`.
+- Both automation prompts pin this project and also check `criteria.project_ref`.
+  They must never fall back to another project's database.
+- Public searches and daily MUR collection read GitHub snapshots and do not use
+  Supabase credentials. The public site URL and catalog remain unchanged.
+- The prior configured private schema was absent when inspected. Settings were
+  reconstructed from the authorized automation instructions, not copied from a
+  recoverable database backup. Only delivery history actually verified in Gmail
+  was restored; no missing records or notified-call identities were invented.
+- Keep the recipient and delivery logs private. Do not commit them or service keys.
+- RLS is enabled on both private tables. Browser roles have no schema/table access;
+  no public policies, subscriptions, or privileged public functions are created.
+- Restore a configuration into another project only after an explicit approved
+  move and update both project pins together. Never silently reuse a game project.

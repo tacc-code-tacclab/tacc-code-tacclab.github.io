@@ -1,0 +1,13 @@
+{
+  "service": "ateneo-bandi",
+  "supabase": {
+    "project_ref": "blyqhuqalgduhbixunye",
+    "project_name": "ateneo-bandi",
+    "organization": "tacclab",
+    "region": "eu-central-1",
+    "schema": "ateneo_private"
+  },
+  "schema_file": "003_dedicated_ateneo.sql",
+  "mail_transport": "connected_gmail",
+  "public_database_access": false
+}
