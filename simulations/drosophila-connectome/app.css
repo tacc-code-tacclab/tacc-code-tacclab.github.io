@@ -1,0 +1,187 @@
+/* Stili della simulazione. Riusa i token di site-v2.css (--bg, --ink, --accent,
+ * --line, --surface, --muted, --warm, --radius, --shell) cosi' i due temi del
+ * sito funzionano senza definire una seconda palette. */
+
+.sim-body {
+  background: var(--bg);
+  color: var(--ink);
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  min-height: 100vh;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  z-index: 50;
+}
+.skip-link:focus { left: 0.5rem; top: 0.5rem; }
+
+.sim-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem clamp(1rem, 4vw, 2rem);
+  background: var(--header);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.sim-back { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
+.sim-back:hover, .sim-back:focus-visible { text-decoration: underline; }
+.sim-title-small {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-right: auto;
+}
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  width: 2.25rem;
+  height: 2.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sim-main {
+  max-width: var(--shell, 1180px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+  padding-block: 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sim-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 1.25rem);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+.sim-card-head { margin-bottom: 0.75rem; }
+
+.sim-h1 {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.6rem;
+  text-wrap: balance;
+}
+.sim-h2 {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.5rem;
+}
+.sim-lede { font-size: 1.05rem; color: var(--muted); margin: 0 0 1rem; max-width: 62ch; }
+.sim-sub, .sim-note { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; max-width: 60ch; }
+.sim-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.sim-status { margin: 0.6rem 0 0; min-height: 1.2em; }
+
+.sim-progress {
+  height: 6px;
+  background: var(--surface-alt);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.8rem 0 0.5rem;
+}
+.sim-progress-bar { height: 100%; background: var(--accent); width: 0; transition: width 0.2s ease; }
+@media (prefers-reduced-motion: reduce) { .sim-progress-bar { transition: none; } }
+
+.sim-error { border-color: #b4472a; }
+.sim-error .sim-h2 { color: #b4472a; }
+
+.sim-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 1.25rem; align-items: start; }
+.sim-side { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.sim-wide { width: 100%; }
+
+.sim-canvas-card { min-width: 0; }
+.sim-canvas {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 900 / 560;
+  display: block;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  touch-action: manipulation;
+  cursor: crosshair;
+}
+.sim-canvas:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.sim-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.9rem; font-size: 0.8rem; color: var(--muted); margin: 0.7rem 0 0; }
+.sim-key { width: 0.7rem; height: 0.7rem; border-radius: 50%; display: inline-block; margin-right: 0.15rem; vertical-align: -1px; }
+.sim-key-src { background: #3aa0d8; }
+.sim-key-mid { background: #8a93a8; }
+.sim-key-dn { background: var(--warm); border: 1px solid var(--line); }
+.sim-key-les { background: transparent; border: 2px solid #b4472a; }
+.sim-legend-note { flex-basis: 100%; }
+
+.sim-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; font-size: 0.9rem; }
+.sim-field input[type="range"] { width: 100%; accent-color: var(--accent); }
+.sim-field select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.sim-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.sim-row .button { flex: 1 1 auto; }
+
+.sim-readout { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 0.75rem; font-size: 0.85rem; }
+.sim-readout .r-nome { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.sim-readout .r-val { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.sim-readout .r-chiave { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 0.4rem; padding-top: 0.4rem; font-weight: 700; }
+
+.sim-compare { margin-top: 0.85rem; overflow-x: auto; }
+.sim-compare table { border-collapse: collapse; width: 100%; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.sim-compare th, .sim-compare td { padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sim-compare th:first-child, .sim-compare td:first-child { text-align: left; }
+.sim-compare thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.sim-compare td.diff-si { color: var(--accent); font-weight: 700; }
+
+.sim-prov { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; font-size: 0.82rem; }
+.sim-prov dt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+.sim-prov dd { margin: 0; overflow-wrap: anywhere; }
+
+.sim-limits ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.sim-limits li { max-width: 78ch; }
+
+.sim-footer {
+  border-top: 1px solid var(--line);
+  padding: 1.5rem clamp(1rem, 4vw, 2rem) 2.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: var(--shell, 1180px);
+  margin-inline: auto;
+}
+.sim-footer a { color: var(--accent); }
+
+@media (max-width: 900px) {
+  .sim-grid { grid-template-columns: 1fr; }
+}

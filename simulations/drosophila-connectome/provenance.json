@@ -1,0 +1,123 @@
+{
+ "schema": "drosophila-connectome-release/1",
+ "generato_utc": "2026-09-24T16:42:54Z",
+ "url_pubblico": "https://tacc-code-tacclab.github.io/simulations/drosophila-connectome/",
+ "cosa_e": "Sottocircuito nominato del connettoma MaleCNS v1.0 calcolato nel browser. Non e' il cervello della mosca e non simula comportamento: non c'e' corpo, stanza ne' locomozione.",
+ "connettoma": {
+  "dataset": "malecns",
+  "release": "v1.0",
+  "n_neuroni_totali": 167106,
+  "n_archi_totali": 25578600,
+  "impronta_md5": "ef23cc27bea13be7f6a96f3c04fd3737",
+  "md5_pesi_spediti": "0e30e4a80cb607d4a168d1b08ebd6a40",
+  "modello_recettori": "LIFParams() di default (receptor_model='sign', net_rule='abs')"
+ },
+ "riduzione": {
+  "metodo": "regions.pare: neuroni su cammini diretti sorgente->bersaglio",
+  "sorgenti_regex": "^JO-(C|E)",
+  "sorgenti_n": 335,
+  "bersagli_tipi": [
+   "DNa02",
+   "DNa01",
+   "DNp09",
+   "MDN",
+   "DNg02",
+   "DNp18",
+   "DNp33"
+  ],
+  "bersagli_n": 14,
+  "bersagli_sopravvissuti": 14,
+  "max_hops": 2,
+  "ordinamento": "bodyId crescente (nessun significato scientifico)",
+  "pesi": "calcolati sul grafo intero e poi ritagliati, non ricalcolati",
+  "lateralita_metodo": "senses.laterality contro i bersagli cb_intrinsic divisi per somaSide, poi sign() -- la stessa regola di flyverse.senses.Wind",
+  "lateralita_frazione_sorgenti": 1.0,
+  "lateralita_frazione_totale": 0.6616
+ },
+ "esportato": {
+  "n_neuroni": 1058,
+  "n_archi": 58753,
+  "peso_min": -60.0,
+  "peso_max": 60.0,
+  "somma_abs_peso": 357030.8000114411,
+  "frazione_inibitoria": 0.4191275339131619
+ },
+ "dinamica": {
+  "equazione": "tau*dx/dt = -x + relu(guadagno*(Wnorm @ x) + ingresso)",
+  "normalizzazione": "ogni riga di W divisa per la somma dei suoi |pesi|",
+  "parametri": {
+   "tau_ms": 20.0,
+   "dt_ms": 2.0,
+   "jo_base_hz": 2.0,
+   "jo_max_hz": 50.0,
+   "vento_ms": 0.3,
+   "velocita_piena": 0.5,
+   "guadagno": 0.8,
+   "tasso_max": 500.0
+  },
+  "calibrazione_guadagno": "sweep 0.2-1.1, criterio dichiarato prima: nessuna saturazione, <50% silenti, picco <100 Hz; ammissibili 0.4-1.1, scelto il centro",
+  "non_e": "il modello di flyverse, che integra 167.106 neuroni con LIF a spike, modello dei recettori, adattamento e retroazione spiking->rate"
+ },
+ "sensoriale": {
+  "deflessione": "flyverse.air.deflections, trascritta",
+  "tassi_jo": "flyverse.senses.Wind.rates, trascritta (2 Hz base, 50 Hz max)",
+  "lateralita": "senses.laterality contro i bersagli cb_intrinsic divisi per somaSide, poi sign() -- la stessa regola di flyverse.senses.Wind",
+  "altri_sensi": "nessuno"
+ },
+ "validazione": {
+  "riferimento": "model/riferimento.json",
+  "punti_controllo": 10,
+  "tolleranza_relativa": 0.0001,
+  "scarto_osservato": "~1e-6 relativo",
+  "il_worker_rifiuta_di_partire_se_fallisce": true
+ },
+ "runtime": {
+  "terze_parti": [],
+  "rete_a_runtime": "solo asset di questa origine",
+  "telemetria": "nessuna",
+  "storage": "localStorage solo per il tema"
+ },
+ "licenza": "MaleCNS v1.0, CC BY 4.0; flyverse-core MIT",
+ "file": {
+  "index.html": {
+   "byte": 10655,
+   "md5": "b67526d9d97bb6c42e424a9fec7ddd15"
+  },
+  "app.css": {
+   "byte": 6512,
+   "md5": "bb634cbc8d60bc776a4bb1c5a63f21e8"
+  },
+  "app.js": {
+   "byte": 19047,
+   "md5": "96edb1d3382136527e7640023f0f2ef4"
+  },
+  "worker.js": {
+   "byte": 12328,
+   "md5": "154d040776096e4b1fa2a9a3dde5408b"
+  },
+  "model/nodes.json": {
+   "byte": 59160,
+   "md5": "95e3ed1f914d90dbab911e9b52707b83"
+  },
+  "model/edges_indptr.bin": {
+   "byte": 4236,
+   "md5": "171b8dc1b1ed5a044e302dbf1e8815e9"
+  },
+  "model/edges_indices.bin": {
+   "byte": 235012,
+   "md5": "bbd1781f9b1cc6c39ed64c1bb094b2db"
+  },
+  "model/edges_weights.bin": {
+   "byte": 235012,
+   "md5": "7b658309395ed060a84b5a7bcc569ef9"
+  },
+  "model/provenance.json": {
+   "byte": 2121,
+   "md5": "750b03a163d86d40ac3495ef26b025d7"
+  },
+  "model/riferimento.json": {
+   "byte": 6298,
+   "md5": "346c81d0613cf55169f9fd6d2783bf80"
+  }
+ }
+}

@@ -1,0 +1,110 @@
+/* Hub delle simulazioni. Riusa i token di site-v2.css: nessuna seconda palette,
+ * cosi' i due temi del sito valgono anche qui. */
+
+.hub-body {
+  background: var(--bg);
+  color: var(--ink);
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  min-height: 100vh;
+}
+
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--accent); color: #fff; padding: 0.6rem 1rem; z-index: 50; }
+.skip-link:focus { left: 0.5rem; top: 0.5rem; }
+
+.hub-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--header);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+.hub-back { color: var(--accent); text-decoration: none; font-weight: 600; margin-right: auto; }
+.hub-back:hover, .hub-back:focus-visible { text-decoration: underline; }
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  width: 2.25rem;
+  height: 2.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.hub-main {
+  max-width: var(--shell, 1180px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+  padding-block: clamp(2rem, 6vw, 4rem) 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.hub-intro h1 {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(2.2rem, 7vw, 3.6rem);
+  line-height: 1.02;
+  text-transform: uppercase;
+  margin: 0.3rem 0 1rem;
+  text-wrap: balance;
+}
+.hub-lede { font-size: clamp(1.05rem, 2.2vw, 1.2rem); max-width: 64ch; margin: 0 0 1rem; }
+.hub-note { color: var(--muted); max-width: 64ch; margin: 0; font-size: 0.95rem; }
+.hub-note a, .hub-caveat a { color: var(--accent); }
+
+.hub-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; align-items: start; }
+
+.hub-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 1.25rem);
+  overflow: hidden;
+}
+.hub-card-body { padding: clamp(1.1rem, 3vw, 1.75rem); display: flex; flex-direction: column; gap: 0.85rem; }
+.hub-card h2 {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+.hub-card p { margin: 0; max-width: 60ch; }
+
+.hub-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.hub-dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); display: inline-block; }
+
+.hub-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem 1rem; margin: 0.2rem 0; }
+.hub-facts div { display: flex; flex-direction: column; gap: 0.1rem; }
+.hub-facts dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.hub-facts dd { margin: 0; font-size: 0.9rem; }
+
+.hub-caveat {
+  border-left: 3px solid var(--line);
+  padding-left: 0.85rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.hub-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.3rem; }
+
+.hub-card-empty { background: transparent; border-style: dashed; }
+.hub-card-empty h2 { color: var(--muted); }
+
+.hub-footer {
+  border-top: 1px solid var(--line);
+  padding: 1.5rem clamp(1rem, 4vw, 2rem) 2.5rem;
+  max-width: var(--shell, 1180px);
+  margin-inline: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.hub-footer a { color: var(--accent); }

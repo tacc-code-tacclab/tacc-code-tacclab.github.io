@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Scientific Simulations — Cristian Taccioli</title>
+    <meta
+      name="description"
+      content="Interactive scientific simulations that run in the browser: data-constrained models with stated versions, assumptions and provenance. Currently the Drosophila connectome laboratory."
+    />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Scientific Simulations — Cristian Taccioli" />
+    <meta
+      property="og:description"
+      content="Interactive, data-constrained scientific models running in the browser, each with its versions and limitations stated."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/simulations/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/simulations/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../site-v2.css" />
+    <link rel="stylesheet" href="simulations.css" />
+  </head>
+  <body class="hub-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="hub-header">
+      <a class="hub-back" href="../">← Cristian Taccioli</a>
+      <button class="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">◐</button>
+    </header>
+
+    <main id="main" class="hub-main">
+      <section class="hub-intro">
+        <p class="eyebrow">Simulations</p>
+        <h1>Scientific simulations</h1>
+        <p class="hub-lede">
+          Interactive models built on measured data, running entirely in your browser. Each one
+          states the dataset it uses, the version of the model, what was reduced or approximated,
+          and what it cannot tell you.
+        </p>
+        <p class="hub-note">
+          These are not videogames. They use game-like interaction — you can click, perturb and
+          replay — but the point is the computation underneath, and a result you can trace back to
+          its source. The games live in
+          <a href="../#videogames">their own section</a>.
+        </p>
+      </section>
+
+      <section class="hub-list" aria-label="Available simulations">
+        <article class="hub-card">
+          <div class="hub-card-body">
+            <p class="hub-status"><span class="hub-dot"></span> Live · updated 24 September 2026</p>
+            <h2>Drosophila Connectome Laboratory</h2>
+            <p>
+              A named subcircuit of the MaleCNS <em>Drosophila</em> connectome: the neurons that lie
+              on direct paths from the wind receptors of Johnston&rsquo;s organ to the descending
+              neurons for steering and locomotion. Set the wind direction, watch the circuit
+              respond, remove neurons, and compare matched intact and lesioned runs.
+            </p>
+            <dl class="hub-facts">
+              <div><dt>Dataset</dt><dd>MaleCNS v1.0</dd></div>
+              <div><dt>Deployed</dt><dd>1,058 neurons · 58,753 connections</dd></div>
+              <div><dt>Computation</dt><dd>In-browser, Web Worker</dd></div>
+              <div><dt>Runs</dt><dd>Deterministic, self-tested</dd></div>
+            </dl>
+            <p class="hub-caveat">
+              A subcircuit, not the fly brain — and no behaviour is simulated: there is no body and
+              no room. The page says so, in full, on the page.
+            </p>
+            <div class="hub-actions">
+              <a class="button primary" href="drosophila-connectome/">Open the laboratory →</a>
+              <a class="button secondary" href="drosophila-connectome/MODEL_CARD.md">Model card</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="hub-card hub-card-empty">
+          <div class="hub-card-body">
+            <h2>More to come</h2>
+            <p>
+              This section is built to hold several simulations. The next ones will follow the same
+              rule: a stated dataset, a stated reduction, a reproducible export, and an honest
+              account of the limits.
+            </p>
+            <p class="hub-note">
+              Related work is in <a href="../#research">Research</a> and
+              <a href="../#projects">Projects</a>.
+            </p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="hub-footer">
+      <p><a href="../">← Back to the homepage</a></p>
+    </footer>
+
+    <script>
+      // stesso comportamento del tema del resto del sito
+      (function () {
+        var root = document.documentElement;
+        try {
+          var saved = localStorage.getItem("theme");
+          if (saved) root.dataset.theme = saved;
+          else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
+            root.dataset.theme = "dark";
+        } catch (e) { /* localStorage può essere bloccato */ }
+        var b = document.querySelector(".theme-toggle");
+        if (b) b.addEventListener("click", function () {
+          var next = root.dataset.theme === "dark" ? "light" : "dark";
+          root.dataset.theme = next;
+          try { localStorage.setItem("theme", next); } catch (e) { /* ignorato */ }
+        });
+      })();
+    </script>
+  </body>
+</html>

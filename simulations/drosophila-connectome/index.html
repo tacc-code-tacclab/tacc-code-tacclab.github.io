@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Drosophila Connectome Laboratory — Cristian Taccioli</title>
+    <meta
+      name="description"
+      content="Interactive scientific model: a named wind-to-steering subcircuit of the MaleCNS Drosophila connectome, running in your browser. Remove neurons and compare matched intact and lesioned runs."
+    />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Drosophila Connectome Laboratory" />
+    <meta
+      property="og:description"
+      content="A named wind-to-steering subcircuit of the MaleCNS connectome, computed in the browser. Lesion neurons and compare matched runs."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/simulations/drosophila-connectome/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/simulations/drosophila-connectome/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../site-v2.css" />
+    <link rel="stylesheet" href="app.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Drosophila Connectome Laboratory",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any modern browser",
+        "url": "https://tacc-code-tacclab.github.io/simulations/drosophila-connectome/",
+        "author": { "@type": "Person", "name": "Cristian Taccioli" },
+        "isAccessibleForFree": true,
+        "description": "Interactive scientific model of a named wind-to-steering subcircuit of the MaleCNS Drosophila connectome."
+      }
+    </script>
+  </head>
+  <body class="sim-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="sim-header">
+      <a class="sim-back" href="../">← Simulations</a>
+      <span class="sim-title-small">Drosophila Connectome Laboratory</span>
+      <button class="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">◐</button>
+    </header>
+
+    <main id="main" class="sim-main">
+      <!-- stato di caricamento: visibile finché il worker non ha validato il modello -->
+      <section id="caricamento" class="sim-card sim-loading" aria-live="polite">
+        <h1 class="sim-h1">Drosophila Connectome Laboratory</h1>
+        <p class="sim-lede">
+          A named subcircuit of the <strong>MaleCNS v1.0</strong> connectome, computed in your
+          browser. Loading and self-testing the model against its Python reference…
+        </p>
+        <div class="sim-progress"><div id="barra" class="sim-progress-bar" style="width:0%"></div></div>
+        <p id="fase" class="sim-mono">starting…</p>
+      </section>
+
+      <!-- errore: nessun ripiego silenzioso -->
+      <section id="errore" class="sim-card sim-error" hidden aria-live="assertive">
+        <h2 class="sim-h2">The model did not load</h2>
+        <p id="errore-testo" class="sim-mono"></p>
+        <p>
+          Nothing is shown in place of the computation: a fallback animation would look like a
+          result. Reload to retry; if it persists the diagnostic above is what to report.
+        </p>
+        <button id="riprova" class="button primary" type="button">Retry</button>
+      </section>
+
+      <div id="app" class="sim-grid" hidden>
+        <!-- colonna sinistra: il circuito -->
+        <section class="sim-card sim-canvas-card" aria-labelledby="h-circuito">
+          <div class="sim-card-head">
+            <h2 id="h-circuito" class="sim-h2">The subcircuit</h2>
+            <p class="sim-sub" id="sub-circuito"></p>
+          </div>
+          <canvas id="tela" class="sim-canvas" width="900" height="560"
+                  aria-label="Connectome subcircuit: Johnston's organ sources on the left, interneurons in the middle, descending neurons on the right. Node brightness shows firing rate."></canvas>
+          <p class="sim-legend">
+            <span class="sim-key sim-key-src"></span> Johnston's organ (wind input)
+            <span class="sim-key sim-key-mid"></span> interneurons
+            <span class="sim-key sim-key-dn"></span> descending neurons
+            <span class="sim-key sim-key-les"></span> lesioned
+            <span class="sim-legend-note">Brightness = firing rate. Layers are hop distance from the wind input.</span>
+          </p>
+          <p id="stato-tela" class="sim-mono sim-status" role="status"></p>
+        </section>
+
+        <!-- colonna destra: comandi e lettura -->
+        <div class="sim-side">
+          <section class="sim-card" aria-labelledby="h-stimolo">
+            <h2 id="h-stimolo" class="sim-h2">Stimulus</h2>
+            <label class="sim-field" for="vento">
+              <span>Wind direction <span class="sim-mono" id="vento-val">−90°</span></span>
+              <input id="vento" type="range" min="-180" max="180" step="15" value="-90" />
+            </label>
+            <p class="sim-note">
+              The angle the wind blows <em>towards</em>, in the fly's frame — the same convention as
+              <span class="sim-mono">WindParams.direction_deg</span>. Antennal deflection and
+              Johnston's-organ rates use the project's own formulas, not new ones.
+            </p>
+            <div class="sim-row">
+              <button id="avvia" class="button primary" type="button">Run</button>
+              <button id="passo" class="button" type="button">Step</button>
+              <button id="riavvia" class="button" type="button">Reset state</button>
+            </div>
+          </section>
+
+          <section class="sim-card" aria-labelledby="h-lesione">
+            <h2 id="h-lesione" class="sim-h2">Lesion</h2>
+            <p class="sim-note">
+              Removing a neuron sets its rate to zero <strong>and</strong> drops its outgoing edges:
+              the deployed computation changes, not only the drawing.
+            </p>
+            <label class="sim-field" for="gruppo">
+              <span>Remove by group</span>
+              <select id="gruppo"></select>
+            </label>
+            <div class="sim-row">
+              <button id="lesiona" class="button" type="button">Remove group</button>
+              <button id="ripristina" class="button" type="button">Restore all</button>
+            </div>
+            <p id="stato-lesione" class="sim-mono sim-status" role="status">no lesion</p>
+            <p class="sim-note">
+              You can also click a node in the circuit to toggle it.
+            </p>
+          </section>
+
+          <section class="sim-card" aria-labelledby="h-confronto">
+            <h2 id="h-confronto" class="sim-h2">Intact vs lesioned</h2>
+            <p class="sim-note">
+              Both arms use the same wind direction, the same initial state, the same step count and
+              the same numerics. Only the lesion differs.
+            </p>
+            <button id="confronta" class="button primary" type="button">Run matched pair</button>
+            <div id="tabella-confronto" class="sim-compare" hidden></div>
+          </section>
+
+          <section class="sim-card" aria-labelledby="h-lettura">
+            <h2 id="h-lettura" class="sim-h2">Descending neurons</h2>
+            <div id="lettura" class="sim-readout"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- provenienza e limiti: sempre presenti, non nascosti dietro un accordion -->
+      <section id="provenienza" class="sim-card sim-wide" hidden aria-labelledby="h-prov">
+        <h2 id="h-prov" class="sim-h2">Provenance</h2>
+        <div id="prov-tabella" class="sim-prov"></div>
+      </section>
+
+      <section class="sim-card sim-wide sim-limits" aria-labelledby="h-limiti">
+        <h2 id="h-limiti" class="sim-h2">What this is, and what it is not</h2>
+        <ul>
+          <li>
+            <strong>It is a named subcircuit, not the fly brain.</strong> The MaleCNS v1.0 connectome
+            has 167,106 neurons and 25.6 million connections. This page holds the neurons that lie on
+            direct paths from the Johnston's-organ wind receptors to the descending neurons for
+            steering and locomotion — about a thousand of them. The reduction rule is stated in the
+            provenance and is reproducible from the export script.
+          </li>
+          <li>
+            <strong>The wiring is measured; the dynamics are a declared reduction.</strong> The
+            weights are the ones the reference implementation ships, with its receptor model applied
+            (md5 in the provenance). The dynamics here are a first-order rate model, not the
+            spiking LIF of the reference implementation. Same graph, different and simpler dynamics.
+          </li>
+          <li>
+            <strong>It does not predict what a fly would do.</strong> No behaviour is simulated: there
+            is no body, no room and no locomotion on this page. What you change is the firing of a
+            circuit, and what you read is the firing of its output neurons.
+          </li>
+          <li>
+            <strong>The recurrent gain is a chosen parameter.</strong> Row-normalised recurrence with
+            gain 0.8, picked by a declared sweep (no saturation, under half the cells silent, peak
+            rate in a biological range). The sign of the descending asymmetry holds across the whole
+            admissible range, so it is not an artefact of that choice.
+          </li>
+          <li>
+            <strong>Nothing is hidden when it fails.</strong> If the numerics diverge the page stops
+            and says so. There is no fallback animation.
+          </li>
+        </ul>
+        <p class="sim-note">
+          Full detail: <a href="MODEL_CARD.md">model card</a> ·
+          <a href="README.md">README</a> ·
+          <a href="provenance.json">provenance.json</a> ·
+          <a href="FEATURE_PARITY_CHECKLIST.md">feature checklist</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="sim-footer">
+      <p>
+        Connectome: MaleCNS v1.0, CC BY 4.0. Reference implementation: flyverse-core, MIT.
+        Built from a documented export; see <a href="THIRD_PARTY_NOTICES.md">third-party notices</a>.
+      </p>
+      <p><a href="../">← All simulations</a> · <a href="../../">Home</a></p>
+    </footer>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
