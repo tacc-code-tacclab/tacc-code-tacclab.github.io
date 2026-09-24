@@ -169,6 +169,7 @@
 .sim-compare table { border-collapse: collapse; width: 100%; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 .sim-compare th, .sim-compare td { padding: 0.35rem 0.5rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .sim-compare th:first-child, .sim-compare td:first-child { text-align: left; }
+.sim-compare caption.sim-caption { white-space: normal; text-align: left; padding: 0 0 .5rem; }
 .sim-compare thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .sim-compare td.diff-si { color: var(--accent); font-weight: 700; }
 

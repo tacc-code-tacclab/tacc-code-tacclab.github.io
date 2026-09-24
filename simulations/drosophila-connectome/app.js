@@ -247,7 +247,7 @@ function aggiornaLettura(lettura) {
   cont.innerHTML = "";
   const chiavi = Object.keys(lettura).filter((k) => k !== "DNa02_asimmetria").sort();
   for (const k of chiavi) {
-    const a = document.createElement("div"); a.className = "r-nome"; a.textContent = k;
+    const a = document.createElement("div"); a.className = "r-nome"; a.textContent = etichetta(k);
     const b = document.createElement("div"); b.className = "r-val"; b.textContent = lettura[k].toFixed(3) + " Hz";
     cont.append(a, b);
   }
@@ -385,25 +385,33 @@ function indiciDelGruppo(tipo) {
 }
 
 /* ---- confronto appaiato -------------------------------------------------- */
+/** La chiave interna resta quella del riferimento Python, cosi' i due restano
+ *  confrontabili; qui si traduce solo per la lettura. */
+function etichetta(chiave) {
+  return chiave === "DNa02_asimmetria" ? "DNa02 asymmetry (L − R)" : chiave;
+}
+
 function mostraConfronto(m) {
   const box = $("tabella-confronto");
   const a = m.risultati.intatto, b = m.risultati.lesionato;
   const chiavi = [...new Set([...Object.keys(a.lettura), ...Object.keys(b.lettura)])].sort();
   const righe = [
-    ["cells above 0.5 Hz", a.attivi, b.attivi],
+    ["cells above 0.5 Hz", a.attivi, b.attivi],   // interi: il formattatore li tiene tali
     ["summed rate (Hz)", a.somma, b.somma],
     ["peak rate (Hz)", a.max, b.max],
     ...chiavi.map((k) => [k, a.lettura[k] ?? 0, b.lettura[k] ?? 0]),
   ];
-  const fmt = (v) => (Number.isInteger(v) ? v : v.toFixed(4));
+  const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(4));
+  const fmtD = (v) => (Number.isInteger(v) ? (v >= 0 ? "+" : "") + v : (v >= 0 ? "+" : "") + v.toFixed(4));
   box.innerHTML =
-    `<table><caption class="sim-mono">wind ${m.azimut}° · ${m.passi} steps · identical initial state, input and numerics in both arms</caption>` +
+    `<table><caption class="sim-mono sim-caption">wind ${m.azimut}° · ${m.passi} steps · ` +
+    `identical initial state, input and numerics in both arms</caption>` +
     `<thead><tr><th>measure</th><th>intact</th><th>lesioned</th><th>Δ</th></tr></thead><tbody>` +
     righe.map(([k, x, y]) => {
       const d = y - x;
       const diverso = Math.abs(d) > 1e-6;
-      return `<tr><td>${k}</td><td>${fmt(x)}</td><td>${fmt(y)}</td>` +
-             `<td class="${diverso ? "diff-si" : ""}">${diverso ? (d >= 0 ? "+" : "") + d.toFixed(4) : "—"}</td></tr>`;
+      return `<tr><td>${etichetta(k)}</td><td>${fmt(x)}</td><td>${fmt(y)}</td>` +
+             `<td class="${diverso ? "diff-si" : ""}">${diverso ? fmtD(d) : "—"}</td></tr>`;
     }).join("") +
     `</tbody></table>`;
   box.hidden = false;
