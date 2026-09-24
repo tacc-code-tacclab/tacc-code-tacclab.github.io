@@ -269,6 +269,11 @@ function archiPiuForti(quanti) {
 self.onmessage = async (ev) => {
   const m = ev.data || {};
   try {
+    if (m.tipo !== "carica" && G === null) {
+      // non dovrebbe succedere: l'interfaccia resta nascosta finche' il primo
+      // stato non arriva. Se succede si dice, invece di leggere da null.
+      throw new Error("il modello non e' ancora caricato");
+    }
     switch (m.tipo) {
       case "carica": {
         const info = await carica();

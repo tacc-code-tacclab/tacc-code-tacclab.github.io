@@ -1,6 +1,6 @@
 {
  "schema": "drosophila-connectome-release/1",
- "generato_utc": "2026-09-24T16:42:54Z",
+ "generato_utc": "2026-09-24T16:57:10Z",
  "url_pubblico": "https://tacc-code-tacclab.github.io/simulations/drosophila-connectome/",
  "cosa_e": "Sottocircuito nominato del connettoma MaleCNS v1.0 calcolato nel browser. Non e' il cervello della mosca e non simula comportamento: non c'e' corpo, stanza ne' locomozione.",
  "connettoma": {
@@ -84,16 +84,16 @@
    "md5": "b67526d9d97bb6c42e424a9fec7ddd15"
   },
   "app.css": {
-   "byte": 6512,
-   "md5": "bb634cbc8d60bc776a4bb1c5a63f21e8"
+   "byte": 6943,
+   "md5": "45a1e0d3c7fd56e7748cea64b5d82c1e"
   },
   "app.js": {
    "byte": 19047,
    "md5": "96edb1d3382136527e7640023f0f2ef4"
   },
   "worker.js": {
-   "byte": 12328,
-   "md5": "154d040776096e4b1fa2a9a3dde5408b"
+   "byte": 12592,
+   "md5": "f3a5182ba1eee54c202d620ff81c2586"
   },
   "model/nodes.json": {
    "byte": 59160,

@@ -2,6 +2,13 @@
  * --line, --surface, --muted, --warm, --radius, --shell) cosi' i due temi del
  * sito funzionano senza definire una seconda palette. */
 
+/* [hidden] deve battere QUALUNQUE display impostato da una classe. Senza questa
+ * riga `.sim-grid { display: grid }` vince sulla regola del browser per
+ * specificita', e #app resta visibile e interattivo mentre il worker sta ancora
+ * caricando: cliccando "Run matched pair" si arrivava a G nullo. Trovato solo
+ * sul sito pubblico, dove la latenza rende la finestra abbastanza larga. */
+[hidden] { display: none !important; }
+
 .sim-body {
   background: var(--bg);
   color: var(--ink);
