@@ -322,7 +322,7 @@
           <article class="service-showcase">
             <div class="service-copy">
               <p class="service-status"><span></span> Interactive scientific model</p>
-              <h3>DROSOPHILA<br><em>CONNECTOME LABORATORY</em></h3>
+              <h3 class="sim-showcase-title">DROSOPHILA<br><em>CONNECTOME LABORATORY</em></h3>
               <p>
                 A named subcircuit of the MaleCNS <em>Drosophila</em> connectome runs in your
                 browser: the neurons on direct paths from the wind receptors of Johnston&rsquo;s organ
@@ -341,10 +341,19 @@
                 <li>Deterministic runs, self-tested against a Python reference</li>
               </ul>
               <div class="game-actions">
-                <a class="button primary" href="simulations/drosophila-connectome/">Open the laboratory &rarr;</a>
+                <a class="button service-button" href="simulations/drosophila-connectome/">Open the laboratory &rarr;</a>
                 <a class="button secondary" href="simulations/">All simulations</a>
               </div>
             </div>
+            <a class="service-visual sim-visual" href="simulations/drosophila-connectome/"
+               aria-label="Open the Drosophila Connectome Laboratory">
+              <img src="simulations/drosophila-connectome/preview.webp" width="1200" height="747"
+                   loading="lazy" decoding="async"
+                   alt="The deployed subcircuit: Johnston&rsquo;s organ sources on the left, split by side,
+                        an interneuron field crossed by excitatory and inhibitory connections, and six
+                        labelled groups of descending neurons on the right, lit by their firing rate." />
+              <span class="sim-visual-note">Generated from the live application &middot; wind at &minus;90&deg;</span>
+            </a>
           </article>
         </div>
       </section>
