@@ -54,11 +54,11 @@
           The whole released male-CNS connectome drives a biomechanical <em>Drosophila</em> body in
           MuJoCo. It sees through <strong>1,466 retinal columns</strong> by casting rays into the
           scene — real optics, not coordinates handed to an encoder. A black ball approaches at
-          1 m/s and the <strong>giant fibre</strong> fires, the way it does in a real fly.
+          1 m/s, the <strong>giant fibre</strong> fires, and the fly leaps — about 9 mm straight up.
         </p>
         <p class="e3-lede">
-          Then you remove neurons. Take out the <strong>185 LPLC2 cells</strong> and the response
-          collapses. Take out <strong>311 neurons at random</strong> — more cells, chosen blindly —
+          Then you remove neurons. Take out the <strong>185 LPLC2 cells</strong> and the fly does
+          not move. Take out <strong>311 neurons at random</strong> — more cells, chosen blindly —
           and it survives untouched. That contrast is the whole experiment: without it, "break the
           brain and the fly breaks" is true by construction and means nothing.
         </p>
@@ -130,7 +130,8 @@
           <h2>What is not</h2>
           <ul>
             <li><strong>It does not fly.</strong> The connectome has no route from the octopaminergic drive to the wing motor neurons, so there is no flight state to enter. The wings are geometry.</li>
-            <li><strong>It does not jump.</strong> What you see measured is the giant fibre's firing rate, which is the connectome's prediction. Turning that into a leap is a motor act written by hand, and it is not here.</li>
+            <li><strong>The decision to jump is the connectome's; the jump itself is not.</strong> The giant fibre crossing 33 Hz is measured. What that becomes — 0.6 m/s at 45°, the reference implementation's own numbers — is a motor readout. In a real fly the giant fibre drives the tergotrochanteral motor neuron and the middle legs extend; that circuit is known but is not in the graph being integrated here.</li>
+            <li><strong>Nothing catches the fly.</strong> There is no landing controller and no flight, so the leap is ballistic and the fly tumbles. That is what the physics does when a body is thrown and nothing flies it.</li>
             <li><strong>It does not forage, and it does not steer.</strong> DNa02, the steering neuron, sits under tonic inhibition in this model; the fly walks straight. That is a measured property, not an omission.</li>
             <li><strong>These are recorded runs.</strong> The simulation is 22× slower than real time on an H200 and cannot run in a browser. Every frame and every number was produced by the pipeline below and is replayed here unchanged.</li>
             <li><strong>One run per condition.</strong> The model is deterministic (synaptic depression off), so repeats of the same condition are identical. What varies across the random arm is which neurons it removes.</li>

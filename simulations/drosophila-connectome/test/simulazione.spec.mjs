@@ -227,33 +227,31 @@ test("3D: il video e' scorribile (serve Range dal server)", async ({ page }) => 
   expect(s.durata).toBeGreaterThan(1);
 });
 
-test("3D: al picco la fibra gigante e' sopra soglia, e la lesione la spegne", async ({ page }) => {
+test("3D: la lesione giusta spegne la risposta, 311 neuroni a caso no", async ({ page }) => {
   await apri3d(page);
-  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
-  const alPicco = async () => {
-    await page.locator("#video").evaluate((v) => { v.currentTime = 4.9; });
-    await page.waitForTimeout(900);
+  // si confrontano i PICCHI della corsa, non un istante fisso: il salto sposta
+  // i tempi e un istante cablato nel test diventa fragile
+  const picco = async (arm) => {
+    if (arm) {
+      await page.locator(`[data-arm="${arm}"]`).click();
+      await page.waitForFunction(() => document.getElementById("video").readyState >= 1, null, { timeout: 30000 });
+    }
+    await expect(page.locator("#lettura")).toContainText("peak this run");
     const t = await page.locator("#lettura").textContent();
-    return Number(t.match(/giant fibre now([\d.]+) Hz/)?.[1] ?? -1);
+    return Number(t.match(/peak this run([\d.]+) Hz/)?.[1] ?? -1);
   };
-  const intatto = await alPicco();
-  expect(intatto, "intatto deve superare i 33 Hz").toBeGreaterThan(33);
-
-  await page.locator('[data-arm="LPLC2"]').click();
-  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
-  const leso = await alPicco();
-  expect(leso, "senza LPLC2 deve stare sotto soglia").toBeLessThan(33);
-
-  await page.locator('[data-arm="casuale appaiato"]').click();
-  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
-  const casuale = await alPicco();
-  expect(casuale, "311 neuroni a caso non devono abolire la risposta").toBeGreaterThan(33);
+  expect(await picco(null), "intatto deve superare i 33 Hz").toBeGreaterThan(33);
+  expect(await picco("LC4"), "senza LC4 la risposta sopravvive").toBeGreaterThan(33);
+  expect(await picco("LPLC2"), "senza LPLC2 deve stare sotto soglia").toBeLessThan(33);
+  expect(await picco("casuale appaiato"),
+    "311 neuroni a caso non devono abolire la risposta").toBeGreaterThan(33);
 });
 
 test("3D: la pagina dichiara cosa il modello non fa", async ({ page }) => {
   await apri3d(page);
   const testo = await page.locator("main").textContent();
-  for (const frase of ["does not fly", "does not jump", "does not forage", "recorded runs"]) {
+  for (const frase of ["does not fly", "does not forage", "recorded runs",
+                       "nothing catches the fly", "the jump itself is not"]) {
     expect(testo.toLowerCase()).toContain(frase);
   }
 });
