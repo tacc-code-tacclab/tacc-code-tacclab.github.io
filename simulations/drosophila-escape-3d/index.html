@@ -53,8 +53,9 @@
         <p class="e3-lede">
           The whole released male-CNS connectome drives a biomechanical <em>Drosophila</em> body in
           MuJoCo. It sees through <strong>1,466 retinal columns</strong> by casting rays into the
-          scene — real optics, not coordinates handed to an encoder. A black ball approaches at
-          1 m/s, the <strong>giant fibre</strong> fires, and the fly leaps — about 9 mm straight up.
+          scene — real optics, not coordinates handed to an encoder. A black ball closes in at
+          1 m/s from behind, the <strong>giant fibre</strong> fires, and the fly leaps clear —
+          about 4 mm up — lands on its feet and walks off.
         </p>
         <p class="e3-lede">
           Then you remove neurons. Take out the <strong>185 LPLC2 cells</strong> and the fly does
@@ -107,7 +108,7 @@
           <figcaption id="didascalia" class="e3-caption">
             Giant-fibre (DNp01) firing rate through the run. The dashed line is the
             <strong>33 Hz</strong> criterion that the reference implementation's own escape gate
-            uses. The ball starts approaching at 0.4 s and stops 35 mm away — where it is held,
+            uses. The ball starts approaching at 0.4 s and stops 33 mm away — where it is held,
             because the giant fibre integrates and a ball that sweeps past never builds a response.
           </figcaption>
         </figure>
@@ -130,8 +131,8 @@
           <h2>What is not</h2>
           <ul>
             <li><strong>It does not fly.</strong> The connectome has no route from the octopaminergic drive to the wing motor neurons, so there is no flight state to enter. The wings are geometry.</li>
-            <li><strong>The decision to jump is the connectome's; the jump itself is not.</strong> The giant fibre crossing 33 Hz is measured. What that becomes — 0.6 m/s at 45°, the reference implementation's own numbers — is a motor readout. In a real fly the giant fibre drives the tergotrochanteral motor neuron and the middle legs extend; that circuit is known but is not in the graph being integrated here.</li>
-            <li><strong>Nothing catches the fly.</strong> There is no landing controller and no flight, so the leap is ballistic and the fly tumbles. That is what the physics does when a body is thrown and nothing flies it.</li>
+            <li><strong>The decision to jump is the connectome's; the jump itself is not.</strong> The giant fibre crossing 33 Hz is measured. What that becomes — 0.4 m/s at 45° above the horizon — is a motor readout. The reference implementation declares 0.6 m/s, but that figure is written for its own 2D point-mass fly, which has no body to land; applied to the biomechanical body it throws the fly 10 mm up and it lands on its back every time. We measured the landing across eight speed and angle combinations: 0.4 m/s at 45° is the fastest that leaves the fly on its feet, and it sits inside the range reported for <em>Drosophila</em> escape take-off. In a real fly the giant fibre drives the tergotrochanteral motor neuron and the middle legs extend; that circuit is known but is not in the graph being integrated here.</li>
+            <li><strong>Nothing catches the fly, and nothing rights it.</strong> There is no flight and no landing controller: the leap is ballistic, and if it comes down badly there is no righting reflex anywhere in the graph to turn it back over — it stays on its back indefinitely. At 0.4 m/s it usually lands on its feet, which is a property of the launch we measured, not a skill the connectome has.</li>
             <li><strong>It does not forage, and it does not steer.</strong> DNa02, the steering neuron, sits under tonic inhibition in this model; the fly walks straight. That is a measured property, not an omission.</li>
             <li><strong>These are recorded runs.</strong> The simulation is 22× slower than real time on an H200 and cannot run in a browser. Every frame and every number was produced by the pipeline below and is replayed here unchanged.</li>
             <li><strong>One run per condition.</strong> The model is deterministic (synaptic depression off), so repeats of the same condition are identical. What varies across the random arm is which neurons it removes.</li>
@@ -142,9 +143,18 @@
       <section class="e3-card e3-wide">
         <h2>The protocol, and four wrong guesses</h2>
         <p>
-          A 30 mm black sphere approaches at 1 m/s from 45° and <strong>stops 35 mm away</strong> —
-          the reference implementation's own loom, transcribed. That stop matters, and finding out
-          why cost four measured dead ends: the brain's timestep (10 / 2 / 1 ms gave the same
+          A 30 mm black sphere approaches at 1 m/s <strong>from behind</strong> and stops 33 mm
+          away. Two things here were corrected after the first release, both measured. The ball
+          used to be re-placed every frame at a fixed distance <em>from the fly</em>, which glued
+          it to the fly's own frame, so it drifted along as the fly walked and looked like a chase;
+          its path is now fixed in the world at launch. And it used to come in at 45°, where a
+          world-fixed ball takes the giant fibre only to 19–26 Hz and the threshold is never
+          crossed — while head-on the fly would jump straight <em>into</em> the threat, because the
+          jump always goes forwards along the body axis. From behind it reaches 46–56 Hz, the fly
+          goes, and the leap carries it away: the only geometry in which the escape is an escape.
+        </p>
+        <p>
+          The stop still matters, and finding out why cost four measured dead ends: the brain's timestep (10 / 2 / 1 ms gave the same
           answer), the radiance scale (32 → 35 Hz across a twentyfold range), spatial structure in
           the scene (a room built from 870 tiles made it <em>worse</em>), and the approach angle
           (23–46 Hz, with the peak always at the same distance). A ball that sweeps past the
@@ -153,9 +163,12 @@
           should do.
         </p>
         <p class="e3-note">
-          One measured aside, visible in the retina itself: 356 columns look out between 75° and
-          105°, against 150 within ±15° of straight ahead. A head-on loom lands in the sparsest part
-          of the visual field.
+          Two measured asides. The retina is uneven — 356 columns look out between 75° and 105°,
+          against 150 within ±15° of straight ahead — yet a head-on loom still gives the
+          <strong>strongest</strong> response (90 Hz, against 20 Hz at 45° and 13 Hz from the
+          side), so column density does not predict it. And the object's physical size does not
+          matter at all: at matched angular size, radii of 8, 15 and 30 mm give 70.8, 58.1 and
+          66.3 Hz, within 11% of one another. A retina measures angles, not millimetres.
         </p>
       </section>
 

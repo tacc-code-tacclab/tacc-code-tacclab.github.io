@@ -195,6 +195,13 @@ video.addEventListener("ended", () => { $("play").textContent = "Play"; });
 window.addEventListener("resize", disegna);
 
 /* ---- provenienza ---------------------------------------------------------- */
+function direzione(gradi) {
+  const a = ((gradi % 360) + 360) % 360;
+  if (a < 20 || a > 340) return "head-on";
+  if (a > 160 && a < 200) return "from behind";
+  return `from ${gradi}°`;
+}
+
 function provenienza() {
   const p = M.protocollo;
   const voci = [
@@ -202,7 +209,8 @@ function provenienza() {
     ["neural model", "flyverse-core, spiking LIF with its receptor model — no training, no fitting"],
     ["vision", "1,466 retinal columns · 7 rays each over a 4.5° acceptance angle · cast into the MuJoCo scene"],
     ["body", "NeuroMechFly in MuJoCo · six legs, adhesion, solver-resolved contacts"],
-    ["stimulus", `${p.raggio_palla_mm} mm sphere · ${p.velocita_mm_s / 1000} m/s · from ${p.azimut_deg}° · stops at ${p.arresto_mm} mm`],
+    ["stimulus", `${p.raggio_palla_mm} mm sphere · ${p.velocita_mm_s / 1000} m/s · ${direzione(p.azimut_deg)} · stops at ${p.arresto_mm} mm · path fixed in the world`],
+    ["jump", `${(p.salto_mm_s ?? 600) / 1000} m/s at 45° above the horizon — a motor readout, measured to land the fly on its feet`],
     ["timing", `${p.dt_ms} ms control step · ${p.cammino_passi} steps walking first · ${p.tenuta_passi} steps held`],
     ["conditions", "identical starting state; only the lesion differs"],
     ["determinism", "synaptic depression off, so a repeat of a condition is identical"],
