@@ -127,3 +127,8 @@
 .e3-footer a { color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* rimando alla versione 2 */
+.e3-v2 { border: 1px solid var(--border, #ddd); border-left: 3px solid currentColor;
+  border-radius: 0.4rem; padding: 0.7rem 0.9rem; margin: 0 0 1.4rem;
+  font-size: 0.9rem; line-height: 1.6; }

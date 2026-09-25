@@ -52,6 +52,34 @@
         <article class="hub-card">
           <div class="hub-card-body">
             <p class="hub-status"><span class="hub-dot"></span> Live &middot; updated 25 September 2026</p>
+            <h2>Eaten or Not</h2>
+            <p>
+              The same machinery, scored on the outcome that matters: survival. A spider closes in
+              from behind, aimed at the spot the fly is standing on, and does not correct its aim.
+              Remove the <strong>185 LPLC2 cells</strong> and the fly is caught. Remove
+              <strong>311 at random</strong> &mdash; more cells, blindly chosen, three independent
+              draws &mdash; and it escapes every time.
+            </p>
+            <dl class="hub-facts">
+              <div><dt>Dataset</dt><dd>MaleCNS v1.0, whole graph</dd></div>
+              <div><dt>Outcome</dt><dd>Caught or escaped, by a declared rule</dd></div>
+              <div><dt>Controls</dt><dd>Three independent random draws</dd></div>
+              <div><dt>Runs</dt><dd>Six, recorded, identical starting state</dd></div>
+            </dl>
+            <p class="hub-caveat">
+              Predation is not simulated: the spider has no collisions and does not strike. Capture
+              is scored from the real positions by a criterion fixed in writing before any run, and
+              reported at five values of the one free parameter.
+            </p>
+            <div class="hub-actions">
+              <a class="button primary" href="drosophila-predation/">See the outcomes &rarr;</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="hub-card">
+          <div class="hub-card-body">
+            <p class="hub-status"><span class="hub-dot"></span> Live &middot; updated 25 September 2026</p>
             <h2>Escape Reflex in 3D</h2>
             <p>
               The whole 167,106-neuron MaleCNS connectome drives a biomechanical
@@ -66,8 +94,10 @@
               <div><dt>Runs</dt><dd>Recorded, 22&times; slower than real time</dd></div>
             </dl>
             <p class="hub-caveat">
-              It does not fly, forage or steer, and the jump itself is not implemented &mdash; what
-              is measured is the giant fibre&rsquo;s firing rate. The page says so on the page.
+              It does not fly, forage or steer. The connectome decides <em>whether</em> to jump; how
+              fast and at what angle is a motor readout, labelled as such. The page says so on the
+              page. For the same runs scored as survival, see <a href="drosophila-predation/">Eaten
+              or Not</a>.
             </p>
             <div class="hub-actions">
               <a class="button primary" href="drosophila-escape-3d/">Watch the run &rarr;</a>

@@ -1,0 +1,86 @@
+/* Pagina della predazione. Si appoggia a site-v2.css per i token del tema e
+   aggiunge solo quello che serve qui: la tabella degli esiti, che e' il
+   contenuto scientifico, e il grafico della distanza, che e' la figura. */
+
+.pr-body { margin: 0; }
+
+.pr-header {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  padding: 0.7rem clamp(1rem, 4vw, 2rem);
+  border-bottom: 1px solid var(--border, #ddd);
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg, #fff);
+}
+.pr-back { text-decoration: none; font-size: 0.85rem; }
+.pr-title-small { flex: 1 1 auto; font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+
+.pr-main { max-width: 68rem; margin-inline: auto; padding: clamp(1rem, 4vw, 2rem); padding-block: 2rem; }
+.pr-intro { max-width: 46rem; }
+.pr-intro h1 { text-wrap: balance; margin: 0.3rem 0 0.8rem; }
+.pr-lede { font-size: 1.02rem; line-height: 1.7; max-width: 42rem; }
+
+/* --- tabella degli esiti: il cuore della pagina -------------------------- */
+.pr-verdicts { margin-top: 2.2rem; }
+.pr-verdicts h2 { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin-bottom: 0.6rem; }
+.pr-tablewrap { overflow-x: auto; }
+.pr-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+.pr-table caption { caption-side: bottom; text-align: left; font-size: 0.8rem; opacity: 0.7; padding-top: 0.6rem; line-height: 1.5; }
+.pr-table th, .pr-table td { padding: 0.5rem 0.7rem; text-align: right; border-bottom: 1px solid var(--border, #e3e3e3); white-space: nowrap; }
+.pr-table th:first-child, .pr-table td:first-child { text-align: left; }
+.pr-table thead th { font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; font-weight: 600; }
+.pr-table tbody tr.scelto { background: color-mix(in srgb, currentColor 6%, transparent); }
+.pr-table tbody tr { cursor: pointer; }
+.pr-esito { font-weight: 700; letter-spacing: 0.04em; }
+.pr-esito.presa { color: #b3391a; }
+.pr-esito.salva { color: #1d7a45; }
+:root[data-theme="dark"] .pr-esito.presa, :root:not([data-theme="light"]) .pr-esito.presa { color: #ff9a76; }
+:root[data-theme="dark"] .pr-esito.salva, :root:not([data-theme="light"]) .pr-esito.salva { color: #6fd694; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .pr-esito.presa { color: #b3391a; } :root:not([data-theme="dark"]) .pr-esito.salva { color: #1d7a45; } }
+
+/* --- scena ---------------------------------------------------------------- */
+.pr-stage { margin-top: 2.4rem; }
+.pr-arms { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.9rem; }
+.pr-arm { font: inherit; font-size: 0.82rem; padding: 0.4rem 0.7rem; border-radius: 0.4rem; cursor: pointer;
+  border: 1px solid var(--border, #ccc); background: transparent; color: inherit; }
+.pr-arm[aria-checked="true"] { border-color: currentColor; font-weight: 700; background: color-mix(in srgb, currentColor 8%, transparent); }
+.pr-arm:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.pr-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 860px) { .pr-grid { grid-template-columns: 1fr; } }
+
+.pr-videowrap { position: relative; background: #000; border-radius: 0.5rem; overflow: hidden; }
+.pr-video { display: block; width: 100%; height: auto; aspect-ratio: 880 / 560; background: #000; }
+.pr-badge { position: absolute; left: 0.7rem; bottom: 0.7rem; padding: 0.35rem 0.6rem; border-radius: 0.35rem;
+  font: 700 0.82rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.72); color: #f2f2f2; border: 1px solid rgba(255, 255, 255, 0.25); }
+.pr-badge.presa { border-color: #ff9a76; color: #ff9a76; }
+.pr-badge.salva { border-color: #6fd694; color: #6fd694; }
+
+.pr-chartwrap { margin: 0; }
+.pr-chart { display: block; width: 100%; height: auto; }
+.pr-caption { font-size: 0.8rem; opacity: 0.75; line-height: 1.55; margin-top: 0.5rem; }
+
+.pr-transport { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.9rem; }
+.pr-now { font: 0.8rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: 0.75; }
+
+/* --- schede --------------------------------------------------------------- */
+.pr-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 1rem; margin-top: 2.4rem; }
+.pr-card { border: 1px solid var(--border, #e0e0e0); border-radius: 0.6rem; padding: 1.1rem 1.2rem; }
+.pr-card h2 { font-size: 1rem; margin: 0 0 0.6rem; }
+.pr-card ul { padding-left: 1.1rem; margin: 0; }
+.pr-card li { margin-bottom: 0.5rem; line-height: 1.6; font-size: 0.92rem; }
+.pr-card-warn { border-left: 3px solid #d07a4f; }
+.pr-wide { margin-top: 2.4rem; }
+.pr-note { font-size: 0.85rem; opacity: 0.78; line-height: 1.6; }
+.pr-criterion { margin: 0.8rem 0; padding: 0.8rem 1rem; border-left: 3px solid currentColor;
+  font-size: 0.93rem; line-height: 1.65; opacity: 0.92; }
+.pr-sens td, .pr-sens th { text-align: center; }
+.pr-sens td:first-child, .pr-sens th:first-child { text-align: left; }
+.pr-prov { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; font-size: 0.88rem; margin: 0; }
+.pr-prov dt { font-weight: 600; opacity: 0.65; }
+.pr-prov dd { margin: 0; }
+@media (max-width: 620px) { .pr-prov { grid-template-columns: 1fr; } .pr-prov dd { margin-bottom: 0.4rem; } }
+
+.pr-footer { max-width: 68rem; margin-inline: auto; padding: 2rem clamp(1rem, 4vw, 2rem) 3rem;
+  font-size: 0.85rem; opacity: 0.75; line-height: 1.6; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Eaten or Not — Cristian Taccioli</title>
+    <meta
+      name="description"
+      content="A predation assay run on the whole 167,106-neuron MaleCNS connectome. Remove 185 LPLC2 cells and the fly is caught; remove 311 neurons at random, three independent draws, and it escapes every time."
+    />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Eaten or Not" />
+    <meta
+      property="og:description"
+      content="The outcome variable is survival. 185 targeted neurons decide it; 311 random ones do not."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/simulations/drosophila-predation/" />
+    <meta property="og:image" content="https://tacc-code-tacclab.github.io/simulations/drosophila-predation/media/poster.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/simulations/drosophila-predation/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../site-v2.css" />
+    <link rel="stylesheet" href="app.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Eaten or Not",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any modern browser",
+        "url": "https://tacc-code-tacclab.github.io/simulations/drosophila-predation/",
+        "author": { "@type": "Person", "name": "Cristian Taccioli" },
+        "isAccessibleForFree": true,
+        "description": "A predation assay on a connectome-driven Drosophila, scored by a declared geometric capture criterion."
+      }
+    </script>
+  </head>
+  <body class="pr-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="pr-header">
+      <a class="pr-back" href="../">← Simulations</a>
+      <span class="pr-title-small">Eaten or Not</span>
+      <button class="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">◐</button>
+    </header>
+
+    <main id="main" class="pr-main">
+      <section class="pr-intro">
+        <p class="eyebrow">MaleCNS v1.0 · 167,106 neurons · outcome variable: survival</p>
+        <h1>Remove 185 neurons out of 167,106, and the fly gets eaten</h1>
+        <p class="pr-lede">
+          A looming assay is a predation assay. The first version of this page measured a firing
+          rate; this one measures the thing the firing rate is for — whether the fly is still
+          there when the predator arrives. A spider closes in from behind, aimed at the spot the
+          fly is standing on. It does not correct its aim. The fly's only defence is to not be
+          there.
+        </p>
+        <p class="pr-lede">
+          Six runs from the same starting state, differing only in which neurons are switched off.
+          <strong>Removing the 185 LPLC2 cells is fatal. Removing 311 neurons at random — more
+          cells, chosen blindly, three independent draws — is not.</strong>
+        </p>
+      </section>
+
+      <section class="pr-verdicts" aria-labelledby="h-tab">
+        <h2 id="h-tab">Outcomes</h2>
+        <div class="pr-tablewrap">
+          <table class="pr-table" id="tabella">
+            <caption>
+              Six runs, identical starting state. Distance is measured from the point the predator
+              struck, 200 ms after it arrived; the spider's legs reach 15 mm.
+            </caption>
+          </table>
+        </div>
+      </section>
+
+      <section class="pr-stage" aria-labelledby="h-run">
+        <h2 id="h-run" class="sr-only">The runs</h2>
+        <div class="pr-arms" id="bracci" role="radiogroup" aria-label="Condition"></div>
+
+        <div class="pr-grid">
+          <div class="pr-videowrap">
+            <video id="video" class="pr-video" poster="media/poster.webp" muted playsinline
+                   preload="metadata" aria-describedby="didascalia"></video>
+            <div class="pr-badge" id="verdetto" aria-live="polite"></div>
+          </div>
+
+          <figure class="pr-chartwrap">
+            <canvas id="grafico" class="pr-chart" width="640" height="340"
+                    aria-label="Distance of the fly from the strike point against time, with the 15 mm reach of the predator marked and the moment of the strike shown."></canvas>
+            <figcaption id="didascalia" class="pr-caption">
+              Distance from the strike point. The shaded band is <strong>within reach</strong>;
+              the dashed vertical line is the moment the predator arrives, and the solid one the
+              moment it closes its grip, 200 ms later. A run is scored by where the curve is at
+              that second line — nothing else.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="pr-transport">
+          <button id="play" class="button primary" type="button">Play</button>
+          <button id="restart" class="button" type="button">Restart</button>
+          <span class="pr-now" id="adesso"></span>
+        </div>
+      </section>
+
+      <section class="pr-card pr-wide">
+        <h2>How capture is decided</h2>
+        <p>
+          <strong>The simulation does not model predation.</strong> The spider has no collisions,
+          it does not strike and it does not eat. Animating a capture would mean drawing an event
+          the physics never computed — the one invented thing on a page where everything else is
+          measured. So capture is not animated. It is scored, by a criterion fixed in writing
+          before any run was executed:
+        </p>
+        <blockquote class="pr-criterion">
+          The predator commits to the point <em>S</em> where the fly is standing when it sets off,
+          and does not correct. <strong>Captured</strong> if, τ milliseconds after the predator
+          arrives, the centre of the fly's body is closer to <em>S</em> than the reach of the
+          predator's legs, and the fly is on the ground. <strong>Escaped</strong> otherwise.
+        </blockquote>
+        <p>
+          The reach is half the predator's leg span — a property of the object on stage, not a
+          number chosen to make the result come out. τ is the time the spider needs to close its
+          grip once it has arrived; the declared value is 200 ms. That choice must not be what
+          carries the conclusion, so here is the same question asked at five values of τ:
+        </p>
+        <div class="pr-tablewrap">
+          <table class="pr-table pr-sens" id="sensibilita"></table>
+        </div>
+        <p class="pr-note">
+          At 50 ms nothing has escaped yet — the giant fibre has only just fired and the legs have
+          not left the ground. From 100 ms onwards the answer is the same at every value: the fly
+          without LPLC2 is caught and every other fly is not. The conclusion does not rest on τ.
+        </p>
+      </section>
+
+      <section class="pr-panels">
+        <article class="pr-card">
+          <h2>What is real</h2>
+          <ul>
+            <li><strong>The wiring.</strong> All 167,106 neurons of MaleCNS v1.0 and their 25.6 million connections, with the reference implementation's receptor model. Nothing trained, nothing fitted.</li>
+            <li><strong>The optics.</strong> 1,466 retinal columns, seven rays each over the measured 4.5° acceptance angle, cast into the scene. The spider's silhouette — a compact body and eight thin legs — is what the connectome actually receives, holes included.</li>
+            <li><strong>The body.</strong> NeuroMechFly in MuJoCo: six legs, adhesion, every contact solved by the engine.</li>
+            <li><strong>The decision to escape.</strong> The giant fibre DNp01 crossing 33 Hz, measured from the simulation.</li>
+            <li><strong>The geometry that scores the run.</strong> Positions of the real bodies in the real scene.</li>
+          </ul>
+        </article>
+
+        <article class="pr-card pr-card-warn">
+          <h2>What is not</h2>
+          <ul>
+            <li><strong>The predation.</strong> No collision, no strike, no feeding. The verdict is arithmetic on distances, and the word "eaten" is our reading of it, not something the physics did.</li>
+            <li><strong>The predator's behaviour.</strong> The spider walks a straight line at constant speed. It does not stalk, aim or adapt. Everything interesting here is on the fly's side.</li>
+            <li><strong>The jump mechanics.</strong> The connectome decides <em>whether</em>; 0.4 m/s at 45° is a motor readout, measured to be the fastest launch that leaves this body on its feet.</li>
+            <li><strong>Steering.</strong> DNa02, the steering descending neuron, sits 1.5–2.1 mV below rest against a 7 mV threshold gap — silent. The fly cannot turn away, which is why the predator is launched from behind: forwards is then away.</li>
+            <li><strong>Any margin to spare.</strong> With a smaller predator, 16 mm across, the intact fly still escapes at 71 Hz but all three random controls collapse to 25–28 Hz and none of them escape. There is no headroom in this connectome's escape: the predator here is the smallest one that leaves the control arms intact, and that is itself a result.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="pr-card pr-wide">
+        <h2>Provenance</h2>
+        <dl class="pr-prov" id="prov"></dl>
+        <p class="pr-note">
+          This is version 2. <a href="../drosophila-escape-3d/">Version 1</a> runs the same
+          machinery against a looming sphere and reports the firing rate rather than the outcome;
+          it is unchanged and still stands.
+        </p>
+      </section>
+    </main>
+
+    <footer class="pr-footer">
+      <p>
+        Connectome: MaleCNS v1.0, CC BY 4.0. Neural model: flyverse-core, MIT. Body: NeuroMechFly /
+        FlyGym. Physics: MuJoCo.
+      </p>
+      <p><a href="../">← All simulations</a> · <a href="../drosophila-escape-3d/">Version 1</a> · <a href="../drosophila-connectome/">Interactive circuit laboratory</a> · <a href="../../">Home</a></p>
+    </footer>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
