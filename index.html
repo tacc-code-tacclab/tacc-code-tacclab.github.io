@@ -322,37 +322,36 @@
           <article class="service-showcase">
             <div class="service-copy">
               <p class="service-status"><span></span> Interactive scientific model</p>
-              <h3 class="sim-showcase-title">DROSOPHILA<br><em>CONNECTOME LABORATORY</em></h3>
+              <h3 class="sim-showcase-title">DROSOPHILA<br><em>ESCAPE REFLEX IN 3D</em></h3>
               <p>
-                A named subcircuit of the MaleCNS <em>Drosophila</em> connectome runs in your
-                browser: the neurons on direct paths from the wind receptors of Johnston&rsquo;s organ
-                to the descending neurons for steering. Set the wind direction, remove neurons, and
-                compare matched intact and lesioned runs.
+                The whole 167,106-neuron MaleCNS connectome drives a biomechanical fly body in
+                MuJoCo, seeing through 1,466 retinal columns by casting rays into the scene. A ball
+                looms and the giant fibre fires &mdash; the escape reflex, from measured wiring.
               </p>
               <p>
-                Removing a cell changes the computation that is actually executed, not just the
-                picture. Every number on the page carries its dataset version, reduction rule and
-                assumptions &mdash; and the page says plainly what the model is not.
+                Then remove neurons. Take out the 185 LPLC2 cells and the response collapses;
+                take out 311 at random and it survives untouched. That contrast is the experiment.
+                Every page states plainly what the model does not do &mdash; it does not fly, forage
+                or steer.
               </p>
               <ul>
-                <li>MaleCNS v1.0 &middot; 1,058 neurons &middot; 58,753 connections</li>
-                <li>Computed in the browser, no server</li>
-                <li>Interactive lesions with matched comparison</li>
-                <li>Deterministic runs, self-tested against a Python reference</li>
+                <li>MaleCNS v1.0 &middot; all 167,106 neurons</li>
+                <li>Optical vision by ray casting, not coordinates</li>
+                <li>Biomechanical body, solver-resolved contacts</li>
+                <li>Matched lesions with a random-lesion control</li>
               </ul>
               <div class="game-actions">
-                <a class="button service-button" href="simulations/drosophila-connectome/">Open the laboratory &rarr;</a>
+                <a class="button service-button" href="simulations/drosophila-escape-3d/">Watch the run &rarr;</a>
                 <a class="button secondary" href="simulations/">All simulations</a>
               </div>
             </div>
-            <a class="service-visual sim-visual" href="simulations/drosophila-connectome/"
-               aria-label="Open the Drosophila Connectome Laboratory">
-              <img src="simulations/drosophila-connectome/preview.webp" width="1200" height="747"
+            <a class="service-visual sim-visual" href="simulations/drosophila-escape-3d/"
+               aria-label="Watch the Drosophila escape reflex in 3D">
+              <img src="simulations/drosophila-escape-3d/media/poster.webp" width="880" height="560"
                    loading="lazy" decoding="async"
-                   alt="The deployed subcircuit: Johnston&rsquo;s organ sources on the left, split by side,
-                        an interneuron field crossed by excitatory and inhibitory connections, and six
-                        labelled groups of descending neurons on the right, lit by their firing rate." />
-              <span class="sim-visual-note">Generated from the live application &middot; wind at &minus;90&deg;</span>
+                   alt="A biomechanical Drosophila standing on a checkered floor as a large black
+                        sphere fills the right half of the frame, moments before the giant fibre fires." />
+              <span class="sim-visual-note">A frame from the recorded run &middot; the ball at 35 mm</span>
             </a>
           </article>
         </div>

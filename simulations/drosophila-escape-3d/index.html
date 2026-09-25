@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Escape Reflex in 3D — Cristian Taccioli</title>
+    <meta
+      name="description"
+      content="The whole 167,106-neuron MaleCNS connectome driving a biomechanical Drosophila body in MuJoCo. A looming ball triggers the giant fibre. Remove the right 185 neurons and the response vanishes; remove 311 at random and it does not."
+    />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Escape Reflex in 3D" />
+    <meta
+      property="og:description"
+      content="167,106 connectome neurons, optical vision by ray casting, a biomechanical body. Lesion LPLC2 and the escape signal disappears; lesion 311 random neurons and it survives."
+    />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/simulations/drosophila-escape-3d/" />
+    <meta property="og:image" content="https://tacc-code-tacclab.github.io/simulations/drosophila-escape-3d/media/poster.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/simulations/drosophila-escape-3d/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../site-v2.css" />
+    <link rel="stylesheet" href="app.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Escape Reflex in 3D",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any modern browser",
+        "url": "https://tacc-code-tacclab.github.io/simulations/drosophila-escape-3d/",
+        "author": { "@type": "Person", "name": "Cristian Taccioli" },
+        "isAccessibleForFree": true,
+        "description": "Precomputed runs of the whole MaleCNS connectome driving a biomechanical Drosophila body, with matched lesion conditions."
+      }
+    </script>
+  </head>
+  <body class="e3-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="e3-header">
+      <a class="e3-back" href="../">← Simulations</a>
+      <span class="e3-title-small">Escape Reflex in 3D</span>
+      <button class="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">◐</button>
+    </header>
+
+    <main id="main" class="e3-main">
+      <section class="e3-intro">
+        <p class="eyebrow">MaleCNS v1.0 · 167,106 neurons · biomechanical body</p>
+        <h1>A fly that flinches, and the 185 neurons it needs</h1>
+        <p class="e3-lede">
+          The whole released male-CNS connectome drives a biomechanical <em>Drosophila</em> body in
+          MuJoCo. It sees through <strong>1,466 retinal columns</strong> by casting rays into the
+          scene — real optics, not coordinates handed to an encoder. A black ball approaches at
+          1 m/s and the <strong>giant fibre</strong> fires, the way it does in a real fly.
+        </p>
+        <p class="e3-lede">
+          Then you remove neurons. Take out the <strong>185 LPLC2 cells</strong> and the response
+          collapses. Take out <strong>311 neurons at random</strong> — more cells, chosen blindly —
+          and it survives untouched. That contrast is the whole experiment: without it, "break the
+          brain and the fly breaks" is true by construction and means nothing.
+        </p>
+      </section>
+
+      <section class="e3-stage" aria-labelledby="h-run">
+        <h2 id="h-run" class="sr-only">The run</h2>
+        <div class="e3-video-wrap">
+          <video id="video" class="e3-video" poster="media/poster.webp" muted playsinline
+                 preload="metadata" aria-describedby="didascalia"></video>
+          <div class="e3-overlay" id="sovrimpressione" aria-hidden="true"></div>
+        </div>
+
+        <div class="e3-controls">
+          <div class="e3-arms" role="radiogroup" aria-label="Lesion condition">
+            <button class="e3-arm" type="button" role="radio" aria-checked="true" data-arm="intatto">
+              <span class="e3-arm-name">Intact</span>
+              <span class="e3-arm-sub">nothing removed</span>
+            </button>
+            <button class="e3-arm" type="button" role="radio" aria-checked="false" data-arm="LC4">
+              <span class="e3-arm-name">LC4 removed</span>
+              <span class="e3-arm-sub">126 cells</span>
+            </button>
+            <button class="e3-arm" type="button" role="radio" aria-checked="false" data-arm="LPLC2">
+              <span class="e3-arm-name">LPLC2 removed</span>
+              <span class="e3-arm-sub">185 cells</span>
+            </button>
+            <button class="e3-arm" type="button" role="radio" aria-checked="false" data-arm="casuale appaiato">
+              <span class="e3-arm-name">311 at random</span>
+              <span class="e3-arm-sub">the control</span>
+            </button>
+          </div>
+          <div class="e3-transport">
+            <button id="play" class="button primary" type="button">Play</button>
+            <button id="restart" class="button" type="button">Restart</button>
+            <label class="e3-ghost-label">
+              <input type="checkbox" id="ghost" checked />
+              show the other conditions faintly
+            </label>
+          </div>
+        </div>
+
+        <figure class="e3-chart-wrap">
+          <canvas id="grafico" class="e3-chart" width="900" height="260"
+                  aria-label="Giant fibre firing rate against time for each lesion condition, with the 33 Hz criterion marked."></canvas>
+          <figcaption id="didascalia" class="e3-caption">
+            Giant-fibre (DNp01) firing rate through the run. The dashed line is the
+            <strong>33 Hz</strong> criterion that the reference implementation's own escape gate
+            uses. The ball starts approaching at 0.4 s and stops 35 mm away — where it is held,
+            because the giant fibre integrates and a ball that sweeps past never builds a response.
+          </figcaption>
+        </figure>
+
+        <div class="e3-readout" id="lettura"></div>
+      </section>
+
+      <section class="e3-panels">
+        <article class="e3-card">
+          <h2>What is real here</h2>
+          <ul>
+            <li><strong>The wiring.</strong> All 167,106 neurons of MaleCNS v1.0 and their 25.6 million connections, with the reference implementation's receptor model applied. Nothing is trained, nothing is fitted.</li>
+            <li><strong>The optics.</strong> 1,466 retinal columns, seven rays each over the measured 4.5° acceptance angle, cast into the MuJoCo scene. The connectome sees geometry, not coordinates.</li>
+            <li><strong>The body.</strong> NeuroMechFly: six legs, adhesion, every contact solved by the physics engine. The walking command comes out of the fly's own descending neurons.</li>
+            <li><strong>The lesion.</strong> Removing a cell removes it from the computation, not from the picture. All four conditions start from a bit-identical state; only the lesion differs.</li>
+          </ul>
+        </article>
+
+        <article class="e3-card e3-card-warn">
+          <h2>What is not</h2>
+          <ul>
+            <li><strong>It does not fly.</strong> The connectome has no route from the octopaminergic drive to the wing motor neurons, so there is no flight state to enter. The wings are geometry.</li>
+            <li><strong>It does not jump.</strong> What you see measured is the giant fibre's firing rate, which is the connectome's prediction. Turning that into a leap is a motor act written by hand, and it is not here.</li>
+            <li><strong>It does not forage, and it does not steer.</strong> DNa02, the steering neuron, sits under tonic inhibition in this model; the fly walks straight. That is a measured property, not an omission.</li>
+            <li><strong>These are recorded runs.</strong> The simulation is 22× slower than real time on an H200 and cannot run in a browser. Every frame and every number was produced by the pipeline below and is replayed here unchanged.</li>
+            <li><strong>One run per condition.</strong> The model is deterministic (synaptic depression off), so repeats of the same condition are identical. What varies across the random arm is which neurons it removes.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="e3-card e3-wide">
+        <h2>The protocol, and four wrong guesses</h2>
+        <p>
+          A 30 mm black sphere approaches at 1 m/s from 45° and <strong>stops 35 mm away</strong> —
+          the reference implementation's own loom, transcribed. That stop matters, and finding out
+          why cost four measured dead ends: the brain's timestep (10 / 2 / 1 ms gave the same
+          answer), the radiance scale (32 → 35 Hz across a twentyfold range), spatial structure in
+          the scene (a room built from 870 tiles made it <em>worse</em>), and the approach angle
+          (23–46 Hz, with the peak always at the same distance). A ball that sweeps past the
+          reference distance never lets the giant fibre build its response. With the stop it rises
+          in 100 ms, peaks, and then <strong>adapts away</strong> — which is what a looming detector
+          should do.
+        </p>
+        <p class="e3-note">
+          One measured aside, visible in the retina itself: 356 columns look out between 75° and
+          105°, against 150 within ±15° of straight ahead. A head-on loom lands in the sparsest part
+          of the visual field.
+        </p>
+      </section>
+
+      <section class="e3-card e3-wide">
+        <h2>Provenance</h2>
+        <dl class="e3-prov" id="prov"></dl>
+      </section>
+    </main>
+
+    <footer class="e3-footer">
+      <p>
+        Connectome: MaleCNS v1.0, CC BY 4.0. Neural model: flyverse-core, MIT. Body: NeuroMechFly /
+        FlyGym. Physics: MuJoCo.
+      </p>
+      <p><a href="../">← All simulations</a> · <a href="../drosophila-connectome/">Interactive circuit laboratory</a> · <a href="../../">Home</a></p>
+    </footer>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

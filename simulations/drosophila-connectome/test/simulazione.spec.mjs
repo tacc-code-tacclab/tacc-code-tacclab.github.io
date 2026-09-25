@@ -196,3 +196,74 @@ test("cattura le immagini della release", async ({ page }) => {
   await page.locator("#tela").screenshot({ path: "out/circuito.png" });
   await page.screenshot({ path: "out/pagina.png", fullPage: false });
 });
+
+/* ---- la simulazione 3D registrata ---------------------------------------- */
+
+const E3 = `${BASE}/simulations/drosophila-escape-3d/`;
+
+async function apri3d(page) {
+  const problemi = sorveglia(page);
+  await page.goto(E3, { waitUntil: "load" });
+  await expect(page.locator("#video")).toBeVisible();
+  await expect(page.locator("#prov")).toContainText("MaleCNS");
+  return problemi;
+}
+
+test("3D: avvio a freddo senza errori", async ({ page }) => {
+  const problemi = await apri3d(page);
+  await expect(page.locator("#lettura")).toContainText("Intact");
+  expect(problemi.pagina).toEqual([]);
+  // ERR_ABORTED sui video e' normale: il player interrompe il caricamento
+  // precedente quando si cambia condizione
+  expect(problemi.rete.filter((r) => !/ERR_ABORTED/.test(r))).toEqual([]);
+});
+
+test("3D: il video e' scorribile (serve Range dal server)", async ({ page }) => {
+  await apri3d(page);
+  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
+  const s = await page.locator("#video").evaluate((v) => ({
+    fine: v.seekable.length ? v.seekable.end(0) : 0, durata: v.duration }));
+  expect(s.fine, "seekable deve coprire il video: senza Range resta 0").toBeGreaterThan(1);
+  expect(s.durata).toBeGreaterThan(1);
+});
+
+test("3D: al picco la fibra gigante e' sopra soglia, e la lesione la spegne", async ({ page }) => {
+  await apri3d(page);
+  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
+  const alPicco = async () => {
+    await page.locator("#video").evaluate((v) => { v.currentTime = 4.9; });
+    await page.waitForTimeout(900);
+    const t = await page.locator("#lettura").textContent();
+    return Number(t.match(/giant fibre now([\d.]+) Hz/)?.[1] ?? -1);
+  };
+  const intatto = await alPicco();
+  expect(intatto, "intatto deve superare i 33 Hz").toBeGreaterThan(33);
+
+  await page.locator('[data-arm="LPLC2"]').click();
+  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
+  const leso = await alPicco();
+  expect(leso, "senza LPLC2 deve stare sotto soglia").toBeLessThan(33);
+
+  await page.locator('[data-arm="casuale appaiato"]').click();
+  await page.waitForFunction(() => document.getElementById("video").readyState >= 2, null, { timeout: 30000 });
+  const casuale = await alPicco();
+  expect(casuale, "311 neuroni a caso non devono abolire la risposta").toBeGreaterThan(33);
+});
+
+test("3D: la pagina dichiara cosa il modello non fa", async ({ page }) => {
+  await apri3d(page);
+  const testo = await page.locator("main").textContent();
+  for (const frase of ["does not fly", "does not jump", "does not forage", "recorded runs"]) {
+    expect(testo.toLowerCase()).toContain(frase);
+  }
+});
+
+test("3D: mobile, nessuno scorrimento orizzontale", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true });
+  const page = await ctx.newPage();
+  await apri3d(page);
+  const scorre = await page.evaluate(() =>
+    document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  expect(scorre).toBe(false);
+  await ctx.close();
+});
