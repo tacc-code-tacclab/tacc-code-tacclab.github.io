@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Seven Experiments, Seven Failed Criteria — Cristian Taccioli</title>
+    <meta name="description" content="Seven pre-declared experiments on a whole-CNS Drosophila connectome simulation. Seven of thirty-seven declared criteria failed, and the failures are the findings." />
+    <meta name="author" content="Cristian Taccioli" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Seven Experiments, Seven Failed Criteria" />
+    <meta property="og:description" content="What a connectome alone can and cannot do, measured against criteria written before the experiments were run." />
+    <meta property="og:url" content="https://tacc-code-tacclab.github.io/simulations/connectome-experiments/" />
+    <link rel="canonical" href="https://tacc-code-tacclab.github.io/simulations/connectome-experiments/" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../site-v2.css" />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body class="ce-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="ce-header">
+      <a class="ce-back" href="../">← Simulations</a>
+      <span class="ce-title-small">Seven Experiments, Seven Failed Criteria</span>
+      <button class="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">◐</button>
+    </header>
+
+    <main id="main" class="ce-main">
+      <section class="ce-intro">
+        <p class="eyebrow">MaleCNS v1.0 · 167,106 neurons · criteria fixed before running</p>
+        <h1>What a connectome alone can and cannot do</h1>
+        <p class="ce-lede">
+          The two other pages here show one experiment each, and both of them work. This page is
+          the rest of the work, including the parts that did not. Seven experiments, each with its
+          pass/fail criteria written into the script <em>before</em> it was executed, each with a
+          size-matched random lesion as a control. <strong>Seven of the thirty-seven declared criteria failed</strong>, in three of the seven experiments. They are
+          the most informative results on the page and they are reported first, not buried.
+        </p>
+        <p class="ce-lede">
+          None of the ingredients are ours. The connectome is Janelia's, the neural model is
+          flyverse-core, the body is NeuroMechFly in MuJoCo. What we added is an independent
+          reproduction on our own hardware, experiments designed so that they could fail, and two
+          mistakes of our own that are worth other people's time.
+        </p>
+      </section>
+
+      <section class="ce-summary">
+        <h2>Summary</h2>
+        <div class="ce-tablewrap">
+          <table class="ce-table ce-sum">
+            <thead><tr><th scope="col">Experiment</th><th scope="col">Criteria</th><th scope="col">Outcome</th></tr></thead>
+            <tbody><tr><td><a href='#e1'>Escape, scored on survival</a></td><td>6</td><td class='ce-ok-t'>6 passed</td></tr><tr><td><a href='#e2'>Bitter suppression of proboscis extension</a></td><td>8</td><td class='ce-ko-t'>6 passed, 2 failed</td></tr><tr><td><a href='#e3'>Wind lateralises the descending neurons</a></td><td>6</td><td class='ce-ok-t'>6 passed</td></tr><tr><td><a href='#e4'>T4/T5 direction selectivity, and the L1/L2 dissociation</a></td><td>8</td><td class='ce-ko-t'>6 passed, 2 failed</td></tr><tr><td><a href='#e5'>The same result, as a prediction on a new stimulus</a></td><td>5</td><td class='ce-ok-t'>5 passed</td></tr><tr><td><a href='#e6'>Looming, not size</a></td><td>1</td><td class='ce-ok-t'>1 passed</td></tr><tr><td><a href='#e7'>No steering</a></td><td>3</td><td class='ce-ko-t'>0 passed, 3 failed</td></tr></tbody>
+          </table>
+        </div>
+        <p class="ce-note">
+          A body of work in which nothing ever fails is one where the criteria were written
+          afterwards. Every number below is produced by a script that prints its own verdict and
+          writes a JSON record; this page is generated from those records rather than typed by hand.
+        </p>
+      </section>
+
+      <section class="ce-cards">
+      <article class="ce-card" id="e1">
+        <header class="ce-head">
+          <span class="ce-num">1</span>
+          <h3>Escape, scored on survival</h3>
+          <span class='ce-tag ce-ok'>all criteria passed</span>
+        </header>
+        <p class="ce-q">Does removing the looming detectors get the fly caught, and does removing the same number of neurons at random not?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>intact escapes</li><li>LPLC2 removed is caught</li><li>three independent random draws of 311 neurons all escape</li><li>the verdict must not depend on the predator&#x27;s handling time</li></ol>
+          <p class="ce-src">esperimenti/registra_predazione.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>condition</th><th scope='col'>giant fibre peak</th><th scope='col'>distance at the grab</th><th scope='col'>outcome</th></tr></thead><tbody><tr><td>intatto</td><td>40.8 Hz</td><td>17.7 mm</td><td>escaped</td></tr><tr><td>LC4</td><td>45.6 Hz</td><td>17.1 mm</td><td>escaped</td></tr><tr><td>LPLC2</td><td>0.0 Hz</td><td>4.0 mm</td><td>CAUGHT</td></tr><tr><td>casuale 1</td><td>35.5 Hz</td><td>16.1 mm</td><td>escaped</td></tr><tr><td>casuale 2</td><td>76.4 Hz</td><td>25.8 mm</td><td>escaped</td></tr><tr><td>casuale 3</td><td>47.4 Hz</td><td>19.3 mm</td><td>escaped</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">The verdict is unchanged for any handling time between 100 and 600 ms. At 50 ms nothing has escaped yet — the legs have not left the ground.</p>
+      </article>
+      <article class="ce-card" id="e2">
+        <header class="ce-head">
+          <span class="ce-num">2</span>
+          <h3>Bitter suppression of proboscis extension</h3>
+          <span class='ce-tag ce-ko'>2 criteri failed</span>
+        </header>
+        <p class="ce-q">Sugar drives MN9 and bitter shuts it off. Which neurons carry the veto?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>sugar &gt; 2 Hz and sugar+bitter &lt; 1 Hz (the reference gates)</li><li>removing the bitter-only relays restores MN9 to ≥ 50%</li><li>with the sugar pathway still intact</li><li>a size-matched random lesion does not restore it</li></ol>
+          <p class="ce-src">esperimenti/e2_amaro.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>condition</th><th scope='col'>sugar</th><th scope='col'>sugar + bitter</th><th scope='col'>result</th></tr></thead><tbody><tr><td>intatto</td><td>5.52 Hz</td><td>0.00 Hz</td><td>veto intact</td></tr><tr><td>veto 2 salti (8)</td><td>4.94 Hz</td><td>0.00 Hz</td><td>veto intact</td></tr><tr><td>casuale appaiato (8)</td><td>5.52 Hz</td><td>0.00 Hz</td><td>veto intact</td></tr><tr><td>veto 3 salti (159)</td><td>6.04 Hz</td><td>0.00 Hz</td><td>veto intact</td></tr><tr><td>casuale appaiato (159)</td><td>4.42 Hz</td><td>0.00 Hz</td><td>veto intact</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">Two criteria failed, and they are the finding. The veto is genuinely bitter-specific — five sham inputs of the same size leave MN9 at 4.67–6.28 Hz and doubling the sugar gives 9.63 Hz — but no relay population carries it. Removing every bitter→MN9 relay including those shared with the sweet pathway kills the sugar response too. In this model the bitter veto is not a labelled line.</p>
+      </article>
+      <article class="ce-card" id="e3">
+        <header class="ce-head">
+          <span class="ce-num">3</span>
+          <h3>Wind lateralises the descending neurons</h3>
+          <span class='ce-tag ce-ok'>all criteria passed</span>
+        </header>
+        <p class="ce-q">Does wind direction produce a left–right signal, and does silencing the receptors remove it?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>intact: DNp18 ≥ +15 Hz and DNp33 ≤ −15 Hz</li><li>receptors silenced: |flip| &lt; 5 Hz — and the script verifies they are silent</li><li>DNp18 ablated: flip ≈ 0 (positive control)</li><li>size-matched random lesion: flip ≥ +15 Hz</li></ol>
+          <p class="ce-src">esperimenti/e3_vento2.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>condition</th><th scope='col'>DNp18 flip</th><th scope='col'>DNp33 flip</th><th scope='col'>receptor rate (check)</th></tr></thead><tbody><tr><td>intatto</td><td>+53.40 Hz</td><td>-49.01 Hz</td><td>13.3 Hz</td></tr><tr><td>JO zittiti</td><td>+2.44 Hz</td><td>+0.03 Hz</td><td>0.0 Hz</td></tr><tr><td>DNp18 spenta</td><td>+0.00 Hz</td><td>-48.12 Hz</td><td>13.3 Hz</td></tr><tr><td>casuale appaiato (335)</td><td>+35.77 Hz</td><td>-49.14 Hz</td><td>11.4 Hz</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">The rightmost column is the check that made this experiment valid. Our first attempt silenced the receptors with the standard ablation call and they went on firing at 100.65 Hz — see the mistakes below.</p>
+      </article>
+      <article class="ce-card" id="e4">
+        <header class="ce-head">
+          <span class="ce-num">4</span>
+          <h3>T4/T5 direction selectivity, and the L1/L2 dissociation</h3>
+          <span class='ce-tag ce-ko'>2 criteri failed</span>
+        </header>
+        <p class="ce-q">Do the elementary motion detectors prefer the right directions, and does removing L1 or L2 dissociate the ON and OFF channels?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>intact: 8/8 preferred directions correct, minimum DSI ≥ 0.1</li><li>L1 removed: T4 amplitude ≤ 30% of intact, T5 ≥ 50%</li><li>L2 removed: T5 ≤ 30%, T4 ≥ 50%</li><li>random lesion of the same size: both ≥ 50%</li></ol>
+          <p class="ce-src">esperimenti/e4_movimento.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>condition</th><th scope='col'>correct directions</th><th scope='col'>minimum DSI</th><th scope='col'>mean response</th></tr></thead><tbody><tr><td>intatto</td><td>8/8</td><td>0.24</td><td>T4 0.0283 · T5 0.0805</td></tr><tr><td>L1 spente (1776)</td><td>5/8</td><td>0.12</td><td>T4 0.0250 · T5 0.0580</td></tr><tr><td>L2 spente (1779)</td><td>8/8</td><td>0.35</td><td>T4 0.0303 · T5 0.0522</td></tr><tr><td>casuale appaiato (1776)</td><td>8/8</td><td>0.06</td><td>T4 0.0741 · T5 0.1943</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">The two amplitude criteria failed, and the random control explains why: removing 1,776 random rate units raised responses 2.6-fold, so amplitude is not comparable across arms. Read on direction instead — a ratio, immune to gain — L1 removal leaves 1 of 4 T4 subtypes correct while all 4 T5 subtypes are untouched. That is the ON half of the classic dissociation; the OFF half does not appear.</p>
+      </article>
+      <article class="ce-card" id="e5">
+        <header class="ce-head">
+          <span class="ce-num">5</span>
+          <h3>The same result, as a prediction on a new stimulus</h3>
+          <span class='ce-tag ce-ok'>all criteria passed</span>
+        </header>
+        <p class="ce-q">The L1 finding above was read after the fact. Does it hold as a prediction on a stimulus we had not used?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>intact: 8/8 at 90°/s (the baseline must hold before anything else is asked)</li><li>L1 removed: at most 1 of 4 T4 subtypes keeps its direction</li><li>L1 removed: all 4 T5 subtypes keep theirs</li><li>L2 removed: all 4 T5 keep theirs</li><li>random: 8/8</li></ol>
+          <p class="ce-src">esperimenti/e4_replica90.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>condition</th><th scope='col'>T4 correct</th><th scope='col'>T5 correct</th><th scope='col'>minimum DSI</th></tr></thead><tbody><tr><td>intatto</td><td>4/4</td><td>4/4</td><td>0.21</td></tr><tr><td>L1 spente</td><td>1/4</td><td>4/4</td><td>0.12</td></tr><tr><td>L2 spente</td><td>4/4</td><td>4/4</td><td>0.32</td></tr><tr><td>casuale appaiato</td><td>4/4</td><td>4/4</td><td>0.06</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">A first replication attempt at 30°/s with a 45° period was abandoned because the intact model failed its own gate there (6/8, DSI 0.04): with no valid baseline there is nothing to test a prediction against. We searched a grid for stimuli where the intact model holds, and used one of them.</p>
+      </article>
+      <article class="ce-card" id="e6">
+        <header class="ce-head">
+          <span class="ce-num">6</span>
+          <h3>Looming, not size</h3>
+          <span class='ce-tag ce-ok'>all criteria passed</span>
+        </header>
+        <p class="ce-q">Is the escape detector answering to an object that expands, or just to a large dark patch?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>a genuine looming detector: held still gives &lt; 1/3 of the approaching response</li><li>responding to size alone: held still gives ≥ 2/3</li></ol>
+          <p class="ce-src">esperimenti/e5_loom_o_dimensione.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>stop distance</th><th scope='col'>angular size</th><th scope='col'>held still</th><th scope='col'>after approaching</th></tr></thead><tbody><tr><td>32mm</td><td>139°</td><td>11.9 Hz</td><td>62.0 Hz</td></tr><tr><td>45mm</td><td>84°</td><td>8.2 Hz</td><td>39.0 Hz</td></tr><tr><td>60mm</td><td>60°</td><td>11.6 Hz</td><td>32.0 Hz</td></tr><tr><td>80mm</td><td>44°</td><td>4.8 Hz</td><td>16.9 Hz</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">Ratio 0.21 at 45 mm. It is a real looming detector. Physical size, once the angle is matched, does not matter at all: radii of 8 mm, 15 mm, 30 mm give 70.8, 58.1, 66.3 Hz — within 11% of one another. A retina measures angles, not millimetres.</p>
+      </article>
+      <article class="ce-card" id="e7">
+        <header class="ce-head">
+          <span class="ce-num">7</span>
+          <h3>No steering</h3>
+          <span class='ce-tag ce-ko'>3 criteri failed</span>
+        </header>
+        <p class="ce-q">The motor readout has three routes to a turn. Does the connectome drive any of them?</p>
+        <details class="ce-crit"><summary>criteria, fixed before running</summary>
+          <ol><li>the graph lateralises at least one channel by ≥ 5 Hz</li><li>the default readout produces ≥ 20°/s of yaw</li><li>with the optomotor term enabled at its documented gain, ≥ 20°/s</li></ol>
+          <p class="ce-src">esperimenti/e7_sterzo.py</p>
+        </details>
+        <div class="ce-tablewrap"><table class="ce-table">
+          <thead><tr><th scope='col'>channel</th><th scope='col'>left–right flip</th></tr></thead><tbody><tr><td>DNa02 (R-L)</td><td>-0.25 Hz</td></tr><tr><td>legMN (L-R)</td><td>+0.18 Hz</td></tr><tr><td>optomotore (L-R)</td><td>+1.88 Hz</td></tr><tr><td>yaw predefinito</td><td>+1.9 °/s</td></tr><tr><td>yaw con optomotore</td><td>+10.7 °/s</td></tr></tbody>
+        </table></div>
+        <p class="ce-note">All three criteria failed. But one channel was tested with the wrong stimulus: the optomotor system answers to rotational optic flow, and the protocol never rotated the fly. Rotating it at 90°/s gives +7.28 Hz, close to the ~6 Hz the implementation's own notes anticipate. DNa02 meanwhile is not balanced but silent: R at 0.20 Hz with -1.67 mV of steady input and L at 0.00 Hz with -1.13 mV of steady input, against a 7.0 mV threshold gap.</p>
+      </article></section>
+
+      <section class="ce-card ce-wide ce-warn" id="errori">
+        <h2>Two mistakes of ours</h2>
+        <h3>Ablation does not silence a neuron driven by injected input</h3>
+        <p>
+          In the reference implementation, spikes are computed as
+          <code>(v ≥ threshold) × active</code> and the injected Poisson input is then applied with
+          a <code>maximum</code> — <em>after</em> the mask that implements ablation. A neuron driven
+          by <code>set_poisson</code> therefore keeps firing when it has been "silenced". Measured:
+          the 335 wind receptors nominally ablated fired at <strong>100.65 Hz</strong>, exactly as
+          intact, and sweet gustatory neurons nominally ablated still drove MN9 at 2.44 Hz.
+        </p>
+        <p>
+          Our first wind experiment therefore contained an arm that did not exist, and it read as a
+          real negative finding. Anyone lesioning sensory receptors in this framework should silence
+          the input at source and <strong>measure the firing rate of the cells they claim to have
+          removed</strong>. Our scripts now raise if it has not fallen.
+        </p>
+        <h3>We nearly "corrected" a correct audit</h3>
+        <p>
+          A quick reading put DNa02 at +0.35 mV above rest, contradicting the reference
+          implementation's own audit, which reports it held ~1.6–2.0 mV below rest. We were about to
+          rewrite a published page on the strength of it. The audit was right: our reading took the
+          membrane potential at a single instant after three seconds instead of averaging over a
+          long run. Measured properly the two agree to within 0.3 mV. A single-timepoint reading is
+          not a measurement, and a 400-line audit deserves more than one before being overturned.
+        </p>
+      </section>
+
+      <section class="ce-card ce-wide">
+        <h2>Method, in brief</h2>
+        <dl class="ce-prov">
+          <dt>connectome</dt><dd>MaleCNS v1.0 (Janelia FlyEM, CC BY 4.0 at the time of writing). 167,106 compiled nodes, 25,578,600 edges, 124,161,872 synapses as loaded.</dd>
+          <dt>reproduction</dt><dd>The reference benchmark reproduced independently on our hardware before anything else: 42 of 42 population counts and 6 of 6 ledger categories matched, including values the reference itself marks as failures.</dd>
+          <dt>neural model</dt><dd>flyverse-core — spiking leaky integrate-and-fire with a receptor model over predicted neurotransmitter identity. Nothing trained, nothing fitted.</dd>
+          <dt>body</dt><dd>NeuroMechFly in MuJoCo, 48 leg actuators, adhesion, solver-resolved contacts, 0.1 ms physics step under a 10 ms control step.</dd>
+          <dt>vision</dt><dd>1,466 retinal column directions cast into the scene as seven rays each over the measured 4.5° acceptance angle — geometry, not supplied coordinates.</dd>
+          <dt>determinism</dt><dd>Synaptic depression off, so a repeat of any condition is bit-identical. The variation that matters is across random lesion draws, and three independent draws are used where the control is load-bearing.</dd>
+          <dt>what is not simulated</dt><dd>Flight, righting, steering, predation. Capture is scored geometrically from real positions; nothing is animated that the physics did not compute.</dd>
+        </dl>
+      </section>
+
+      <section class="ce-card ce-wide">
+        <h2>Where the margin runs out</h2>
+        <p>
+          One measurement deserves separating out, because it is a warning about this whole class of
+          experiment. With a predator 16 mm across, the intact fly still escapes at 71.2 Hz — but
+          all three size-matched random controls collapse to 25.2–27.6 Hz and none of them escape.
+          In that configuration a targeted lesion would have "demonstrated" a specificity that was
+          not there, because <em>any</em> lesion of that size breaks the response. The predator used
+          on this page is the smallest one for which the control arms survive, and that choice was
+          made by measuring the controls before looking at any result of interest.
+        </p>
+      </section>
+    </main>
+
+    <footer class="ce-footer">
+      <p>
+        Connectome: MaleCNS v1.0, CC BY 4.0. Neural model: flyverse-core, MIT. Body: NeuroMechFly /
+        FlyGym. Physics: MuJoCo.
+      </p>
+      <p>
+        <a href="../">← All simulations</a> ·
+        <a href="../drosophila-escape-3d/">Escape Reflex in 3D</a> ·
+        <a href="../drosophila-predation/">Eaten or Not</a> ·
+        <a href="../../">Home</a>
+      </p>
+    </footer>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
