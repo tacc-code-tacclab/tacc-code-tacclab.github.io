@@ -1,0 +1,11 @@
+{
+  "name": "Micio Incastro",
+  "short_name": "Micio",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14212c",
+  "theme_color": "#14212c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
