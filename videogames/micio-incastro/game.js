@@ -2,10 +2,10 @@
   'use strict';
   const $=id=>document.getElementById(id), canvas=$('board'), ctx=canvas.getContext('2d'), next=$('next'), nc=next.getContext('2d');
   const game=new Micio.Game(), dialog=$('dialog'), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let paused=true, needsDraw=true, last=0, fall=0, particles=[], toastUntil=0, repeatDelay=0, repeatTimer=0, modalAction=null, modalSecondary=null, width=0,height=0,clockValue='',immersive=false,screenBusy=false;
-  // Timed scores have their own record; the old unlimited Flow record stays intact.
+  let paused=true, needsDraw=true, last=0, fall=0, particles=[], toastUntil=0, repeatDelay=0, repeatTimer=0, modalAction=null, modalSecondary=null, width=0,height=0,clockValue='',immersive=false,screenBusy=false,palette='pastel';
+  // Goal-based scores have their own records; earlier unlimited records stay intact.
   let bests={chill:0,flow:0};
-  try{const data=JSON.parse(localStorage.getItem('micio-records-v2')||'null')||{chill:JSON.parse(localStorage.getItem('micio-records')||'{}').chill};for(const m of ['chill','flow'])if(Number.isFinite(data[m])&&data[m]>=0)bests[m]=data[m];}catch{}
+  try{const data=JSON.parse(localStorage.getItem('micio-records-v3')||'{}');for(const m of ['chill','flow'])if(Number.isFinite(data[m])&&data[m]>=0)bests[m]=data[m];}catch{}
 
   // Original 16-bar tune: a light melody, soft arpeggios and bass, all synthesized.
   const melody=[
@@ -54,23 +54,28 @@
     const label='RITMO '+String(game.level).padStart(2,'0');if($('level').textContent!==label)$('level').textContent=label;
   }
   function refresh(){
-    $('score').textContent=game.score.toLocaleString('it-IT');$('saved').textContent=game.saved;
-    if(game.score>bests[game.mode]){bests[game.mode]=game.score;try{localStorage.setItem('micio-records-v2',JSON.stringify(bests));}catch{}}
+    $('score').textContent=game.score.toLocaleString('it-IT');$('saved').textContent=Math.min(game.saved,game.goal)+' / '+game.goal;
+    const progress=$('goal-progress'),rescued=Math.min(game.saved,game.goal);
+    progress.setAttribute('aria-valuemax',String(game.goal));progress.setAttribute('aria-valuenow',String(rescued));progress.setAttribute('aria-valuetext',rescued+' su '+game.goal+' gattini salvati');$('goal-fill').style.width=(rescued/game.goal*100)+'%';
+    if(game.score>bests[game.mode]){bests[game.mode]=game.score;try{localStorage.setItem('micio-records-v3',JSON.stringify(bests));}catch{}}
     $('best').textContent=bests[game.mode].toLocaleString('it-IT');refreshTime();
     $('mode-label').textContent=game.mode==='chill'?'☾ SENZA FRETTA':'✦ SFIDA · 3 MINUTI';
     $('charge-text').textContent=game.charge+' / 4';$('charge').setAttribute('aria-label','Fusa: '+game.charge+' su quattro');
     [...$('charge').children].forEach((el,i)=>el.classList.toggle('on',i<game.charge));$('purr').disabled=game.charge<4||game.over;
     $('swap').disabled=game.swapped||game.over;
-    $('hint').textContent=game.mode==='chill'?'Trascina per spostare · tocca per ruotare · POSA per scendere.':'Unisci 6 gatti uguali · Non riempire il nido!';
+    $('hint').textContent=game.won?'Obiettivo raggiunto!':(game.goal-rescued)+' gattini alla vittoria · '+(game.mode==='chill'?'Nessuna fretta.':'Unisci 6 uguali!');
     document.querySelectorAll('[data-mode]').forEach(b=>{const yes=b.dataset.mode===game.mode;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));});
     const r=next.getBoundingClientRect();MicioDraw.preview(nc,r.width,r.height,game.queue);needsDraw=true;
   }
   function finish(){
-    const timed=game.endReason==='time';
+    const won=game.won,timed=game.endReason==='time',missing=Math.max(0,game.goal-game.saved);
     refresh();
-    show(timed?'Tempo scaduto!':'Il nido è pieno.',
-      '<p><strong>'+game.score.toLocaleString('it-IT')+' punti</strong> · <strong>'+game.saved+' gatti felici</strong></p><p>'+(timed?'Hai completato i tre minuti. Un altro giro per battere il tuo record?':'Non c’è più spazio per il prossimo gruppo: la partita è finita. Unisci sei gatti uguali per liberare il nido e resistere più a lungo.')+'</p>',
-      'Riprova →',()=>start(game.mode),null,timed?'SFIDA COMPLETATA':'FINE PARTITA');
+    const message=won?'Hai salvato almeno <strong>'+game.goal+' gattini</strong>: missione compiuta!'+(game.mode==='flow'?' Ti restavano <strong>'+$('timer').textContent+'</strong> sul cronometro.':' Con calma, hai trovato un posto per tutti.'):timed?'Il tempo è finito prima dell’obiettivo. Ti mancavano <strong>'+missing+' gattini</strong> alla vittoria. Riprova: anche le Fusa contano!':'Non c’è più spazio per il prossimo gruppo. Ti mancavano <strong>'+missing+' gattini</strong> alla vittoria: unisci sei vicini uguali per liberare il nido.';
+    show(won?'Hai vinto!':timed?'Tempo scaduto!':'Il nido è pieno.',
+      (won?'<div class="victory-mark" aria-hidden="true">✦</div>':'')+'<p><strong>'+game.score.toLocaleString('it-IT')+' punti</strong> · <strong>'+game.saved+' gatti felici</strong></p><p>'+message+'</p>',
+      won?'Gioca ancora →':'Riprova →',()=>start(game.mode),null,won?'VITTORIA':timed?'OBIETTIVO MANCATO':'FINE PARTITA');
+    dialog.dataset.result=won?'win':'';
+    if(won&&sound.ctx){const now=sound.ctx.currentTime;[74,78,81,86].forEach((note,i)=>sound.note(note,.65,.09,now+i*.14,'triangle'));}
   }
   function burst(result){
     if(!result)return;const g=MicioDraw.geometry(width,height);
@@ -84,15 +89,15 @@
     else if(action==='drop'){burst(game.drop());fall=0;}else if(action==='down'){burst(game.step());fall=0;}else if(action==='purr'){burst(game.purr());fall=0;}
     if(changed){sound.note(action==='rotate'?72:64,.065,.025);refresh();}needsDraw=true;
   }
-  function start(mode){game.reset(mode);fall=0;last=0;particles=[];paused=false;needsDraw=true;sound.stop();sound.index=0;resumeSound();refresh();toast(mode==='chill'?'Decidi tu quando farli scendere.':'3 minuti. I gatti cadono: fai spazio!');}
+  function start(mode){game.reset(mode);fall=0;last=0;particles=[];paused=false;needsDraw=true;sound.stop();sound.index=0;resumeSound();refresh();toast('Salva '+game.goal+' gattini e vinci'+(mode==='chill'?'. Senza fretta.':'! Hai 3 minuti.'));}
   function show(title,copy,button,action,secondary=null,kicker='UN PICCOLO RESPIRO',secondaryLabel='Annulla'){
-    paused=true;last=0;stopRepeat();sound.stop();$('dialog-title').textContent=title;$('dialog-copy').innerHTML=copy;$('dialog-kicker').textContent=kicker;
+    paused=true;last=0;stopRepeat();sound.stop();dialog.dataset.result='';$('dialog-title').textContent=title;$('dialog-copy').innerHTML=copy;$('dialog-kicker').textContent=kicker;
     $('dialog-main').textContent=button;modalAction=action;modalSecondary=secondary;$('dialog-secondary').hidden=!secondary;$('dialog-secondary').textContent=secondaryLabel;
     if(!dialog.open)dialog.showModal();
   }
-  const instructions='<ol><li><strong>Sposta e ruota</strong> i gattini in caduta. La sagoma indica dove arriveranno.</li><li>Unisci <strong>6 vicini della stessa famiglia</strong> per liberare spazio e creare catene.</li><li><strong>Il nido pieno è game over.</strong> Nella Sfida hai 3 minuti e la caduta accelera ogni 20 secondi.</li></ol>';
-  function welcome(){show('Tre minuti. Mille fusa.',instructions+'<p>Trascina o usa le frecce. Tocca o premi ↑ per ruotare; POSA o spazio per far scendere subito.</p>','Gioca · 3 minuti →',()=>start('flow'),()=>start('chill'),'BENVENUTO NEL NIDO','Senza fretta');}
-  function help(){show('Ogni gatto al suo posto.',instructions+'<p>Quattro famiglie caricano le <strong>Fusa</strong>, che liberano le due file più basse. C cambia gruppo, F fa le fusa, P mette in pausa. I pulsanti funzionano anche sul telefono.</p><p>☾ Senza fretta: nessun timer, scegli tu quando posare.</p>','Riprendi →',()=>{paused=game.over;},null,'COME SI GIOCA');}
+  const instructions='<ol><li><strong>Sposta e ruota</strong> i gattini. Unisci <strong>6 vicini della stessa famiglia</strong> per salvarli e liberare spazio.</li><li><strong>Salva '+game.goal+' gattini e vinci!</strong> Nella Sfida hai 3 minuti e i pezzi cadono sempre più velocemente.</li><li>Se riempi il nido o finisce il tempo prima dell’obiettivo, <strong>perdi la partita</strong>.</li></ol>';
+  function welcome(){show('Salva 60 gattini. Vinci!',instructions+'<p>Trascina o usa le frecce. Tocca o premi ↑ per ruotare; POSA o spazio per far scendere subito.</p>','Gioca · 3 minuti →',()=>start('flow'),()=>start('chill'),'LA TUA MISSIONE','Senza fretta');}
+  function help(){show('Ogni gatto al suo posto.',instructions+'<p>Quattro famiglie caricano le <strong>Fusa</strong>: liberano le due file più basse e i gattini salvati contano per la vittoria. C cambia gruppo, F fa le fusa, P mette in pausa.</p><p>☾ <strong>Senza fretta</strong>: stesso obiettivo di '+game.goal+' gattini, senza timer. Scegli tu quando posare.</p>','Riprendi →',()=>{paused=game.over;},null,'COME SI GIOCA');}
   $('dialog-main').onclick=()=>{const fn=modalAction;dialog.close();if(fn)fn();if(!paused)resumeSound();refresh();};
   $('dialog-secondary').onclick=()=>{const fn=modalSecondary;dialog.close();if(fn)fn();if(!paused)resumeSound();};
   dialog.addEventListener('close',()=>{paused=game.over;last=0;fall=0;stopRepeat();if(!paused)resumeSound();needsDraw=true;});
@@ -106,6 +111,18 @@
     if(!sound.on&&!sound.enable()){toast('Audio non disponibile in questo browser.');return;}
     sound.on=!sound.on;sound.stop();if(sound.on)resumeSound();try{localStorage.setItem('micio-music',sound.on?'on':'off');}catch{}soundLabel();
   };
+
+  function setPalette(name,save=true){
+    palette=MicioDraw.setPalette(name);document.body.dataset.palette=palette;
+    const label=palette==='neon'?'Fluorescenti':'Pastello';
+    $('palette').setAttribute('aria-label','Colori '+label.toLowerCase()+': passa a '+(palette==='neon'?'pastello':'fluorescenti'));
+    $('palette').setAttribute('title','Cambia colori · '+label);$('palette-label').textContent=label;
+    document.querySelectorAll('[data-colors]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.colors===palette)));
+    if(save)try{localStorage.setItem('micio-palette',palette);}catch{}
+    refresh();
+  }
+  $('palette').onclick=()=>setPalette(palette==='pastel'?'neon':'pastel');
+  document.querySelectorAll('[data-colors]').forEach(b=>b.onclick=()=>setPalette(b.dataset.colors));
 
   function nativeScreen(){return document.fullscreenElement||document.webkitFullscreenElement;}
   function setImmersive(on){
@@ -170,6 +187,7 @@
     if(particles.length){for(const p of particles){p.life-=dt/750;p.x+=p.vx*dt/1000;p.y+=p.vy*dt/1000;p.vy+=dt*.08;}particles=particles.filter(p=>p.life>0);needsDraw=true;}
     if(needsDraw){MicioDraw.board(ctx,width,height,game,particles);needsDraw=false;}
   }
-  soundLabel();if(matchMedia('(display-mode: standalone)').matches||window.navigator?.standalone)setImmersive(true);
+  soundLabel();let initialPalette='pastel';try{initialPalette=localStorage.getItem('micio-palette')||'pastel';}catch{}setPalette(initialPalette,false);
+  if(matchMedia('(display-mode: standalone)').matches||window.navigator?.standalone)setImmersive(true);
   resize();welcome();requestAnimationFrame(loop);
 })();

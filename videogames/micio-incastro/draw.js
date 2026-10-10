@@ -1,6 +1,8 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.MicioDraw=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const COLORS=['#8fe3bd','#c5adff','#ffb18d','#88cfff'];
+  const PALETTES=Object.freeze({pastel:Object.freeze(['#8fe3bd','#c5adff','#ffb18d','#88cfff']),neon:Object.freeze(['#b1ff3b','#fc66ed','#ffdc4f','#4aeaff'])});
+  const COLORS=PALETTES.pastel.slice();let palette='pastel';
+  function setPalette(name){palette=name==='neon'?'neon':'pastel';PALETTES[palette].forEach((color,i)=>{COLORS[i]=color;});return palette;}
   function hex(ctx,x,y,r){ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();}
   function kitten(ctx,x,y,r,color,ghost=false){
     ctx.save();ctx.translate(x,y);
@@ -21,10 +23,10 @@
   function point(g,x,y){return {x:g.x+x*g.r*1.5,y:g.y+(y+(x%2)*.5)*g.r*Math.sqrt(3)};}
   function board(ctx,w,h,game,particles=[]){
     ctx.clearRect(0,0,w,h);const g=geometry(w,h);
-    for(let y=0;y<12;y++)for(let x=0;x<9;x++){const p=point(g,x,y);hex(ctx,p.x,p.y,g.r*.93);ctx.fillStyle=y<2?'#c5adff08':'#ffffff04';ctx.fill();ctx.strokeStyle='#a8bdd214';ctx.lineWidth=.7;ctx.stroke();const c=game.board[y][x];if(c!==null)kitten(ctx,p.x,p.y,g.r*.9,c);}
-    if(!game.over){for(const c of game.cells(game.ghost())){const p=point(g,c.x,c.y);kitten(ctx,p.x,p.y,g.r*.88,c.color,true);}for(const c of game.cells()){const p=point(g,c.x,c.y);ctx.save();ctx.shadowColor=COLORS[c.color];ctx.shadowBlur=9;kitten(ctx,p.x,p.y,g.r*.9,c.color);ctx.restore();}}
+    for(let y=0;y<12;y++)for(let x=0;x<9;x++){const p=point(g,x,y);hex(ctx,p.x,p.y,g.r*.93);ctx.fillStyle=y<2?'#c5adff08':'#ffffff04';ctx.fill();ctx.strokeStyle=palette==='neon'?'#b394ed29':'#a8bdd214';ctx.lineWidth=.7;ctx.stroke();const c=game.board[y][x];if(c!==null)kitten(ctx,p.x,p.y,g.r*.9,c);}
+    if(!game.over){for(const c of game.cells(game.ghost())){const p=point(g,c.x,c.y);kitten(ctx,p.x,p.y,g.r*.88,c.color,true);}for(const c of game.cells()){const p=point(g,c.x,c.y);ctx.save();ctx.shadowColor=COLORS[c.color];ctx.shadowBlur=palette==='neon'?12:9;kitten(ctx,p.x,p.y,g.r*.9,c.color);ctx.restore();}}
     for(const p of particles){ctx.globalAlpha=p.life;ctx.fillStyle=COLORS[p.color];ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;return g;
   }
   function preview(ctx,w,h,pieces){ctx.clearRect(0,0,w,h);pieces.forEach((p,i)=>{const raw=p.cells.map(([q,r])=>({x:q*1.5,y:(r+q/2)*Math.sqrt(3)}));const minX=Math.min(...raw.map(c=>c.x)),maxX=Math.max(...raw.map(c=>c.x)),minY=Math.min(...raw.map(c=>c.y)),maxY=Math.max(...raw.map(c=>c.y));const size=Math.min(16,(w/pieces.length-16)/(maxX-minX+2),(h-12)/(maxY-minY+1.74));const ox=(i+.5)*w/pieces.length-(minX+maxX)*size/2,oy=h/2-(minY+maxY)*size/2;raw.forEach(c=>kitten(ctx,ox+c.x*size,oy+c.y*size,size*.9,p.color));});}
-  return {COLORS,hex,kitten,geometry,point,board,preview};
+  return {COLORS,PALETTES,setPalette,hex,kitten,geometry,point,board,preview};
 });

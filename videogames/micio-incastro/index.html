@@ -1,9 +1,105 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14212c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>Micio Incastro — piccoli gatti, grandi incastri</title><meta name="description" content="Tre minuti di gattini in caduta e incastri esagonali. Sfida il tempo o gioca senza fretta, con musica e schermo intero. Gratis su telefono e PC."><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=2"><script src="engine.js?v=2" defer></script><script src="draw.js?v=1" defer></script><script src="game.js?v=2" defer></script></head>
-<body><div class="ambient" aria-hidden="true"></div><div class="app">
-<header><a href="../../#videogames" class="back" aria-label="Torna a tutti i giochi">↖ <span>TACC LAB / PLAY</span></a><div class="top-actions"><button id="fullscreen" aria-label="Gioca a schermo intero" aria-pressed="false">⛶ <span>Schermo intero</span></button><button id="sound" aria-label="Disattiva musica e suoni" aria-pressed="true">♫ <span>Musica on</span></button><button id="help" aria-label="Come si gioca">?</button><button id="pause" aria-label="Pausa">Ⅱ</button></div></header>
-<main><section class="intro"><p class="eyebrow"><i></i> UN PICCOLO POSTO TRANQUILLO</p><h1>Micio<br><span>Incastro<span class="logo-dot">.</span></span></h1><p class="tagline">Tutti i gatti.<br>Al posto giusto.</p><p class="description">Ruota, incastra, avvicina.<br>Sei gatti della stessa famiglia<br>e parte una catena di fusa.</p><div class="mode-picker" role="group" aria-label="Modalità"><button data-mode="flow" class="selected" aria-pressed="true">✦ Sfida · 3 minuti<small>Caduta automatica, ritmo crescente</small></button><button data-mode="chill" aria-pressed="false">☾ Senza fretta<small>Decidi tu quando farli scendere</small></button></div><div class="desktop-tip"><span>← → SPOSTA</span><span>↑ RUOTA</span><span>SPAZIO POSA</span><span>C CAMBIA · F FUSA · P PAUSA</span></div><p class="signature">Un po’ di ritmo. Niente pubblicità.<br>Solo un altro piccolo incastro.</p></section>
-<section class="play" aria-label="Area di gioco"><div class="scorebar"><div><span>PUNTI</span><strong id="score">0</strong></div><div><span>GATTI FELICI</span><strong id="saved">0</strong></div><div class="clock"><span>TEMPO</span><strong id="timer" role="timer" aria-label="Tempo rimasto">3:00</strong></div><div class="record"><span>RECORD</span><strong id="best">0</strong></div></div><div class="board-shell"><div class="board-top"><span id="mode-label">✦ SFIDA · 3 MINUTI</span><span id="level">RITMO 01</span></div><canvas id="board" aria-label="Griglia esagonale: usa i pulsanti sotto per spostare, ruotare e posare i gattini. I simboli sulla fronte distinguono le quattro famiglie." tabindex="0"></canvas><div id="toast" class="toast" role="status" aria-live="polite">Sei vicini. Una famiglia felice.</div><div class="board-bottom"><span class="dot"></span><span id="hint">Unisci 6 gatti uguali · Non riempire il nido!</span></div></div><div class="controls"><button data-action="left" aria-label="Sposta a sinistra">←</button><button data-action="rotate" aria-label="Ruota di sessanta gradi">↻<small>RUOTA</small></button><button data-action="right" aria-label="Sposta a destra">→</button><button data-action="drop" class="drop">↓<small>POSA</small></button></div></section>
-<aside class="side"><div class="up-next"><div class="section-label"><span>IN ARRIVO</span><span>01 — 03</span></div><canvas id="next" aria-label="Anteprima dei prossimi tre gruppi di gattini"></canvas><button id="swap" class="wide">⇄ Cambia gruppo <kbd>C</kbd></button><p>Uno scambio per ogni gruppo.</p></div><div class="purr-card"><div class="section-label"><span>LA MOSSA MORBIDA</span><span>✳</span></div><h2>Fai le fusa.</h2><p>Quattro famiglie riunite liberano le due file più basse. Un po’ di spazio per ricominciare.</p><div id="charge" class="charge" aria-label="Fusa: zero su quattro"><i></i><i></i><i></i><i></i></div><button id="purr" disabled>✳ Fusa <span id="charge-text">0 / 4</span></button></div><div class="family-key"><span>QUATTRO PICCOLE FAMIGLIE</span><div><b style="--c:#8fe3bd">⌄</b><b style="--c:#c5adff">○</b><b style="--c:#ffb18d">−</b><b style="--c:#88cfff">Ⅰ</b></div><p>Stesso colore, stesso simbolo.<br>Si riconoscono anche senza colore.</p></div><button id="restart" class="restart">↺ Nuovo nido</button></aside>
-</main><footer><span>MICIO INCASTRO · UN GIOCO TACC LAB</span><span>Creato per staccare. Non per restare incollati.</span></footer>
-</div><dialog id="dialog"><form method="dialog"><button class="close" aria-label="Chiudi">×</button></form><p class="eyebrow" id="dialog-kicker">BENVENUTO NEL NIDO</p><h2 id="dialog-title">Tre minuti. Mille fusa.</h2><div id="dialog-copy"></div><div class="dialog-actions"><button id="dialog-main">Gioca · 3 minuti →</button><button id="dialog-secondary" hidden>Senza fretta</button></div><button id="dialog-fullscreen" type="button">⛶ Gioca a schermo intero</button><p id="screen-status" role="status" hidden></p></dialog></body></html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#14212c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Micio Incastro — piccoli gatti, grandi incastri</title>
+  <meta name="description" content="Salva 60 gattini e vinci! Un puzzle esagonale con sfida da 3 minuti, modalità senza fretta, colori pastello o fluorescenti, musica e schermo intero.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="engine.js?v=3" defer></script>
+  <script src="draw.js?v=3" defer></script>
+  <script src="game.js?v=3" defer></script>
+</head>
+<body data-palette="pastel">
+<div class="ambient" aria-hidden="true"></div>
+<div class="app">
+  <header>
+    <a href="../../#videogames" class="back" aria-label="Torna a tutti i giochi">↖ <span>TACC LAB / PLAY</span></a>
+    <div class="top-actions">
+      <button id="palette" aria-label="Colori pastello: passa a fluorescenti" title="Cambia colori · Pastello"><i class="palette-glyph" aria-hidden="true"><i></i><i></i><i></i><i></i></i><span id="palette-label">Pastello</span></button>
+      <button id="fullscreen" aria-label="Gioca a schermo intero" aria-pressed="false">⛶ <span>Schermo intero</span></button>
+      <button id="sound" aria-label="Disattiva musica e suoni" aria-pressed="true">♫ <span>Musica on</span></button>
+      <button id="help" aria-label="Come si gioca">?</button>
+      <button id="pause" aria-label="Pausa">Ⅱ</button>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow"><i></i> UNA PICCOLA MISSIONE FELICE</p>
+      <h1>Micio<br><span>Incastro<span class="logo-dot">.</span></span></h1>
+      <p class="tagline">Sessanta gattini.<br>Una vittoria.</p>
+      <p class="description">Ruota, incastra, avvicina.<br>Riunisci sei gatti uguali alla volta.<br>Salvane 60 e vinci la sfida.</p>
+      <div class="mode-picker" role="group" aria-label="Modalità">
+        <button data-mode="flow" class="selected" aria-pressed="true">✦ Sfida · 3 minuti<small>Salva 60 gattini prima dello zero</small></button>
+        <button data-mode="chill" aria-pressed="false">☾ Senza fretta<small>Stesso obiettivo, nessun timer</small></button>
+      </div>
+      <div class="desktop-tip"><span>← → SPOSTA</span><span>↑ RUOTA</span><span>SPAZIO POSA</span><span>C CAMBIA · F FUSA · P PAUSA</span></div>
+      <p class="signature">Un po’ di ritmo. Niente pubblicità.<br>Solo un altro piccolo incastro.</p>
+    </section>
+    <section class="play" aria-label="Area di gioco">
+      <div class="scorebar">
+        <div><span>PUNTI</span><strong id="score">0</strong></div>
+        <div><span>OBIETTIVO</span><strong id="saved">0 / 60</strong></div>
+        <div class="clock"><span>TEMPO</span><strong id="timer" role="timer" aria-label="Tempo rimasto">3:00</strong></div>
+        <div class="record"><span>RECORD</span><strong id="best">0</strong></div>
+      </div>
+      <div class="board-shell">
+        <div class="board-top"><span id="mode-label">✦ SFIDA · 3 MINUTI</span><span id="level">RITMO 01</span></div>
+        <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Gattini salvati per vincere" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"><i id="goal-fill"></i></div>
+        <canvas id="board" aria-label="Griglia esagonale: usa i pulsanti sotto per spostare, ruotare e posare i gattini. I simboli sulla fronte distinguono le quattro famiglie." tabindex="0"></canvas>
+        <div id="toast" class="toast" role="status" aria-live="polite">Salva 60 gattini e vinci!</div>
+        <div class="board-bottom"><span class="dot"></span><span id="hint">60 gattini alla vittoria · Unisci 6 uguali!</span></div>
+      </div>
+      <div class="controls">
+        <button data-action="left" aria-label="Sposta a sinistra">←</button>
+        <button data-action="rotate" aria-label="Ruota di sessanta gradi">↻<small>RUOTA</small></button>
+        <button data-action="right" aria-label="Sposta a destra">→</button>
+        <button data-action="drop" class="drop">↓<small>POSA</small></button>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="up-next">
+        <div class="section-label"><span>IN ARRIVO</span><span>01 — 03</span></div>
+        <canvas id="next" aria-label="Anteprima dei prossimi tre gruppi di gattini"></canvas>
+        <button id="swap" class="wide">⇄ Cambia gruppo <kbd>C</kbd></button>
+        <p>Uno scambio per ogni gruppo.</p>
+      </div>
+      <div class="purr-card">
+        <div class="section-label"><span>LA MOSSA MORBIDA</span><span>✳</span></div>
+        <h2>Fai le fusa.</h2>
+        <p>Quattro famiglie riunite liberano le due file più basse. Anche questi gattini contano per vincere!</p>
+        <div id="charge" class="charge" aria-label="Fusa: zero su quattro"><i></i><i></i><i></i><i></i></div>
+        <button id="purr" disabled>✳ Fusa <span id="charge-text">0 / 4</span></button>
+      </div>
+      <div class="family-key">
+        <span>QUATTRO PICCOLE FAMIGLIE</span>
+        <div><b style="--c:var(--cat-a)">⌄</b><b style="--c:var(--cat-b)">○</b><b style="--c:var(--cat-c)">−</b><b style="--c:var(--cat-d)">Ⅰ</b></div>
+        <p>Stesso colore, stesso simbolo.<br>Si riconoscono anche senza colore.</p>
+      </div>
+      <button id="restart" class="restart">↺ Nuovo nido</button>
+    </aside>
+  </main>
+  <footer><span>MICIO INCASTRO · UN GIOCO TACC LAB</span><span>Creato per staccare. Non per restare incollati.</span></footer>
+</div>
+<dialog id="dialog">
+  <form method="dialog"><button class="close" aria-label="Chiudi">×</button></form>
+  <p class="eyebrow" id="dialog-kicker">LA TUA MISSIONE</p>
+  <h2 id="dialog-title">Salva 60 gattini. Vinci!</h2>
+  <div id="dialog-copy"></div>
+  <div class="palette-picker" role="group" aria-label="Scegli i colori">
+    <span class="section-label">I TUOI COLORI</span>
+    <button type="button" data-colors="pastel" aria-pressed="true"><i class="palette-preview" aria-hidden="true"><i></i><i></i><i></i><i></i></i>Pastello</button>
+    <button type="button" data-colors="neon" aria-pressed="false"><i class="palette-preview" aria-hidden="true"><i></i><i></i><i></i><i></i></i>Fluorescenti</button>
+  </div>
+  <div class="dialog-actions"><button id="dialog-main">Gioca · 3 minuti →</button><button id="dialog-secondary" hidden>Senza fretta</button></div>
+  <button id="dialog-fullscreen" type="button">⛶ Gioca a schermo intero</button>
+  <p id="screen-status" role="status" hidden></p>
+</dialog>
+</body>
+</html>
