@@ -23,7 +23,7 @@
     setText('slow-count',game.slowMs>0?Math.ceil(game.slowMs/1000)+'s':String(game.inventory.slow));
     let state='idle',text='Un’ape si aggira nei dintorni…',help='Quando vola: clic / tocco sull’ape · X spara.',count='…';
     if(wand){state='wand';text=source?'Ora scegli una casella vuota':'Bacchetta: scegli un gatto posato';help='Tempo fermo · Tocca la griglia o usa frecce e spazio.';count='✧';}
-    else if(game.bee){state='warning';text='Spara all’ape! '+game.bee.hp+' colp'+(game.bee.hp===1?'o':'i')+' per scacciarla';help='Clic / tocco sull’ape · X mira · B miele';count=game.mode==='chill'?game.bee.placements+' pose':Math.ceil(game.bee.dropMs/1000)+'s';}
+    else if(game.bee){state='warning';text='Spara all’ape! '+game.bee.hp+' colp'+(game.bee.hp===1?'o':'i')+' per scacciarla';help='Tocca l’ape · SPARA / X mira · B miele';count=game.mode==='chill'?game.bee.placements+' pose':Math.ceil(game.bee.dropMs/1000)+'s';}
     else if(game.slowMs>0){state='slow';text='Un piccolo respiro: caduta rallentata';help='Il timer della missione continua a scorrere.';count=Math.ceil(game.slowMs/1000)+'s';}
     $('bee-banner').dataset.state=state;setText('bee-text',text);setText('bee-help',help);setText('bee-count',count);
   }
@@ -34,6 +34,7 @@
     setText('honey-count',String(game.inventory.honey));setText('wand-count',String(game.inventory.wand));setText('charge-text',game.charge+'/4');setText('wand-label',wand?'Annulla':'Bacchetta');
     $('wand').setAttribute('aria-pressed',String(wand));$('wand').setAttribute('aria-label',wand?'Annulla la bacchetta, tasto W o Esc':'Sposta un gattino con la bacchetta, tasto W');
     $('flying-bee').disabled=unavailable||paused||wand;$('flying-bee').setAttribute('aria-label','Spara all’ape: '+(game.bee?.hp||3)+' colpi rimasti. Anche con X.');setText('bee-hp',game.bee?'● '.repeat(game.bee.hp).trim():'');
+    $('shoot-bee').hidden=!game.bee||unavailable;$('shoot-bee').disabled=unavailable||paused||wand;
     $('rotate-action').innerHTML=wand?'↑ <small>SU</small>':'↻ <small>RUOTA</small>';$('rotate-action').setAttribute('aria-label',wand?'Muovi il cursore in alto':'Ruota di sessanta gradi');
     $('drop-action').innerHTML=wand?'✓ <small>SCEGLI</small>':'↓ <small>POSA</small>';$('drop-action').setAttribute('aria-label',wand?'Scegli questa casella':'Posa il gruppo');
   }
@@ -169,6 +170,7 @@
   for(const action of ['swap','honey','slow','wand','purr'])$(action).onclick=()=>act(action);
   $('flying-bee').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();beePointerAt=performance.now();shoot();});
   $('flying-bee').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if((e.detail===0&&!e.pointerType)||performance.now()-beePointerAt>500)shoot();});
+  $('shoot-bee').onclick=()=>shoot();
   $('sound').onclick=()=>{if(!sound.on&&!sound.enable()){notice('Audio non disponibile in questo browser.');return;}sound.on=!sound.on;sound.stop();if(sound.on)resumeSound();try{localStorage.setItem('micio-music',sound.on?'on':'off');}catch{}soundLabel();};
   function setPalette(name,save=true){palette=MicioDraw.setPalette(name);document.body.dataset.palette=palette;const label=palette==='neon'?'Fluorescenti':'Pastello';setText('palette-label',label);$('palette').setAttribute('aria-label','Colori '+label.toLowerCase()+': passa a '+(palette==='neon'?'pastello':'fluorescenti'));document.querySelectorAll('[data-colors]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.colors===palette)));if(save)try{localStorage.setItem('micio-palette',palette);}catch{}refresh();}
   $('palette').onclick=()=>setPalette(palette==='pastel'?'neon':'pastel');document.querySelectorAll('[data-colors]').forEach(el=>el.onclick=()=>setPalette(el.dataset.colors));

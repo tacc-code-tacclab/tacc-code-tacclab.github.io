@@ -18,6 +18,8 @@ body[data-palette="neon"]{--mint:#b1ff3b;--purple:#fc66ed;--cat-a:#b1ff3b;--cat-
 .flying-bee span{display:block;min-width:48px;padding:2px 5px;border-radius:9px;background:#352b12;color:#ffe98b;border:1px solid #ffda79;font-size:11px;line-height:11px;letter-spacing:1px;white-space:nowrap;pointer-events:none}
 .flying-bee[data-hit="true"]::before{border-color:#9bffff;background:#b9ffff66;box-shadow:0 0 14px #b9ffff88}
 .flying-bee[data-still="true"] img{animation-play-state:paused}.flying-bee:disabled{opacity:.6}
+.bee-banner .shoot-bee{flex:none;min-width:46px;min-height:34px;border:1px solid #b0faff;border-radius:8px;background:#9debf2;color:#153946;font-size:17px;line-height:17px;padding:2px 5px}.bee-banner .shoot-bee span{color:#153946;font-size:8px;line-height:9px;font-weight:800}
+@media(max-height:540px) and (orientation:landscape){.bee-banner .shoot-bee{min-height:26px;font-size:15px;line-height:14px;padding:1px 4px}.bee-banner .shoot-bee span{font-size:7px;line-height:7px}}
 @keyframes flying-wings{from{transform:scaleY(.95) rotate(-2deg)}to{transform:scaleY(1.02) rotate(2deg)}}
 @media(max-height:820px) and (min-width:601px){.side{padding:15px}.world-card h2{font-size:22px}.world-card>p:last-child{font-size:10px;line-height:1.5;margin:10px 0 12px}.keyboard-tip,.original-link{display:none}.next-card{padding-top:11px}#next{height:55px}.bonusbar{margin-top:12px}.bonus{min-height:58px}.bonus-tip{font-size:9px;margin:8px 0}.restart{margin-top:0}.world-card .eyebrow{margin-bottom:8px}}
 @media(max-width:900px){.top-actions span{display:none}.top-actions button{padding:0;min-width:37px}.brand span{font-size:9px}.side{padding:14px}main{gap:16px}.world-card h2{font-size:22px}}

@@ -11,11 +11,11 @@
   <meta name="description" content="Otto missioni, quattro mondi illustrati, un’ape dispettosa e piccole magie. Salva i gattini, disegna pesci, cuori e stelle e compra bonus con le monete di gioco. Per PC e smartphone.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
   <script src="engine.js?v=2" defer></script>
   <script src="draw.js?v=3" defer></script>
   <script src="audio.js?v=2" defer></script>
-  <script src="game.js?v=3" defer></script>
+  <script src="game.js?v=4" defer></script>
 </head>
 <body data-palette="pastel" data-scene="lanterne">
   <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro/backgrounds/lanterne-small.webp"><img id="scene" src="../micio-incastro/backgrounds/lanterne.webp" alt="" width="1440" height="810" fetchpriority="high" decoding="async"></picture>
@@ -50,6 +50,7 @@
             <img src="bee.svg" width="38" height="32" alt="" aria-hidden="true">
             <div><strong id="bee-text">Un’ape si aggira nel giardino…</strong><span id="bee-help">Quando vola, colpiscila con clic, tocchi o X.</span></div>
             <b id="bee-count" aria-hidden="true">…</b>
+            <button id="shoot-bee" class="shoot-bee" aria-label="Spara una bolla all’ape con mira assistita, tasto X" hidden>◎ <span>SPARA</span></button>
           </div>
           <div id="arena" class="board-arena">
             <canvas id="board" tabindex="0" aria-label="Nido esagonale. Frecce per spostare e ruotare, spazio per posare. Sul telefono trascina, tocca per ruotare o usa i pulsanti. Quando arriva l’ape, clicca o tocca per sparare; X mira automaticamente."></canvas>
