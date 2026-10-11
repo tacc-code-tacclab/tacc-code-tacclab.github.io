@@ -27,8 +27,10 @@
     ctx.strokeStyle='#5b3319';ctx.lineWidth=Math.max(1.5,r*.09);ctx.beginPath();ctx.moveTo(x-r*.45,y+r*.02);ctx.lineTo(x+r*.35,y+r*.5);ctx.stroke();ctx.restore();
   }
   function beePosition(w,h,bee,reduced=false){
-    const size=Math.min(96,Math.max(62,w*.22),Math.max(44,h*.65)),t=reduced?0:bee.age/1000,phase=bee.phase;
-    return {size,x:size/2+(w-size)*(.5+.42*Math.sin(t*.85+phase)),y:size*.48+Math.max(0,h-size)*(.19+.14*Math.sin(t*1.25+phase*.6)),tilt:reduced?0:Math.sin(t*1.7)*7};
+    // Short hovering pauses make a moving target catchable with both mouse and touch.
+    const size=Math.min(96,Math.max(62,w*.22),Math.max(44,h*.65)),seconds=bee.age/1000;
+    const t=reduced?0:Math.floor(seconds/3.2)*2.1+Math.min(2.1,seconds%3.2),phase=bee.phase;
+    return {size,x:size/2+(w-size)*(.5+.42*Math.sin(t*.65+phase)),y:size*.48+Math.max(0,h-size)*(.19+.14*Math.sin(t*.95+phase*.6)),tilt:reduced?0:Math.sin(t*1.3)*7};
   }
   function board(ctx,w,h,game,particles=[],ui={}){
     ctx.clearRect(0,0,w,h);const g=geometry(w,h);
