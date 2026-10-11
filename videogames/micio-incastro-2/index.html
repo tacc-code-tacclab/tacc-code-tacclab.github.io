@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#142430">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Micio Incastro 2 — l’ape e le impronte</title>
+  <meta name="description" content="Otto missioni, quattro mondi illustrati, un’ape dispettosa e piccole magie. Salva i gattini, disegna pesci, cuori e stelle e compra bonus con le monete di gioco. Per PC e smartphone.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css?v=1">
+  <script src="engine.js?v=1" defer></script>
+  <script src="draw.js?v=1" defer></script>
+  <script src="audio.js?v=1" defer></script>
+  <script src="game.js?v=1" defer></script>
+</head>
+<body data-palette="pastel" data-scene="lanterne">
+  <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro/backgrounds/lanterne-small.webp"><img id="scene" src="../micio-incastro/backgrounds/lanterne.webp" alt="" width="1440" height="810" fetchpriority="high" decoding="async"></picture>
+  <div class="shade" aria-hidden="true"></div>
+  <div class="app">
+    <header>
+      <a class="brand" href="../../#videogames" aria-label="Torna a tutti i giochi">↖ <span>MICIO INCASTRO</span><b>2</b></a>
+      <nav class="top-actions" aria-label="Impostazioni del gioco">
+        <button id="palette" aria-label="Colori pastello: passa a fluorescenti"><i class="palette-glyph" aria-hidden="true"><i></i><i></i><i></i><i></i></i><span id="palette-label">Pastello</span></button>
+        <button id="fullscreen" aria-label="Nascondi le barre del browser" aria-pressed="false">⛶<span>Schermo intero</span></button>
+        <button id="sound" aria-label="Disattiva musica e suoni" aria-pressed="true">♫<span id="sound-label">Musica on</span></button>
+        <button id="help" aria-label="Come si gioca">?</button>
+        <button id="pause" aria-label="Pausa">Ⅱ</button>
+      </nav>
+    </header>
+    <main>
+      <section class="play" aria-label="Area di gioco">
+        <div class="scorebar">
+          <div><span>PUNTI</span><strong id="score">0</strong></div>
+          <div class="money"><span>MONETE</span><strong id="coins">0</strong></div>
+          <div><span>TEMPO</span><strong id="timer" role="timer" aria-label="Tempo rimasto">3:00</strong></div>
+          <div class="stage-stat"><span>MISSIONE</span><strong id="stage">1 / 8</strong></div>
+        </div>
+        <div class="board-shell">
+          <div class="mission-bar">
+            <canvas id="objective" width="76" height="42" aria-label="Anteprima della missione"></canvas>
+            <div><span id="mission-kind">MISSIONE SALVATAGGIO</span><h1 id="mission-title">Salva 30 gattini</h1></div>
+            <strong id="progress-text">0 / 30</strong>
+          </div>
+          <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Progresso della missione" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><i id="goal-fill"></i></div>
+          <div id="bee-banner" class="bee-banner" data-state="idle" role="status" aria-live="polite">
+            <img src="bee.svg" width="38" height="32" alt="" aria-hidden="true">
+            <div><strong id="bee-text">Un’ape si aggira nel giardino…</strong><span id="bee-help">Il miele la distrae prima dello scambio.</span></div>
+            <b id="bee-count" aria-hidden="true">…</b>
+          </div>
+          <canvas id="board" tabindex="0" aria-label="Nido esagonale. Frecce per spostare e ruotare, spazio per posare. Sul telefono trascina, tocca per ruotare o usa i pulsanti."></canvas>
+          <div id="board-status" class="board-status" role="status" aria-live="polite">Unisci sei gattini della stessa famiglia.</div>
+        </div>
+        <div class="controls" aria-label="Comandi dei gattini">
+          <button data-action="left" aria-label="Sposta a sinistra">←</button>
+          <button id="rotate-action" data-action="rotate" aria-label="Ruota di sessanta gradi">↻ <small>RUOTA</small></button>
+          <button data-action="right" aria-label="Sposta a destra">→</button>
+          <button id="drop-action" data-action="drop" class="drop" aria-label="Posa il gruppo">↓ <small>POSA</small></button>
+        </div>
+      </section>
+      <aside class="side" aria-label="Missione e bonus">
+        <div class="world-card">
+          <p class="eyebrow" id="world-number">MONDO 1 / 4</p>
+          <h2 id="world-name">Giardino delle lanterne</h2>
+          <div class="journey" aria-label="Avanzamento negli otto schemi"><i data-stop="0"></i><i data-stop="1"></i><i data-stop="2"></i><i data-stop="3"></i><i data-stop="4"></i><i data-stop="5"></i><i data-stop="6"></i><i data-stop="7"></i></div>
+          <p id="mission-detail">Salva i gattini formando gruppi di sei uguali.</p>
+        </div>
+        <div class="next-card">
+          <p class="eyebrow">I PROSSIMI AMICI</p>
+          <canvas id="next" aria-label="Anteprima dei prossimi tre gruppi"></canvas>
+          <button id="swap" class="swap" aria-label="Cambia gruppo, tasto C">⇄ <span>Cambia gruppo</span><kbd>C</kbd></button>
+        </div>
+        <div class="bonusbar" role="group" aria-label="Bonus: miele B, ghiaccio I, bacchetta W, fusa F">
+          <button id="honey" class="bonus honey" aria-label="Usa miele per fermare l’ape, tasto B" disabled><span class="bonus-icon" aria-hidden="true">🍯</span><span class="bonus-name">Miele</span><b id="honey-count">1</b><kbd>B</kbd></button>
+          <button id="slow" class="bonus" aria-label="Rallenta la caduta per dodici secondi, tasto I"><span class="bonus-icon" aria-hidden="true">❄</span><span class="bonus-name">Ghiaccio</span><b id="slow-count">1</b><kbd>I</kbd></button>
+          <button id="wand" class="bonus" aria-label="Sposta un gattino con la bacchetta, tasto W" aria-pressed="false"><span class="bonus-icon" aria-hidden="true">✧</span><span class="bonus-name" id="wand-label">Bacchetta</span><b id="wand-count">1</b><kbd>W</kbd></button>
+          <button id="purr" class="bonus purr" aria-label="Fusa: libera le due file inferiori, tasto F" disabled><span class="bonus-icon" aria-hidden="true">✳</span><span class="bonus-name">Fusa</span><b id="charge-text">0/4</b><kbd>F</kbd></button>
+        </div>
+        <p class="bonus-tip">Salva gattini, guadagna monete.<br>La bottega apre fra le missioni.</p>
+        <p class="keyboard-tip">← → sposta · ↑ ruota · spazio posa<br>C cambia · B miele · I ghiaccio<br>W bacchetta · F fusa · P pausa</p>
+        <button id="restart" class="restart">↺ Nuovo viaggio</button>
+        <a class="original-link" href="../micio-incastro/">Il primo Micio Incastro ↗</a>
+      </aside>
+    </main>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <button id="dialog-close" class="close" aria-label="Chiudi e riprendi">×</button>
+    <div class="dialog-mascot" aria-hidden="true"><img src="bee.svg" width="76" height="64" alt=""><span>2</span></div>
+    <p id="dialog-kicker" class="eyebrow">MICIO INCASTRO 2</p>
+    <h2 id="dialog-title">Un’ape ha cambiato i piani.</h2>
+    <div id="dialog-copy"></div>
+    <section id="shop" class="shop" aria-label="Bottega dei bonus" hidden>
+      <div class="shop-heading"><h3>La bottega delle piccole magie</h3><strong>◉ <span id="shop-coins">0</span></strong></div>
+      <p>Spendi le monete guadagnate giocando. I bonus restano con te nel prossimo schema.</p>
+      <div class="shop-items">
+        <article><span class="product-icon" aria-hidden="true">🍯</span><div><h4>Miele</h4><p>Ferma l’ape, carica una Fusa.</p><small id="stock-honey">1 / 3 in borsa</small></div><button id="buy-honey">Compra · 4 ◉</button></article>
+        <article><span class="product-icon" aria-hidden="true">❄</span><div><h4>Ghiaccio</h4><p>Caduta lenta per 12 secondi.</p><small id="stock-slow">1 / 2 in borsa</small></div><button id="buy-slow">Compra · 6 ◉</button></article>
+        <article><span class="product-icon" aria-hidden="true">✧</span><div><h4>Bacchetta</h4><p>Sposta un gatto, lascia un’impronta.</p><small id="stock-wand">1 / 2 in borsa</small></div><button id="buy-wand">Compra · 8 ◉</button></article>
+      </div>
+      <p id="shop-feedback" role="status" aria-live="polite"></p>
+    </section>
+    <div id="palette-picker" class="palette-picker" role="group" aria-label="Scegli i colori"><button data-colors="pastel" aria-pressed="true">● Pastello</button><button data-colors="neon" aria-pressed="false">✦ Fluorescenti</button></div>
+    <div class="dialog-actions"><button id="dialog-main">Parti · Sfida →</button><button id="dialog-secondary">Senza fretta</button></div>
+    <p id="screen-status" role="status" hidden></p>
+  </dialog>
+</body>
+</html>
