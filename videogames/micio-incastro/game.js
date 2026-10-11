@@ -2,105 +2,86 @@
   'use strict';
   const $=id=>document.getElementById(id), canvas=$('board'), ctx=canvas.getContext('2d'), next=$('next'), nc=next.getContext('2d');
   const game=new Micio.Game(), dialog=$('dialog'), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let paused=true, needsDraw=true, last=0, fall=0, particles=[], toastUntil=0, repeatDelay=0, repeatTimer=0, modalAction=null, modalSecondary=null, width=0,height=0,clockValue='',immersive=false,screenBusy=false,palette='pastel';
-  // Goal-based scores have their own records; earlier unlimited records stay intact.
-  let bests={chill:0,flow:0};
-  try{const data=JSON.parse(localStorage.getItem('micio-records-v3')||'{}');for(const m of ['chill','flow'])if(Number.isFinite(data[m])&&data[m]>=0)bests[m]=data[m];}catch{}
-
-  // Original 16-bar tune: a light melody, soft arpeggios and bass, all synthesized.
-  const melody=[
-    [74,78,81,0,83,81,78,76],[74,0,78,81,78,76,74,0],
-    [78,81,83,0,85,83,81,78],[76,78,81,0,78,76,73,0],
-    [74,78,81,83,86,0,83,81],[78,0,76,74,71,74,78,0],
-    [79,78,76,74,76,0,79,81],[78,76,73,0,76,78,81,0],
-    [86,83,81,0,78,81,83,81],[78,74,71,0,74,78,81,0],
-    [83,81,79,0,78,79,83,81],[85,81,78,0,76,78,81,0],
-    [81,78,74,78,81,0,83,86],[83,81,78,0,76,74,71,0],
-    [74,76,79,81,83,0,79,76],[73,76,78,81,78,76,74,0]
+  let paused=true, needsDraw=true, last=0, fall=0, particles=[], toastUntil=0, repeatDelay=0, repeatTimer=0, modalAction=null, modalSecondary=null, width=0,height=0,clockValue='',screenBusy=false,palette='pastel',sceneIndex=-1;
+  const worlds=[
+    {name:'Giardino delle lanterne',asset:'lanterne',symbol:'✿'},
+    {name:'Baia luminosa',asset:'baia',symbol:'≈'},
+    {name:'Città delle nuvole',asset:'nuvole',symbol:'☁'},
+    {name:'Osservatorio stellare',asset:'stelle',symbol:'✦'}
   ];
-  const harmony=[[50,62,66,69],[47,59,62,66],[43,55,59,62],[45,57,61,64]];
-  const sound={ctx:null,bus:null,on:true,next:0,index:0,voices:new Set(),
-    enable(){
-      try{if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;this.ctx=new C();this.bus=this.ctx.createGain();this.bus.gain.value=.32;this.bus.connect(this.ctx.destination);}if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});return true;}catch{return false;}
-    },
-    note(note,duration=.8,volume=.07,when,type='sine'){
-      if(!this.on||!this.ctx||this.voices.size>=16)return;
-      const c=this.ctx,t=when??c.currentTime,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=440*Math.pow(2,(note-69)/12);
-      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
-      o.connect(g);g.connect(this.bus);this.voices.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.voices.delete(o);};o.start(t);o.stop(t+duration+.02);
-    },
-    stop(){for(const o of this.voices){try{o.stop();}catch{}}this.voices.clear();this.next=0;},
-    tick(){
-      if(!this.on||!this.ctx||this.ctx.state!=='running')return;
-      const now=this.ctx.currentTime,beat=60/(game.mode==='flow'?118:104)/2;
-      if(this.next<now-.2)this.next=now+.025;
-      while(this.next<now+.12){
-        const bar=Math.floor(this.index/8)%16,step=this.index%8,chord=harmony[bar%4],note=melody[bar][step];
-        if(note)this.note(note,beat*.88,.075,this.next,'triangle');
-        if(step%2===0)this.note(chord[1+(step/2)%3],beat*1.65,.045,this.next);
-        if(step===0||step===4)this.note(chord[0],beat*3.1,.08,this.next);
-        this.index=(this.index+1)%128;this.next+=beat;
-      }
-    }
-  };
+  // Four-world scores have their own records; earlier score keys stay intact.
+  let bests={chill:0,flow:0};
+  try{const data=JSON.parse(localStorage.getItem('micio-records-v4')||'{}');for(const m of ['chill','flow'])if(Number.isFinite(data[m])&&data[m]>=0)bests[m]=data[m];}catch{}
+
+  const sound=MicioAudio.create();
   try{sound.on=localStorage.getItem('micio-music')!=='off';}catch{}
   function soundLabel(){$('sound').setAttribute('aria-pressed',String(sound.on));$('sound').setAttribute('aria-label',sound.on?'Disattiva musica e suoni':'Attiva musica e suoni');$('sound').querySelector('span').textContent=sound.on?'Musica on':'Musica off';}
   function resumeSound(){if(sound.on&&!game.over)sound.enable();}
   function stopRepeat(){clearTimeout(repeatDelay);clearInterval(repeatTimer);repeatDelay=repeatTimer=0;}
   function toast(text){$('toast').textContent=text;$('toast').classList.add('show');toastUntil=performance.now()+2400;}
+  function refreshScene(){
+    if(sceneIndex===game.stage)return;sceneIndex=game.stage;const world=worlds[sceneIndex];
+    document.body.dataset.scene=world.asset;
+    $('scene-mobile').srcset='backgrounds/'+world.asset+'-small.webp';$('scene').src='backgrounds/'+world.asset+'.webp';
+    $('world-name').textContent=world.name;$('world-number').textContent=world.symbol+' SCHEMA '+(sceneIndex+1)+' / '+Micio.STAGES;
+    document.querySelectorAll('[data-world]').forEach((el,i)=>{el.classList.toggle('current',i===sceneIndex);el.classList.toggle('complete',i<sceneIndex);el.setAttribute('aria-current',i===sceneIndex?'step':'false');});
+    sound.setStage(sceneIndex);
+  }
   function refreshTime(){
     const seconds=Math.ceil(game.remaining/1000),value=game.mode==='chill'?'∞':Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
     if(value!==clockValue){clockValue=value;$('timer').textContent=value;$('timer').classList.toggle('urgent',game.mode==='flow'&&seconds<=30&&!game.over);}
     const label='RITMO '+String(game.level).padStart(2,'0');if($('level').textContent!==label)$('level').textContent=label;
   }
   function refresh(){
+    refreshScene();
     $('score').textContent=game.score.toLocaleString('it-IT');$('saved').textContent=Math.min(game.saved,game.goal)+' / '+game.goal;
     const progress=$('goal-progress'),rescued=Math.min(game.saved,game.goal);
     progress.setAttribute('aria-valuemax',String(game.goal));progress.setAttribute('aria-valuenow',String(rescued));progress.setAttribute('aria-valuetext',rescued+' su '+game.goal+' gattini salvati');$('goal-fill').style.width=(rescued/game.goal*100)+'%';
-    if(game.score>bests[game.mode]){bests[game.mode]=game.score;try{localStorage.setItem('micio-records-v3',JSON.stringify(bests));}catch{}}
+    if(game.score>bests[game.mode]){bests[game.mode]=game.score;try{localStorage.setItem('micio-records-v4',JSON.stringify(bests));}catch{}}
     $('best').textContent=bests[game.mode].toLocaleString('it-IT');refreshTime();
-    $('mode-label').textContent=game.mode==='chill'?'☾ SENZA FRETTA':'✦ SFIDA · 3 MINUTI';
+    $('mode-label').textContent=(game.stage+1)+' / '+Micio.STAGES+' · '+worlds[game.stage].name.toUpperCase();
     $('charge-text').textContent=game.charge+' / 4';$('charge').setAttribute('aria-label','Fusa: '+game.charge+' su quattro');
     [...$('charge').children].forEach((el,i)=>el.classList.toggle('on',i<game.charge));$('purr').disabled=game.charge<4||game.over;
     $('swap').disabled=game.swapped||game.over;
-    $('hint').textContent=game.won?'Obiettivo raggiunto!':(game.goal-rescued)+' gattini alla vittoria · '+(game.mode==='chill'?'Nessuna fretta.':'Unisci 6 uguali!');
+    $('hint').textContent=game.won?'Schema completato!':(game.goal-rescued)+' gattini al '+(game.stage===Micio.STAGES-1?'traguardo':'prossimo mondo')+' · '+(game.mode==='chill'?'Senza fretta':'Unisci 6 uguali');
     document.querySelectorAll('[data-mode]').forEach(b=>{const yes=b.dataset.mode===game.mode;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));});
     const r=next.getBoundingClientRect();MicioDraw.preview(nc,r.width,r.height,game.queue);needsDraw=true;
   }
   function finish(){
-    const won=game.won,timed=game.endReason==='time',missing=Math.max(0,game.goal-game.saved);
+    const won=game.won,final=game.campaignWon,timed=game.endReason==='time',missing=Math.max(0,game.goal-game.saved);
     refresh();
-    const message=won?'Hai salvato almeno <strong>'+game.goal+' gattini</strong>: missione compiuta!'+(game.mode==='flow'?' Ti restavano <strong>'+$('timer').textContent+'</strong> sul cronometro.':' Con calma, hai trovato un posto per tutti.'):timed?'Il tempo è finito prima dell’obiettivo. Ti mancavano <strong>'+missing+' gattini</strong> alla vittoria. Riprova: anche le Fusa contano!':'Non c’è più spazio per il prossimo gruppo. Ti mancavano <strong>'+missing+' gattini</strong> alla vittoria: unisci sei vicini uguali per liberare il nido.';
-    show(won?'Hai vinto!':timed?'Tempo scaduto!':'Il nido è pieno.',
-      (won?'<div class="victory-mark" aria-hidden="true">✦</div>':'')+'<p><strong>'+game.score.toLocaleString('it-IT')+' punti</strong> · <strong>'+game.saved+' gatti felici</strong></p><p>'+message+'</p>',
-      won?'Gioca ancora →':'Riprova →',()=>start(game.mode),null,won?'VITTORIA':timed?'OBIETTIVO MANCATO':'FINE PARTITA');
+    const message=final?'Hai attraversato <strong>tutti e quattro i mondi</strong> e salvato <strong>'+game.totalSaved+' gattini</strong>. Il viaggio è completo!':won?'I gattini di <strong>'+worlds[game.stage].name+'</strong> sono al sicuro. Prossima fermata: <strong>'+worlds[game.stage+1].name+'</strong>! Nuovo nido, '+(game.mode==='flow'?'3 minuti e un ritmo più veloce.':'altri 60 gattini da salvare.'):timed?'Il tempo è finito prima dell’obiettivo. Ti mancavano <strong>'+missing+' gattini</strong>. Riprova questo schema: anche le Fusa contano!':'Non c’è più spazio per il prossimo gruppo. Ti mancavano <strong>'+missing+' gattini</strong>. Riprova questo schema e riunisci sei vicini uguali.';
+    show(final?'Hai vinto!':won?'Schema completato!':timed?'Tempo scaduto!':'Il nido è pieno.',
+      (won?'<div class="victory-mark" aria-hidden="true">'+worlds[game.stage].symbol+'</div>':'')+'<p><strong>'+game.score.toLocaleString('it-IT')+' punti</strong> · <strong>'+game.totalSaved+' gatti felici</strong></p><p>'+message+'</p>',
+      final?'Gioca ancora →':won?'Prossimo mondo →':'Riprova lo schema →',()=>{if(final)start(game.mode);else if(won){if(game.nextStage())beginStage();}else if(game.retryStage())beginStage();},null,final?'VITTORIA · 4 MONDI SU 4':won?'SCHEMA '+(game.stage+1)+' / 4 COMPLETATO':timed?'OBIETTIVO MANCATO':'FINE PARTITA');
     dialog.dataset.result=won?'win':'';
-    if(won&&sound.ctx){const now=sound.ctx.currentTime;[74,78,81,86].forEach((note,i)=>sound.note(note,.65,.09,now+i*.14,'triangle'));}
+    sound.fx(final?'final':won?'win':'lose');
   }
   function burst(result){
     if(!result)return;const g=MicioDraw.geometry(width,height);
     for(const clear of result.clears||[]){if(!reduced)for(const c of clear.cells){const p=MicioDraw.point(g,c.x,c.y);for(let n=0;n<2&&particles.length<100;n++)particles.push({x:p.x,y:p.y,vx:(Math.random()-.5)*75,vy:-25-Math.random()*55,size:2+Math.random()*3,color:c.color,life:1});}}
-    if(result.clears?.length){toast(result.purr?'Frrrr… spazio per nuovi amici.':result.chain>1?'CATENA ×'+result.chain+' · Che bel gioco di squadra!':'Una famiglia felice! +'+result.clears.reduce((s,c)=>s+c.cells.length,0)+' gatti');sound.note(76,.5,.08);sound.note(81,1,.05);}else if(!result.moved)sound.note(57,.18,.05);
+    if(result.clears?.length){toast(result.purr?'Frrrr… spazio per nuovi amici.':result.chain>1?'CATENA ×'+result.chain+' · Che bel gioco di squadra!':'Una famiglia felice! +'+result.clears.reduce((s,c)=>s+c.cells.length,0)+' gatti');sound.fx(result.purr?'purr':'clear',Math.max(1,result.chain));}else sound.fx(result.moved?'fall':'lock');
     if(game.over)finish();else refresh();
   }
   function act(action){
     if(paused||game.over||dialog.open)return;let changed=false;
     if(action==='left')changed=game.move(-1);else if(action==='right')changed=game.move(1);else if(action==='rotate')changed=game.turn();else if(action==='swap')changed=game.swap();
-    else if(action==='drop'){burst(game.drop());fall=0;}else if(action==='down'){burst(game.step());fall=0;}else if(action==='purr'){burst(game.purr());fall=0;}
-    if(changed){sound.note(action==='rotate'?72:64,.065,.025);refresh();}needsDraw=true;
+    else if(action==='drop'){sound.fx('drop');burst(game.drop());fall=0;}else if(action==='down'){burst(game.step());fall=0;}else if(action==='purr'){burst(game.purr());fall=0;}
+    if(changed){sound.fx(action==='rotate'?'rotate':action==='swap'?'swap':'move');refresh();}needsDraw=true;
   }
-  function start(mode){game.reset(mode);fall=0;last=0;particles=[];paused=false;needsDraw=true;sound.stop();sound.index=0;resumeSound();refresh();toast('Salva '+game.goal+' gattini e vinci'+(mode==='chill'?'. Senza fretta.':'! Hai 3 minuti.'));}
+  function beginStage(){fall=0;last=0;particles=[];paused=false;needsDraw=true;refresh();sound.setStage(game.stage);resumeSound();toast(worlds[game.stage].symbol+' '+worlds[game.stage].name+' · Salva 60 gattini');}
+  function start(mode){game.reset(mode);beginStage();enterFullscreen(false);}
   function show(title,copy,button,action,secondary=null,kicker='UN PICCOLO RESPIRO',secondaryLabel='Annulla'){
     paused=true;last=0;stopRepeat();sound.stop();dialog.dataset.result='';$('dialog-title').textContent=title;$('dialog-copy').innerHTML=copy;$('dialog-kicker').textContent=kicker;
     $('dialog-main').textContent=button;modalAction=action;modalSecondary=secondary;$('dialog-secondary').hidden=!secondary;$('dialog-secondary').textContent=secondaryLabel;
     if(!dialog.open)dialog.showModal();
   }
-  const instructions='<ol><li><strong>Sposta e ruota</strong> i gattini. Unisci <strong>6 vicini della stessa famiglia</strong> per salvarli e liberare spazio.</li><li><strong>Salva '+game.goal+' gattini e vinci!</strong> Nella Sfida hai 3 minuti e i pezzi cadono sempre più velocemente.</li><li>Se riempi il nido o finisce il tempo prima dell’obiettivo, <strong>perdi la partita</strong>.</li></ol>';
-  function welcome(){show('Salva 60 gattini. Vinci!',instructions+'<p>Trascina o usa le frecce. Tocca o premi ↑ per ruotare; POSA o spazio per far scendere subito.</p>','Gioca · 3 minuti →',()=>start('flow'),()=>start('chill'),'LA TUA MISSIONE','Senza fretta');}
+  const instructions='<ol><li><strong>Sposta e ruota</strong> i gattini. Unisci <strong>6 vicini della stessa famiglia</strong> per salvarli.</li><li>Salva <strong>60 gattini per schema</strong>: giardino, baia, nuvole e stelle. Completa i quattro mondi per vincere!</li><li>Nella Sfida hai <strong>3 minuti per schema</strong>, con caduta sempre più veloce. Se il nido si riempie o il tempo finisce, riprovi lo schema.</li></ol>';
+  function welcome(){show('Quattro mondi. Un viaggio felice.',instructions+'<p>Trascina o usa ← →. Tocca o premi ↑ per ruotare; POSA o spazio per far scendere subito.</p>','Parti · Sfida →',()=>start('flow'),()=>start('chill'),'MICIO INCASTRO','Senza fretta');}
   function help(){show('Ogni gatto al suo posto.',instructions+'<p>Quattro famiglie caricano le <strong>Fusa</strong>: liberano le due file più basse e i gattini salvati contano per la vittoria. C cambia gruppo, F fa le fusa, P mette in pausa.</p><p>☾ <strong>Senza fretta</strong>: stesso obiettivo di '+game.goal+' gattini, senza timer. Scegli tu quando posare.</p>','Riprendi →',()=>{paused=game.over;},null,'COME SI GIOCA');}
   $('dialog-main').onclick=()=>{const fn=modalAction;dialog.close();if(fn)fn();if(!paused)resumeSound();refresh();};
   $('dialog-secondary').onclick=()=>{const fn=modalSecondary;dialog.close();if(fn)fn();if(!paused)resumeSound();};
-  dialog.addEventListener('close',()=>{paused=game.over;last=0;fall=0;stopRepeat();if(!paused)resumeSound();needsDraw=true;});
+  dialog.addEventListener('close',()=>{paused=game.over;last=0;fall=0;stopRepeat();if(!paused)resumeSound();else requestAnimationFrame(()=>{if(game.over&&!dialog.open)finish();});needsDraw=true;});
   $('pause').onclick=()=>{if(!dialog.open&&!game.over)show('Il nido può aspettare.','<p>Timer, gattini e musica sono in pausa. Riprendi quando vuoi.</p>','Riprendi →',()=>{paused=false;});};
   $('help').onclick=help;
   function requestStart(mode){if(game.moves===0&&game.elapsed<1000){start(mode);return;}show('Prepariamo un nuovo nido?','<p>La partita attuale termina. Il tuo record rimane salvato su questo dispositivo.</p>','Sì, ricomincia',()=>start(mode),()=>{paused=game.over;});}
@@ -125,32 +106,33 @@
   document.querySelectorAll('[data-colors]').forEach(b=>b.onclick=()=>setPalette(b.dataset.colors));
 
   function nativeScreen(){return document.fullscreenElement||document.webkitFullscreenElement;}
-  function setImmersive(on){
-    immersive=on;document.body.classList.toggle('immersive',on);
-    $('fullscreen').setAttribute('aria-pressed',String(on));$('fullscreen').setAttribute('aria-label',on?'Esci dallo schermo intero':'Gioca a schermo intero');
-    $('fullscreen').querySelector('span').textContent=on?'Esci':'Schermo intero';$('dialog-fullscreen').textContent=on?'⛶ Esci dallo schermo intero':'⛶ Gioca a schermo intero';
+  function syncScreen(){
+    document.body.classList.add('immersive');const on=!!nativeScreen();
+    $('fullscreen').setAttribute('aria-pressed',String(on));$('fullscreen').setAttribute('aria-label',on?'Mostra le barre del browser':'Nascondi le barre del browser');
+    $('fullscreen').querySelector('span').textContent=on?'Mostra barre':'Schermo intero';$('dialog-fullscreen').textContent=on?'⛶ Mostra le barre del browser':'⛶ Nascondi le barre del browser';
     requestAnimationFrame(resize);
   }
   function screenNotice(message){$('screen-status').textContent=message;$('screen-status').hidden=false;toast(message);}
-  async function toggleFullscreen(){
-    if(screenBusy)return;screenBusy=true;
+  async function enterFullscreen(notify=true){
+    if(screenBusy||nativeScreen())return;screenBusy=true;
     try{
-      if(immersive||nativeScreen()){
-        if(nativeScreen()){const exit=document.exitFullscreen||document.webkitExitFullscreen;await exit.call(document);}
-        setImmersive(false);$('screen-status').hidden=true;
-      }else{
-        const root=document.documentElement,request=root.requestFullscreen||root.webkitRequestFullscreen;
-        if(request){await request.call(root);setImmersive(true);}
-        else{setImmersive(true);screenNotice('Vista estesa attiva. Per nascondere le barre su iPhone: Safari → Condividi → Aggiungi alla schermata Home.');}
-      }
-    }catch{
-      if(nativeScreen())screenNotice('Usa il comando del browser per uscire dallo schermo intero.');
-      else{setImmersive(true);screenNotice('Il browser non consente lo schermo intero. La vista estesa dà più spazio al gioco.');}
-    }finally{screenBusy=false;}
+      const root=document.documentElement,request=root.requestFullscreen||root.webkitRequestFullscreen;
+      if(request){await request.call(root);$('screen-status').hidden=true;}
+      else if(notify)screenNotice('Il gioco occupa già tutta la pagina. Su iPhone: Safari → Condividi → Aggiungi alla schermata Home per nascondere le barre.');
+    }catch{if(notify)screenNotice('Il browser mantiene le sue barre. Il gioco resta a tutta pagina.');}
+    finally{screenBusy=false;syncScreen();}
+  }
+  async function toggleFullscreen(){
+    if(screenBusy)return;
+    if(!nativeScreen()){await enterFullscreen();return;}
+    screenBusy=true;
+    try{const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit)await exit.call(document);}
+    catch{screenNotice('Usa il comando del browser per mostrare le barre.');}
+    finally{screenBusy=false;syncScreen();}
   }
   $('fullscreen').onclick=toggleFullscreen;$('dialog-fullscreen').onclick=toggleFullscreen;
-  for(const event of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(event,()=>setImmersive(!!nativeScreen()));
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&immersive&&!nativeScreen()&&!dialog.open)setImmersive(false);});
+  for(const event of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(event,syncScreen);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!nativeScreen()&&!dialog.open)$('pause').click();});
 
   document.querySelectorAll('[data-action]').forEach(b=>{
     const action=b.dataset.action;
@@ -175,7 +157,7 @@
     if(!paused&&!game.over){
       if(game.advance(elapsed))finish();
       else{
-        sound.tick();refreshTime();
+    sound.tick(game.mode);refreshTime();
         if(game.mode==='flow'){
           // Bound catch-up work after a slow frame; the real countdown never slows down.
           fall=Math.min(fall+elapsed,game.interval*8);
@@ -188,6 +170,6 @@
     if(needsDraw){MicioDraw.board(ctx,width,height,game,particles);needsDraw=false;}
   }
   soundLabel();let initialPalette='pastel';try{initialPalette=localStorage.getItem('micio-palette')||'pastel';}catch{}setPalette(initialPalette,false);
-  if(matchMedia('(display-mode: standalone)').matches||window.navigator?.standalone)setImmersive(true);
+  syncScreen();
   resize();welcome();requestAnimationFrame(loop);
 })();

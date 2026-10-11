@@ -1,6 +1,6 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.Micio=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const COLS=9, ROWS=12, MATCH=6, DURATION=180000, GOAL=60;
+  const COLS=9, ROWS=12, MATCH=6, DURATION=180000, GOAL=60, STAGES=4;
   const SHAPES=[[[0,0],[0,1],[0,2]],[[0,0],[1,0],[0,1]],[[0,0],[1,-1],[2,-1]],[[0,0],[-1,0],[1,0]],[[0,0],[0,1]]];
   const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
   const toGrid=(q,r)=>[q,r+Math.floor(q/2)];
@@ -8,7 +8,10 @@
   const rotate=cells=>cells.map(([q,r])=>[-r||0,q+r||0]);
   class Game {
     constructor(random=Math.random){this.random=random;this.reset('flow');}
-    reset(mode='flow'){this.mode=mode==='chill'?'chill':'flow';this.board=Array.from({length:ROWS},()=>Array(COLS).fill(null));this.score=0;this.saved=0;this.charge=0;this.bestChain=0;this.moves=0;this.elapsed=0;this.over=false;this.endReason=null;this.bag=[];this.queue=[this.make(),this.make(),this.make()];this.spawn();}
+    reset(mode='flow'){this.mode=mode==='chill'?'chill':'flow';this.stage=0;this.score=0;this.rescuedBefore=0;this.bestChain=0;this.prepareStage();}
+    prepareStage(){this.stageStartScore=this.score;this.board=Array.from({length:ROWS},()=>Array(COLS).fill(null));this.saved=0;this.charge=0;this.moves=0;this.elapsed=0;this.over=false;this.endReason=null;this.bag=[];this.queue=[this.make(),this.make(),this.make()];this.spawn();}
+    nextStage(){if(!this.won||this.campaignWon)return false;this.rescuedBefore+=this.saved;this.stage++;this.prepareStage();return true;}
+    retryStage(){if(!this.over||this.won)return false;this.score=this.stageStartScore;this.prepareStage();return true;}
     finish(reason){if(this.over)return;this.over=true;this.endReason=reason;}
     advance(ms){if(this.over||this.mode!=='flow'||!Number.isFinite(ms)||ms<=0)return false;this.elapsed=Math.min(DURATION,this.elapsed+ms);if(this.elapsed===DURATION)this.finish('time');return this.over;}
     make(){if(!this.bag.length){this.bag=[0,1,2,3];for(let i=3;i>0;i--){const j=Math.floor(this.random()*(i+1));[this.bag[i],this.bag[j]]=[this.bag[j],this.bag[i]];}}const shape=SHAPES[Math.floor(this.random()*SHAPES.length)].map(c=>c.slice());return {cells:shape,color:this.bag.pop()};}
@@ -31,9 +34,11 @@
       result.clears.unshift({cells,chain:0});result.purr=true;return result;}
     get goal(){return GOAL;}
     get won(){return this.endReason==='win';}
+    get campaignWon(){return this.won&&this.stage===STAGES-1;}
+    get totalSaved(){return this.rescuedBefore+this.saved;}
     get remaining(){return this.mode==='flow'?DURATION-this.elapsed:Infinity;}
     get level(){return 1+Math.max(Math.floor(this.saved/30),this.mode==='flow'?Math.floor(this.elapsed/20000):0);}
-    get interval(){return Math.max(240,1100-(this.level-1)*90);}
+    get interval(){return Math.max(180,720-this.stage*85-(this.level-1)*45);}
   }
-  return {Game,COLS,ROWS,MATCH,DURATION,GOAL,SHAPES,DIRS,toGrid,toAxial,rotate};
+  return {Game,COLS,ROWS,MATCH,DURATION,GOAL,STAGES,SHAPES,DIRS,toGrid,toAxial,rotate};
 });

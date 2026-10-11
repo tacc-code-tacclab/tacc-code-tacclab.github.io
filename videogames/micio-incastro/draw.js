@@ -6,7 +6,7 @@
   function hex(ctx,x,y,r){ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();}
   function kitten(ctx,x,y,r,color,ghost=false){
     ctx.save();ctx.translate(x,y);
-    hex(ctx,0,0,r*.92);ctx.fillStyle=ghost?'#ffffff07':COLORS[color];ctx.fill();ctx.lineWidth=ghost?1.4:1;ctx.strokeStyle=ghost?COLORS[color]:'#ffffff55';if(ghost)ctx.setLineDash([3,4]);ctx.stroke();
+    hex(ctx,0,0,r*.92);ctx.fillStyle=ghost?'#ffffff07':COLORS[color];ctx.fill();ctx.lineWidth=ghost?1.6:1.4;ctx.strokeStyle=ghost?COLORS[color]:'#f2fbffd9';if(ghost)ctx.setLineDash([3,4]);ctx.stroke();
     if(ghost){ctx.restore();return;}
     ctx.fillStyle='#ffffff24';ctx.beginPath();ctx.moveTo(-r*.8,-r*.2);ctx.lineTo(0,-r*.8);ctx.lineTo(r*.8,-r*.2);ctx.lineTo(0,0);ctx.closePath();ctx.fill();
     ctx.fillStyle=COLORS[color];ctx.strokeStyle='#26334844';ctx.lineWidth=r*.035;
@@ -23,7 +23,7 @@
   function point(g,x,y){return {x:g.x+x*g.r*1.5,y:g.y+(y+(x%2)*.5)*g.r*Math.sqrt(3)};}
   function board(ctx,w,h,game,particles=[]){
     ctx.clearRect(0,0,w,h);const g=geometry(w,h);
-    for(let y=0;y<12;y++)for(let x=0;x<9;x++){const p=point(g,x,y);hex(ctx,p.x,p.y,g.r*.93);ctx.fillStyle=y<2?'#c5adff08':'#ffffff04';ctx.fill();ctx.strokeStyle=palette==='neon'?'#b394ed29':'#a8bdd214';ctx.lineWidth=.7;ctx.stroke();const c=game.board[y][x];if(c!==null)kitten(ctx,p.x,p.y,g.r*.9,c);}
+    for(let y=0;y<12;y++)for(let x=0;x<9;x++){const p=point(g,x,y);hex(ctx,p.x,p.y,g.r*.93);ctx.fillStyle=y<2?'#c5adff0c':'#ffffff05';ctx.fill();ctx.strokeStyle=palette==='neon'?'#b394ed38':'#a8bdd22b';ctx.lineWidth=.8;ctx.stroke();const c=game.board[y][x];if(c!==null)kitten(ctx,p.x,p.y,g.r*.9,c);}
     if(!game.over){for(const c of game.cells(game.ghost())){const p=point(g,c.x,c.y);kitten(ctx,p.x,p.y,g.r*.88,c.color,true);}for(const c of game.cells()){const p=point(g,c.x,c.y);ctx.save();ctx.shadowColor=COLORS[c.color];ctx.shadowBlur=palette==='neon'?12:9;kitten(ctx,p.x,p.y,g.r*.9,c.color);ctx.restore();}}
     for(const p of particles){ctx.globalAlpha=p.life;ctx.fillStyle=COLORS[p.color];ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;return g;
   }
