@@ -23,7 +23,7 @@
     setText('slow-count',game.slowMs>0?Math.ceil(game.slowMs/1000)+'s':String(game.inventory.slow));
     let state='idle',text='Un’ape si aggira nei dintorni…',help='Quando vola: clic / tocco sull’ape · X spara.',count='…';
     if(wand){state='wand';text=source?'Ora scegli una casella vuota':'Bacchetta: scegli un gatto posato';help='Tempo fermo · Tocca la griglia o usa frecce e spazio.';count='✧';}
-    else if(game.bee){state='warning';text='Spara all’ape! '+game.bee.hp+' colp'+(game.bee.hp===1?'o':'i')+' per scacciarla';help='Tocca l’ape · SPARA / X mira · B miele';count=game.mode==='chill'?game.bee.placements+' pose':Math.ceil(game.bee.dropMs/1000)+'s';}
+    else if(game.bee){state='warning';text='Spara all’ape!';help=game.bee.hp+' colp'+(game.bee.hp===1?'o':'i')+' per scacciarla';count=game.mode==='chill'?game.bee.placements+' pose':Math.ceil(game.bee.dropMs/1000)+'s';}
     else if(game.slowMs>0){state='slow';text='Un piccolo respiro: caduta rallentata';help='Il timer della missione continua a scorrere.';count=Math.ceil(game.slowMs/1000)+'s';}
     $('bee-banner').dataset.state=state;setText('bee-text',text);setText('bee-help',help);setText('bee-count',count);
   }
@@ -34,7 +34,7 @@
     setText('honey-count',String(game.inventory.honey));setText('wand-count',String(game.inventory.wand));setText('charge-text',game.charge+'/4');setText('wand-label',wand?'Annulla':'Bacchetta');
     $('wand').setAttribute('aria-pressed',String(wand));$('wand').setAttribute('aria-label',wand?'Annulla la bacchetta, tasto W o Esc':'Sposta un gattino con la bacchetta, tasto W');
     $('flying-bee').disabled=unavailable||paused||wand;$('flying-bee').setAttribute('aria-label','Spara all’ape: '+(game.bee?.hp||3)+' colpi rimasti. Anche con X.');setText('bee-hp',game.bee?'● '.repeat(game.bee.hp).trim():'');
-    $('shoot-bee').hidden=!game.bee||unavailable;$('shoot-bee').disabled=unavailable||paused||wand;
+    $('shoot-bee').hidden=!game.bee||unavailable;$('shoot-bee').disabled=unavailable||paused||wand;$('bee-banner').dataset.still=String(paused||wand);
     $('rotate-action').innerHTML=wand?'↑ <small>SU</small>':'↻ <small>RUOTA</small>';$('rotate-action').setAttribute('aria-label',wand?'Muovi il cursore in alto':'Ruota di sessanta gradi');
     $('drop-action').innerHTML=wand?'✓ <small>SCEGLI</small>':'↓ <small>POSA</small>';$('drop-action').setAttribute('aria-label',wand?'Scegli questa casella':'Posa il gruppo');
   }
@@ -52,6 +52,7 @@
   function updateBee(){
     const bee=$('flying-bee'),visible=!!game.bee&&started&&!game.over;
     bee.hidden=!visible;$('arena').dataset.bee=visible&&!wand?'flying':'none';bee.dataset.still=String(paused||wand||reduced);
+    sound.setBee(visible&&!paused&&!wand&&!document.hidden,game.bee?.age||0);
     if(!visible)return;
     const p=MicioDraw.beePosition(width,height,game.bee,reduced);
     bee.style.width=p.size+'px';bee.style.height=Math.max(44,p.size*.96)+'px';bee.style.transform='translate3d('+(p.x-p.size/2)+'px,'+(p.y-p.size*.48)+'px,0) rotate('+p.tilt+'deg)';
@@ -63,7 +64,7 @@
   }
   function processEvents(){
     const events=game.drainEvents();for(const event of events){
-      if(event.type==='bee-warning'){sound.fx('bee');notice('È arrivata! Clicca o tocca l’ape · 3 colpi la scacciano.');}
+      if(event.type==='bee-warning'){sound.fx('bee');notice('Bzz! Premi SPARA o X · La mira è automatica.');}
       else if(event.type==='bee-pollen'){
         sound.fx('pollen');notice('Bzz! Polline nel nido! Spara all’ape per ripulirlo.');
         if(!reduced){const p=MicioDraw.beePosition(width,height,event.flight,reduced);for(const cell of event.cells)effects.push({kind:'pollen',cell,x:p.x,y:p.y,age:0,duration:600});}

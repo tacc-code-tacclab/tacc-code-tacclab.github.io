@@ -19,7 +19,8 @@ function harness(options={}){
  if(options.audio)win.AudioContext=class{
   constructor(){this.currentTime=0;this.state='suspended';this.nodes=new Set();this.played=[];audio.push(this);}
   resume(){this.state='running';return Promise.resolve();}
-  createGain(){return {gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}};}
+  createGain(){return {gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){this.disconnected=true;}};}
+  createBiquadFilter(){return {frequency:{value:0},Q:{value:0},connect(){},disconnect(){this.disconnected=true;}};}
   createOscillator(){const c=this,o={frequency:{value:0,setValueAtTime(v){this.value=v;},exponentialRampToValueAtTime(){}},connect(){},disconnect(){c.nodes.delete(o);},start(t){c.played.push({t,f:o.frequency.value});},stop(t=c.currentTime){o.end=t;if(t<=c.currentTime)o.onended?.();}};c.nodes.add(o);return o;}
   advance(t){this.currentTime=t;for(const o of [...this.nodes])if(o.end<=t)o.onended?.();}
  };
@@ -74,3 +75,24 @@ test('result escape cannot strand the player, while help and pause dismiss safel
 test('palettes do not alter state, persist safely and keep V1 records separate',()=>{const data=new Map([['micio-records-v4','{"flow":9999}']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const h=harness({storage});h.colors[1].click();assert.equal(h.doc.body.dataset.palette,'neon');h.get('dialog-main').click();h.g.act('drop');const before=JSON.stringify(h.g.game);h.get('palette').click();assert.equal(h.doc.body.dataset.palette,'pastel');assert.equal(JSON.stringify(h.g.game),before);assert.equal(data.get('micio-records-v4'),'{"flow":9999}');assert.ok(data.has('micio2-records-v1'));});
 test('music starts on gesture, plays bounded voices and fully stops on mute or pause',()=>{const h=harness({audio:true});assert.equal(h.audio.length,0);h.get('dialog-main').click();for(let i=0;i<220;i++)h.frame();assert.ok(h.audio[0].played.length>15);assert.ok(h.g.sound.voices.size<=16);h.get('sound').click();assert.equal(h.g.sound.voices.size,0);const notes=h.audio[0].played.length;h.frame(1000);assert.equal(h.audio[0].played.length,notes);h.get('sound').click();h.frame();assert.ok(h.audio[0].played.length>notes);h.get('pause').click();assert.equal(h.g.sound.voices.size,0);});
 test('native fullscreen is requested on Play; denied requests do not interrupt the game',async()=>{for(const fullscreen of ['native','reject']){const h=harness({fullscreen});h.get('dialog-main').click();await new Promise(resolve=>setImmediate(resolve));h.g.act('drop');assert.equal(h.g.game.moves,1);assert.equal(h.g.paused,false);if(fullscreen==='native'){assert.equal(h.doc.fullscreenElement,h.doc.documentElement);await h.get('fullscreen').click();assert.equal(h.doc.fullscreenElement,null);assert.equal(h.g.game.moves,1);}}});
+test('the bee sustains a bounded changing buzz and releases every buzz node after shots or honey',()=>{
+ const h=harness({audio:true});h.get('dialog-secondary').click();assert.equal(h.g.sound.beeVoice,null);h.g.game.appearBee();h.frame();const buzz=h.g.sound.beeVoice,a=h.audio[0],pitch=buzz.tone.frequency.value;
+ assert.equal(buzz.tone.type,'sawtooth');assert.equal(buzz.filter.type,'lowpass');assert.equal(buzz.tone.end,undefined);
+ for(let i=0;i<200;i++){h.frame();assert.equal(h.g.sound.beeVoice,buzz);assert.ok(h.g.sound.voices.size<=16);assert.ok(a.nodes.size<=16);}
+ assert.notEqual(buzz.tone.frequency.value,pitch);
+ for(let i=0;i<3;i++){h.get('shoot-bee').click();h.frame(230);}
+ assert.equal(h.g.sound.beeVoice,null);for(const o of [buzz.tone,buzz.flutter])assert.equal(a.nodes.has(o),false);
+ for(const node of [buzz.depth,buzz.filter,buzz.gain])assert.equal(node.disconnected,true);
+ h.g.game.appearBee();h.frame();assert.ok(h.g.sound.beeVoice);h.g.act('honey');assert.equal(h.g.sound.beeVoice,null);
+});
+test('buzz obeys mute, pause, wand selection, hidden pages and mission completion',()=>{
+ const h=harness({audio:true});h.get('dialog-secondary').click();h.g.act('drop');h.g.game.appearBee();h.frame();const sound=h.g.sound;
+ h.get('sound').click();assert.equal(sound.beeVoice,null);h.frame(500);assert.equal(sound.voices.size,0);
+ h.get('sound').click();h.frame();assert.ok(sound.beeVoice);
+ h.get('pause').click();assert.equal(sound.beeVoice,null);h.frame(500);assert.equal(sound.voices.size,0);
+ h.get('dialog-main').click();h.frame();assert.ok(sound.beeVoice);
+ h.g.act('wand');assert.equal(sound.beeVoice,null);h.frame();assert.equal(sound.voices.size,0);h.g.act('wand');h.frame();assert.ok(sound.beeVoice);
+ h.doc.hidden=true;h.doc.emit('visibilitychange');assert.equal(sound.beeVoice,null);h.frame(500);assert.equal(sound.voices.size,0);
+ h.doc.hidden=false;h.doc.emit('visibilitychange');h.get('dialog-main').click();h.frame();assert.ok(sound.beeVoice);
+ winCurrent(h);assert.equal(h.g.game.won,true);assert.equal(sound.beeVoice,null);h.frame();assert.equal(sound.beeVoice,null);
+});

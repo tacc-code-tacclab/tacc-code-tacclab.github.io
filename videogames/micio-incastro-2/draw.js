@@ -28,7 +28,7 @@
   }
   function beePosition(w,h,bee,reduced=false){
     // Short hovering pauses make a moving target catchable with both mouse and touch.
-    const size=Math.min(96,Math.max(62,w*.22),Math.max(44,h*.65)),seconds=bee.age/1000;
+    const size=Math.min(112,Math.max(78,w*.27),Math.max(44,h*.65)),seconds=bee.age/1000;
     const t=reduced?0:Math.floor(seconds/3.2)*2.1+Math.min(2.1,seconds%3.2),phase=bee.phase;
     return {size,x:size/2+(w-size)*(.5+.42*Math.sin(t*.65+phase)),y:size*.48+Math.max(0,h-size)*(.19+.14*Math.sin(t*.95+phase*.6)),tilt:reduced?0:Math.sin(t*1.3)*7};
   }

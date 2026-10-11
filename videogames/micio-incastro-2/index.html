@@ -11,11 +11,11 @@
   <meta name="description" content="Otto missioni, quattro mondi illustrati, un’ape dispettosa e piccole magie. Salva i gattini, disegna pesci, cuori e stelle e compra bonus con le monete di gioco. Per PC e smartphone.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
   <script src="engine.js?v=2" defer></script>
-  <script src="draw.js?v=3" defer></script>
-  <script src="audio.js?v=2" defer></script>
-  <script src="game.js?v=4" defer></script>
+  <script src="draw.js?v=4" defer></script>
+  <script src="audio.js?v=3" defer></script>
+  <script src="game.js?v=5" defer></script>
 </head>
 <body data-palette="pastel" data-scene="lanterne">
   <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro/backgrounds/lanterne-small.webp"><img id="scene" src="../micio-incastro/backgrounds/lanterne.webp" alt="" width="1440" height="810" fetchpriority="high" decoding="async"></picture>
@@ -47,14 +47,50 @@
           </div>
           <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Progresso della missione" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><i id="goal-fill"></i></div>
           <div id="bee-banner" class="bee-banner" data-state="idle" role="status" aria-live="polite">
-            <img src="bee.svg" width="38" height="32" alt="" aria-hidden="true">
+            <img src="bee.svg?v=3" width="38" height="32" alt="" aria-hidden="true">
             <div><strong id="bee-text">Un’ape si aggira nel giardino…</strong><span id="bee-help">Quando vola, colpiscila con clic, tocchi o X.</span></div>
             <b id="bee-count" aria-hidden="true">…</b>
-            <button id="shoot-bee" class="shoot-bee" aria-label="Spara una bolla all’ape con mira assistita, tasto X" hidden>◎ <span>SPARA</span></button>
+            <button id="shoot-bee" class="shoot-bee" aria-label="Spara una bolla all’ape con mira assistita, tasto X" aria-keyshortcuts="X" title="Tocca per sparare, oppure premi X: la mira è automatica." hidden><span class="shoot-label"><b>◎ SPARA</b><small>MIRA AUTOMATICA</small></span><kbd aria-hidden="true">X</kbd></button>
           </div>
           <div id="arena" class="board-arena">
             <canvas id="board" tabindex="0" aria-label="Nido esagonale. Frecce per spostare e ruotare, spazio per posare. Sul telefono trascina, tocca per ruotare o usa i pulsanti. Quando arriva l’ape, clicca o tocca per sparare; X mira automaticamente."></canvas>
-            <button id="flying-bee" class="flying-bee" aria-label="Spara all’ape. Tre colpi per scacciarla." hidden><img src="bee.svg?v=2" width="96" height="80" alt="" draggable="false"><span id="bee-hp" aria-hidden="true">● ● ●</span></button>
+            <button id="flying-bee" class="flying-bee" aria-label="Spara all’ape. Tre colpi per scacciarla." hidden>
+              <svg class="bee-art" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <g fill="#ccff50">
+                  <path d="m108 28 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/>
+                  <path d="m9 58 2 4 4 2-4 2-2 4-2-4-4-2 4-2Z"/>
+                  <circle cx="98" cy="82" r="2" fill="#7cfff4"/>
+                </g>
+                <g class="bee-wing bee-wing-left" stroke="#80fff0" stroke-width="2.5">
+                  <path d="M58 50C43 16 20 1 12 16 3 33 30 53 58 55Z" fill="#dcffff"/>
+                  <path d="M57 53C37 36 16 36 18 48 20 62 41 65 57 57Z" fill="#a5fff2"/>
+                  <path d="M23 23 53 48M28 49l22 6" stroke="#5bd9da" stroke-width="1.5"/>
+                  <path d="M20 14q9-1 19 10" stroke="white" stroke-width="3"/>
+                </g>
+                <g class="bee-wing bee-wing-right" stroke="#80fff0" stroke-width="2.5">
+                  <path d="M60 50C73 13 95 0 104 14 114 30 87 52 60 55Z" fill="#dcffff"/>
+                  <path d="M61 53C80 35 104 35 102 48 100 62 78 64 61 57Z" fill="#a5fff2"/>
+                  <path d="m94 22-29 26m27 0-24 7" stroke="#5bd9da" stroke-width="1.5"/>
+                  <path d="M97 12q-8 0-19 12" stroke="white" stroke-width="3"/>
+                </g>
+                <g stroke="#173344" stroke-width="2.5">
+                  <path d="m91 61 12 7-13 6" fill="#c9ff4a"/>
+                  <ellipse cx="66" cy="62" rx="29" ry="23" fill="#e7ff43"/>
+                  <path d="M64 40q-8 23 0 44m15-41q-6 19 0 38" stroke-width="8"/>
+                  <path d="m54 82-3 6m21-4 3 6"/>
+                  <ellipse cx="38" cy="59" rx="22" ry="22" fill="#f6ff7d"/>
+                  <path d="m29 38-5-12m22 12 5-13"/>
+                  <circle cx="23" cy="25" r="3" fill="#c9ff4a"/>
+                  <circle cx="52" cy="24" r="3" fill="#c9ff4a"/>
+                  <ellipse cx="30" cy="56" rx="4" ry="5.5" fill="#173344"/>
+                  <ellipse cx="46" cy="56" rx="4" ry="5.5" fill="#173344"/>
+                  <path d="M33 68q5 5 11-1"/>
+                </g>
+                <g fill="white"><circle cx="29" cy="54" r="1.8"/><circle cx="45" cy="54" r="1.8"/><path d="M23 47q6-8 15-6" stroke="white" stroke-width="3"/></g>
+                <g fill="#ff8ecb"><ellipse cx="23" cy="65" rx="4" ry="2.6"/><ellipse cx="52" cy="64" rx="4" ry="2.6"/></g>
+              </svg>
+              <span id="bee-hp" aria-hidden="true">● ● ●</span>
+            </button>
           </div>
           <div id="board-status" class="board-status" role="status" aria-live="polite">Unisci sei gattini della stessa famiglia.</div>
         </div>
@@ -92,7 +128,7 @@
   </div>
   <dialog id="dialog" aria-labelledby="dialog-title">
     <button id="dialog-close" class="close" aria-label="Chiudi e riprendi">×</button>
-    <div class="dialog-mascot" aria-hidden="true"><img src="bee.svg" width="76" height="64" alt=""><span>2</span></div>
+    <div class="dialog-mascot" aria-hidden="true"><img src="bee.svg?v=3" width="76" height="64" alt=""><span>2</span></div>
     <p id="dialog-kicker" class="eyebrow">MICIO INCASTRO 2</p>
     <h2 id="dialog-title">Un’ape ha cambiato i piani.</h2>
     <div id="dialog-copy"></div>

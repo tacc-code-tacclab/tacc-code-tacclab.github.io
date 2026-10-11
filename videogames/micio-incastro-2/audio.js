@@ -17,16 +17,37 @@
   ];
   const frequency=n=>440*Math.pow(2,(n-69)/12);
   function create(){return {
-    ctx:null,bus:null,on:true,next:0,index:0,stage:0,voices:new Set(),lastFall:-1,
+    ctx:null,bus:null,on:true,next:0,index:0,stage:0,voices:new Set(),lastFall:-1,beeVoice:null,
     enable(){try{if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;this.ctx=new C();this.bus=this.ctx.createGain();this.bus.gain.value=.38;this.bus.connect(this.ctx.destination);}if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});return true;}catch{return false;}},
     note(note,duration=.5,volume=.07,when,type='sine',endNote=null){
-      if(!this.on||!this.ctx||this.voices.size>=16)return;
+      // Reserve two oscillators for the continuous wing buzz, within the 16-voice cap.
+      if(!this.on||!this.ctx||this.voices.size>=(this.beeVoice?16:14))return;
       const c=this.ctx,t=when??c.currentTime,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=frequency(note);
       if(endNote!==null){o.frequency.setValueAtTime(frequency(note),t);o.frequency.exponentialRampToValueAtTime(frequency(endNote),t+duration);}
       g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.001,volume),t+.009);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
       o.connect(g);g.connect(this.bus);this.voices.add(o);o.onended=()=>{o.disconnect();g.disconnect();this.voices.delete(o);};o.start(t);o.stop(t+duration+.02);
     },
-    stop(){for(const o of this.voices){try{o.stop();}catch{}}this.voices.clear();this.next=0;this.lastFall=-1;},
+    setBee(active,age=0){
+      if(!active||!this.on||!this.ctx||this.ctx.state!=='running'){this.stopBee();return;}
+      const c=this.ctx,t=c.currentTime;
+      if(!this.beeVoice){
+        const tone=c.createOscillator(),flutter=c.createOscillator(),depth=c.createGain(),filter=c.createBiquadFilter(),gain=c.createGain();
+        tone.type='sawtooth';flutter.type='sine';flutter.frequency.value=27;depth.gain.value=12;
+        filter.type='lowpass';filter.frequency.value=900;filter.Q.value=.4;
+        gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.06,t+.06);
+        flutter.connect(depth);depth.connect(tone.frequency);tone.connect(filter);filter.connect(gain);gain.connect(this.bus);
+        for(const o of [tone,flutter]){this.voices.add(o);o.onended=()=>{o.disconnect();this.voices.delete(o);};o.start(t);}
+        this.beeVoice={tone,flutter,depth,filter,gain};
+      }
+      // A filtered bzz changes pitch with the flight, without new nodes per frame.
+      this.beeVoice.tone.frequency.value=174+Math.sin(age/850)*13;
+    },
+    stopBee(){
+      const bee=this.beeVoice;if(!bee)return;this.beeVoice=null;
+      for(const o of [bee.tone,bee.flutter]){try{o.stop();}catch{}o.disconnect();this.voices.delete(o);}
+      bee.depth.disconnect();bee.filter.disconnect();bee.gain.disconnect();
+    },
+    stop(){this.stopBee();for(const o of this.voices){try{o.stop();}catch{}}this.voices.clear();this.next=0;this.lastFall=-1;},
     setStage(stage){this.stop();this.stage=Math.max(0,Math.min(3,stage));this.index=0;},
     tick(mode='flow'){
       if(!this.on||!this.ctx||this.ctx.state!=='running')return;
