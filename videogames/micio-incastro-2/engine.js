@@ -1,6 +1,7 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.Micio=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const COLS=9,ROWS=12,MATCH=6,DURATION=180000;
+  const COLS=9,ROWS=12,MATCH=6,DURATION=180000,POLLEN=4;
+  const isCat=value=>Number.isInteger(value)&&value>=0&&value<POLLEN;
   const SHAPES=[[[0,0],[0,1],[0,2]],[[0,0],[1,0],[0,1]],[[0,0],[1,-1],[2,-1]],[[0,0],[-1,0],[1,0]],[[0,0],[0,1]]];
   const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
   const toGrid=(q,r)=>[q,r+Math.floor(q/2)],toAxial=(x,y)=>[x,y-Math.floor(x/2)];
@@ -32,7 +33,7 @@
     prepareStage(){
       this.checkpoint={score:this.score,coins:this.coins,inventory:{...this.inventory},bestChain:this.bestChain};
       this.board=Array.from({length:ROWS},()=>Array(COLS).fill(null));this.saved=0;this.stamps={};this.charge=0;this.moves=0;this.elapsed=0;
-      this.over=false;this.endReason=null;this.bee=null;this.beeMs=20000;this.beeMoves=7;this.slowMs=0;this.events=[];
+      this.over=false;this.endReason=null;this.bee=null;this.beeMs=12000;this.beeMoves=5;this.slowMs=0;this.events=[];
       this.bag=[];this.queue=[this.make(),this.make(),this.make()];this.spawn();
     }
     nextStage(){if(!this.won||this.campaignWon)return false;this.rescuedBefore+=this.saved;this.stage++;this.prepareStage();return true;}
@@ -44,9 +45,11 @@
       if(this.mode==='flow'){
         this.elapsed=Math.min(DURATION,this.elapsed+ms);this.slowMs=Math.max(0,this.slowMs-ms);
         if(this.elapsed===DURATION){this.finish('time');return true;}
-        if(this.bee){this.bee.remaining=Math.max(0,this.bee.remaining-ms);if(this.bee.remaining===0)this.shuffleBee();}
-        else{this.beeMs-=ms;if(this.beeMs<=0&&this.moves>=3)this.appearBee();}
       }
+      if(this.bee){
+        this.bee.age+=ms;this.bee.cooldown=Math.max(0,this.bee.cooldown-ms);
+        if(this.mode==='flow'){this.bee.dropMs=Math.max(0,this.bee.dropMs-ms);if(this.bee.dropMs===0)this.dropPollen();}
+      }else if(this.mode==='flow'){this.beeMs-=ms;if(this.beeMs<=0&&this.moves>=2)this.appearBee();}
       return this.over;
     }
     make(){
@@ -68,7 +71,7 @@
       this.moves++;this.score+=this.active.cells.length*5;const result=this.resolve();
       if(!this.over)this.spawn();
       if(!this.over&&this.mode==='chill'){
-        if(this.bee){this.bee.placements--;if(this.bee.placements===0)this.shuffleBee();}
+        if(this.bee){this.bee.placements--;if(this.bee.placements===0)this.dropPollen();}
         else if(--this.beeMoves<=0)this.appearBee();
       }
       return result;
@@ -76,7 +79,7 @@
     groups(){
       const seen=new Set(),groups=[];
       for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
-        const color=this.board[y][x],key=y*COLS+x;if(color===null||seen.has(key))continue;
+        const color=this.board[y][x],key=y*COLS+x;if(!isCat(color)||seen.has(key))continue;
         const group=[{x,y,color}];seen.add(key);
         for(let i=0;i<group.length;i++){const [q,r]=toAxial(group[i].x,group[i].y);for(const [dq,dr]of DIRS){
           const [xx,yy]=toGrid(q+dq,r+dr),k=yy*COLS+xx;
@@ -86,18 +89,25 @@
         if(group.length>=MATCH)groups.push(group);
       }return groups;
     }
-    collapse(){for(let x=0;x<COLS;x++){let dest=ROWS-1;for(let y=ROWS-1;y>=0;y--)if(this.board[y][x]!==null){const value=this.board[y][x];this.board[y][x]=null;this.board[dest--][x]=value;}}}
+    collapse(protectActive=false){
+      const occupied=protectActive?new Set(this.cells().map(c=>c.y*COLS+c.x)):new Set();
+      for(let x=0;x<COLS;x++){let dest=ROWS-1;for(let y=ROWS-1;y>=0;y--){
+        if(occupied.has(y*COLS+x)){dest=y-1;continue;}
+        if(this.board[y][x]!==null){const value=this.board[y][x];this.board[y][x]=null;this.board[dest--][x]=value;}
+      }}
+    }
     rescue(n){const before=Math.floor(this.saved/3);this.saved+=n;this.coins+=Math.floor(this.saved/3)-before;}
     stampTargets(){
       if(this.mission.kind!=='figure')return 0;const before=this.progress;
-      for(const {x,y}of this.targets)if(this.board[y][x]!==null)this.stamps[y*COLS+x]=this.board[y][x];
+      for(const {x,y}of this.targets)if(isCat(this.board[y][x]))this.stamps[y*COLS+x]=this.board[y][x];
       const added=this.progress-before;this.score+=added*8;this.coins+=Math.floor(this.progress/4)-Math.floor(before/4);return added;
     }
     checkGoal(){if(this.progress>=this.goal)this.finish('win');}
-    resolve(){
+    resolve(protectActive=false){
       const clears=[];let chain=0,groups,stamped=this.stampTargets();
       while((groups=this.groups()).length){chain++;const cells=groups.flat();for(const c of cells)this.board[c.y][c.x]=null;
-        this.rescue(cells.length);this.score+=cells.length*20*chain;this.charge=Math.min(4,this.charge+groups.length);clears.push({cells,chain});this.collapse();stamped+=this.stampTargets();
+        const debris=[];for(const c of cells){const [q,r]=toAxial(c.x,c.y);for(const [dq,dr]of DIRS){const [x,y]=toGrid(q+dq,r+dr);if(x>=0&&x<COLS&&y>=0&&y<ROWS&&this.board[y][x]===POLLEN){debris.push({x,y,color:POLLEN});this.board[y][x]=null;}}}
+        this.rescue(cells.length);this.score+=cells.length*20*chain;this.charge=Math.min(4,this.charge+groups.length);clears.push({cells:[...cells,...debris],chain});this.collapse(protectActive);stamped+=this.stampTargets();
       }
       this.bestChain=Math.max(this.bestChain,chain);this.checkGoal();return {moved:false,clears,chain,stamped};
     }
@@ -110,32 +120,54 @@
     purr(){
       if(this.over||this.charge<4)return null;this.charge=0;const cells=[];
       for(let y=ROWS-2;y<ROWS;y++)for(let x=0;x<COLS;x++)if(this.board[y][x]!==null){cells.push({x,y,color:this.board[y][x]});this.board[y][x]=null;}
-      this.rescue(cells.length);this.score+=cells.length*10;this.collapse();const result=this.resolve();
+      const cats=cells.filter(c=>isCat(c.color)).length;this.rescue(cats);this.score+=cats*10;this.collapse(true);const result=this.resolve(true);
       if(!this.over&&!this.relocateActive())this.finish('full');result.clears.unshift({cells,chain:0});result.purr=true;return result;
     }
     appearBee(){
       if(this.over||this.bee)return false;
-      const occupied=Array.from({length:COLS},(_,x)=>x).filter(x=>this.board.some(row=>row[x]!==null));
-      if(!occupied.length){this.beeMs=8000;this.beeMoves=3;return false;}
-      const a=occupied[Math.floor(this.random()*occupied.length)];
-      const candidates=Array.from({length:COLS},(_,x)=>x).filter(x=>x!==a&&this.board.some(row=>row[x]!==row[a]));
-      if(!candidates.length){this.beeMs=8000;this.beeMoves=3;return false;}
-      const b=candidates[Math.floor(this.random()*candidates.length)];
-      this.bee={columns:[a,b].sort((x,y)=>x-y),remaining:5000,placements:3};this.events.push({type:'bee-warning'});return true;
+      this.bee={hp:3,age:0,phase:this.random()*Math.PI*2,cooldown:0,dropMs:3500,placements:2,drops:0};
+      this.events.push({type:'bee-warning'});return true;
     }
-    restBee(){this.bee=null;this.beeMs=32000+Math.floor(this.random()*6000);this.beeMoves=8;}
-    shuffleBee(){
-      if(!this.bee||this.over)return false;const [a,b]=this.bee.columns,old=this.active;
-      for(const row of this.board)[row[a],row[b]]=[row[b],row[a]];
-      // An insect never causes an unavoidable top-out or overlaps the falling group.
-      const safe=this.relocateActive();if(!safe){for(const row of this.board)[row[a],row[b]]=[row[b],row[a]];this.active=old;}
-      this.restBee();this.events.push({type:safe?'bee-shuffle':'bee-cancelled',columns:[a,b]});return safe;
+    restBee(){this.bee=null;this.beeMs=20000+Math.floor(this.random()*5000);this.beeMoves=6;}
+    dropPollen(){
+      if(!this.bee||this.over)return [];
+      const cells=[],active=new Set(this.cells().map(c=>c.y*COLS+c.x));
+      const cap=10-this.board.flat().filter(c=>c===POLLEN).length,amount=Math.min(cap,this.stage>=3?2:1);
+      for(let n=0;n<amount;n++){
+        const candidates=[];
+        for(let x=0;x<COLS;x++){
+          const top=this.board.findIndex(row=>row[x]!==null),y=top<0?ROWS-1:top-1;
+          // Keep the spawn area free and never overwrite a cat or the falling group.
+          if(y>=4&&!active.has(y*COLS+x)&&!cells.some(c=>c.x===x))candidates.push({x,y,color:POLLEN});
+        }
+        if(!candidates.length)break;
+        const cell=candidates[Math.floor(this.random()*candidates.length)];this.board[cell.y][cell.x]=POLLEN;cells.push(cell);
+      }
+      this.bee.drops++;this.bee.dropMs=3200;this.bee.placements=2;
+      if(cells.length)this.events.push({type:'bee-pollen',cells,flight:{age:this.bee.age,phase:this.bee.phase}});
+      if(this.bee.drops>=3||!cells.length){this.restBee();this.events.push({type:'bee-away'});}
+      return cells;
     }
-    useHoney(){if(this.over||!this.bee||this.inventory.honey<1)return false;this.inventory.honey--;this.charge=Math.min(4,this.charge+1);this.restBee();this.events.push({type:'honey'});return true;}
+    clearPollen(){
+      const cells=[];for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(this.board[y][x]===POLLEN){cells.push({x,y,color:POLLEN});this.board[y][x]=null;}
+      // The current falling piece acts as a barrier during this mid-turn collapse.
+      // Its input/position remains valid even when pollen was supporting other cats.
+      this.collapse(true);const result=this.resolve(true);if(cells.length)result.clears.unshift({cells,chain:0});result.pollen=cells.length;return result;
+    }
+    shootBee(hit=true){
+      if(this.over||!this.bee||this.bee.cooldown>0)return false;
+      this.bee.cooldown=220;
+      if(!hit){this.events.push({type:'bee-miss'});return true;}
+      this.bee.hp--;this.bee.dropMs+=350;
+      if(this.bee.hp>0)this.events.push({type:'bee-hit',hp:this.bee.hp});
+      else{this.restBee();this.coins+=2;this.charge=Math.min(4,this.charge+1);const result=this.clearPollen();this.events.push({type:'bee-defeated',result});}
+      return true;
+    }
+    useHoney(){if(this.over||!this.bee||this.inventory.honey<1)return false;this.inventory.honey--;this.charge=Math.min(4,this.charge+1);this.restBee();const result=this.clearPollen();this.events.push({type:'honey',result});return true;}
     useSlow(){if(this.over||this.mode!=='flow'||this.slowMs>0||this.inventory.slow<1)return false;this.inventory.slow--;this.slowMs=12000;this.events.push({type:'slow'});return true;}
     useWand(from,to){
       const valid=c=>c&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&c.x>=0&&c.x<COLS&&c.y>=0&&c.y<ROWS;
-      if(this.over||this.inventory.wand<1||!valid(from)||!valid(to)||this.board[from.y][from.x]===null||this.board[to.y][to.x]!==null||this.cells().some(c=>c.x===to.x&&c.y===to.y))return null;
+      if(this.over||this.inventory.wand<1||!valid(from)||!valid(to)||!isCat(this.board[from.y][from.x])||this.board[to.y][to.x]!==null||this.cells().some(c=>c.x===to.x&&c.y===to.y))return null;
       const backup={board:this.board.map(r=>r.slice()),active:this.active,stamps:{...this.stamps},saved:this.saved,score:this.score,coins:this.coins,charge:this.charge,bestChain:this.bestChain};
       this.board[to.y][to.x]=this.board[from.y][from.x];this.board[from.y][from.x]=null;
       let stamped=this.stampTargets();this.collapse();const result=this.resolve();result.stamped+=stamped;
@@ -156,5 +188,5 @@
     get level(){return 1+Math.max(Math.floor(this.saved/30),Math.floor(this.elapsed/20000));}
     get interval(){return Math.max(190,700-this.stage*45-(this.level-1)*40)*(this.slowMs>0?1.85:1);}
   }
-  return {Game,COLS,ROWS,MATCH,DURATION,SHAPES,DIRS,FIGURES,MISSIONS,WORLDS,SHOP,toGrid,toAxial,rotate};
+  return {Game,COLS,ROWS,MATCH,DURATION,POLLEN,isCat,SHAPES,DIRS,FIGURES,MISSIONS,WORLDS,SHOP,toGrid,toAxial,rotate};
 });

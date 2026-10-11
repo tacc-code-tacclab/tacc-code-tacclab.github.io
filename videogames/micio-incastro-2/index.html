@@ -11,11 +11,11 @@
   <meta name="description" content="Otto missioni, quattro mondi illustrati, un’ape dispettosa e piccole magie. Salva i gattini, disegna pesci, cuori e stelle e compra bonus con le monete di gioco. Per PC e smartphone.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=1">
-  <script src="engine.js?v=1" defer></script>
-  <script src="draw.js?v=1" defer></script>
-  <script src="audio.js?v=1" defer></script>
-  <script src="game.js?v=1" defer></script>
+  <link rel="stylesheet" href="style.css?v=2">
+  <script src="engine.js?v=2" defer></script>
+  <script src="draw.js?v=2" defer></script>
+  <script src="audio.js?v=2" defer></script>
+  <script src="game.js?v=2" defer></script>
 </head>
 <body data-palette="pastel" data-scene="lanterne">
   <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro/backgrounds/lanterne-small.webp"><img id="scene" src="../micio-incastro/backgrounds/lanterne.webp" alt="" width="1440" height="810" fetchpriority="high" decoding="async"></picture>
@@ -48,10 +48,13 @@
           <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Progresso della missione" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><i id="goal-fill"></i></div>
           <div id="bee-banner" class="bee-banner" data-state="idle" role="status" aria-live="polite">
             <img src="bee.svg" width="38" height="32" alt="" aria-hidden="true">
-            <div><strong id="bee-text">Un’ape si aggira nel giardino…</strong><span id="bee-help">Il miele la distrae prima dello scambio.</span></div>
+            <div><strong id="bee-text">Un’ape si aggira nel giardino…</strong><span id="bee-help">Quando vola, colpiscila con clic, tocchi o X.</span></div>
             <b id="bee-count" aria-hidden="true">…</b>
           </div>
-          <canvas id="board" tabindex="0" aria-label="Nido esagonale. Frecce per spostare e ruotare, spazio per posare. Sul telefono trascina, tocca per ruotare o usa i pulsanti."></canvas>
+          <div id="arena" class="board-arena">
+            <canvas id="board" tabindex="0" aria-label="Nido esagonale. Frecce per spostare e ruotare, spazio per posare. Sul telefono trascina, tocca per ruotare o usa i pulsanti. Quando arriva l’ape, clicca o tocca per sparare; X mira automaticamente."></canvas>
+            <button id="flying-bee" class="flying-bee" aria-label="Spara all’ape. Tre colpi per scacciarla." hidden><img src="bee.svg?v=2" width="96" height="80" alt="" draggable="false"><span id="bee-hp" aria-hidden="true">● ● ●</span></button>
+          </div>
           <div id="board-status" class="board-status" role="status" aria-live="polite">Unisci sei gattini della stessa famiglia.</div>
         </div>
         <div class="controls" aria-label="Comandi dei gattini">
@@ -80,7 +83,7 @@
           <button id="purr" class="bonus purr" aria-label="Fusa: libera le due file inferiori, tasto F" disabled><span class="bonus-icon" aria-hidden="true">✳</span><span class="bonus-name">Fusa</span><b id="charge-text">0/4</b><kbd>F</kbd></button>
         </div>
         <p class="bonus-tip">Salva gattini, guadagna monete.<br>La bottega apre fra le missioni.</p>
-        <p class="keyboard-tip">← → sposta · ↑ ruota · spazio posa<br>C cambia · B miele · I ghiaccio<br>W bacchetta · F fusa · P pausa</p>
+        <p class="keyboard-tip">← → sposta · ↑ ruota · spazio posa<br>X spara all’ape · B miele · I ghiaccio<br>C cambia · W bacchetta · F fusa · P pausa</p>
         <button id="restart" class="restart">↺ Nuovo viaggio</button>
         <a class="original-link" href="../micio-incastro/">Il primo Micio Incastro ↗</a>
       </aside>
@@ -96,7 +99,7 @@
       <div class="shop-heading"><h3>La bottega delle piccole magie</h3><strong>◉ <span id="shop-coins">0</span></strong></div>
       <p>Spendi le monete guadagnate giocando. I bonus restano con te nel prossimo schema.</p>
       <div class="shop-items">
-        <article><span class="product-icon" aria-hidden="true">🍯</span><div><h4>Miele</h4><p>Ferma l’ape, carica una Fusa.</p><small id="stock-honey">1 / 3 in borsa</small></div><button id="buy-honey">Compra · 4 ◉</button></article>
+        <article><span class="product-icon" aria-hidden="true">🍯</span><div><h4>Miele</h4><p>Scaccia l’ape e ripulisce il polline.</p><small id="stock-honey">1 / 3 in borsa</small></div><button id="buy-honey">Compra · 4 ◉</button></article>
         <article><span class="product-icon" aria-hidden="true">❄</span><div><h4>Ghiaccio</h4><p>Caduta lenta per 12 secondi.</p><small id="stock-slow">1 / 2 in borsa</small></div><button id="buy-slow">Compra · 6 ◉</button></article>
         <article><span class="product-icon" aria-hidden="true">✧</span><div><h4>Bacchetta</h4><p>Sposta un gatto, lascia un’impronta.</p><small id="stock-wand">1 / 2 in borsa</small></div><button id="buy-wand">Compra · 8 ◉</button></article>
       </div>

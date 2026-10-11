@@ -48,6 +48,9 @@
     fx(kind,chain=1){
       if(!this.on||!this.ctx)return;const t=this.ctx.currentTime,chord=THEMES[this.stage].chords[0];
       if(kind==='bee'){[71,74,71].forEach((n,i)=>this.note(n,.11,.035,t+i*.11,'triangle'));}
+      else if(kind==='shoot'){this.note(88,.055,.065,t,'triangle');this.note(100,.08,.035,t+.035,'sine');}
+      else if(kind==='hit'){this.note(79,.09,.055,t,'square');this.note(91,.12,.035,t+.045,'triangle');}
+      else if(kind==='pollen'){[48,43].forEach((n,i)=>this.note(n,.13,.055,t+i*.07,'triangle'));}
       else if(kind==='honey'){[chord[1]+12,chord[2]+12,chord[3]+12].forEach((n,i)=>this.note(n,.35,.055,t+i*.08));}
       else if(kind==='stamp'){this.note(chord[3]+12,.18,.045,t);this.note(chord[1]+24,.22,.035,t+.07);}
       else if(kind==='fall'){if(t-this.lastFall<.16)return;this.lastFall=t;this.note(62,.055,.014,t,'sine',56);}
