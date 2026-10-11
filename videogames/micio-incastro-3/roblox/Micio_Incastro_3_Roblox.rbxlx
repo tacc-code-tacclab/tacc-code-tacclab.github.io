@@ -1,0 +1,719 @@
+<?xml version='1.0' encoding='utf-8'?>
+<roblox version="4">
+  <External>null</External>
+  <External>nil</External>
+  <Meta name="ExplicitAutoJoints">true</Meta>
+  <Item class="Workspace" referent="RBX00000001">
+    <Properties>
+      <string name="Name">Workspace</string>
+      <float name="Gravity">0</float>
+    </Properties>
+  </Item>
+  <Item class="Lighting" referent="RBX00000002">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <float name="Brightness">0</float>
+    </Properties>
+  </Item>
+  <Item class="SoundService" referent="RBX00000003">
+    <Properties>
+      <string name="Name">SoundService</string>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="RBX00000004">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+  </Item>
+  <Item class="ServerScriptService" referent="RBX00000005">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Script" referent="RBX00000006">
+      <Properties>
+        <string name="Name">GuiOnlyExperience</string>
+        <ProtectedString name="Source">-- Individual local puzzle. No avatar, movement controls or 3D gameplay.
+game:GetService('Players').CharacterAutoLoads=false
+</ProtectedString>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="RBX00000007">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="RBX00000008">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+    </Item>
+    <Item class="StarterCharacterScripts" referent="RBX00000009">
+      <Properties>
+        <string name="Name">StarterCharacterScripts</string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="StarterGui" referent="RBX00000010">
+    <Properties>
+      <string name="Name">StarterGui</string>
+      <bool name="ResetPlayerGuiOnSpawn">false</bool>
+    </Properties>
+    <Item class="ScreenGui" referent="RBX00000011">
+      <Properties>
+        <string name="Name">MicioIncastro3</string>
+        <bool name="Enabled">true</bool>
+        <bool name="ResetOnSpawn">false</bool>
+        <int name="DisplayOrder">100</int>
+        <token name="ScreenInsets">2</token>
+      </Properties>
+      <Item class="ModuleScript" referent="RBX00000012">
+        <Properties>
+          <string name="Name">Journey</string>
+          <ProtectedString name="Source">-- Generated from ../journey.js. Coordinates are zero-based, exactly as in the web game.
+return {["WORLDS"]={{["name"]="Venezia",["country"]="Italia",["region"]="Europa",["asset"]="italia",["symbol"]="◈",["caption"]="Canali, ponti e riflessi color miele."},{["name"]="Parigi",["country"]="Francia",["region"]="Europa",["asset"]="francia",["symbol"]="✧",["caption"]="Una passeggiata luminosa lungo la Senna."},{["name"]="Barcellona",["country"]="Spagna",["region"]="Europa",["asset"]="spagna",["symbol"]="✺",["caption"]="Mosaici, giardini e meraviglie di Gaudí."},{["name"]="Londra",["country"]="Inghilterra",["region"]="Europa",["asset"]="inghilterra",["symbol"]="♜",["caption"]="Torri e ponti sulle acque del Tamigi."},{["name"]="Agra",["country"]="India",["region"]="Asia",["asset"]="india",["symbol"]="❋",["caption"]="Il Taj Mahal si specchia nel suo giardino."},{["name"]="La Grande Muraglia",["country"]="Cina",["region"]="Asia",["asset"]="cina",["symbol"]="⌁",["caption"]="Un sentiero che abbraccia le montagne."},{["name"]="Kyoto",["country"]="Giappone",["region"]="Asia",["asset"]="giappone",["symbol"]="❀",["caption"]="Pagode e petali nel vento di primavera."},{["name"]="Bangkok",["country"]="Thailandia",["region"]="Asia",["asset"]="thailandia",["symbol"]="✦",["caption"]="Templi dorati sulle rive del fiume."},{["name"]="New York",["country"]="Stati Uniti",["region"]="America del Nord",["asset"]="new-york",["symbol"]="▥",["caption"]="Ponti, grattacieli e una città piena di luce."},{["name"]="Chicago",["country"]="Stati Uniti",["region"]="America del Nord",["asset"]="chicago",["symbol"]="▦",["caption"]="Il fiume attraversa un giardino di torri."},{["name"]="Città di Panama",["country"]="Panama",["region"]="America Centrale",["asset"]="panama",["symbol"]="≈",["caption"]="Case colorate e nuovi orizzonti sulla baia."},{["name"]="Rio de Janeiro",["country"]="Brasile",["region"]="America del Sud",["asset"]="brasile",["symbol"]="☀",["caption"]="Montagne, spiagge e un tramonto tropicale."},{["name"]="Patagonia",["country"]="Argentina",["region"]="America del Sud",["asset"]="argentina",["symbol"]="△",["caption"]="Picchi, ghiacciai e laghi color turchese."},{["name"]="Giza",["country"]="Egitto",["region"]="Africa",["asset"]="egitto",["symbol"]="▲",["caption"]="Piramidi e oasi nella luce del deserto."},{["name"]="Amboseli",["country"]="Kenya",["region"]="Africa",["asset"]="kenya",["symbol"]="♧",["caption"]="Acacie nella savana, sotto un cielo immenso."},{["name"]="Sydney",["country"]="Australia",["region"]="Oceania",["asset"]="australia",["symbol"]="◒",["caption"]="Vele bianche e riflessi nel porto."},{["name"]="Fiordland",["country"]="Nuova Zelanda",["region"]="Oceania",["asset"]="nuova-zelanda",["symbol"]="❧",["caption"]="Fiordi e foreste dalle mille sfumature di verde."},{["name"]="L’ultimo orizzonte",["country"]="Antartide",["region"]="Antartide",["asset"]="antartide",["symbol"]="❄",["caption"]="Ghiaccio, pinguini e il silenzio delle stelle."}},["MISSIONS"]={{["world"]=0,["kind"]="figure",["label"]="Diamante",["targets"]={{["x"]=4,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Diamante",["duration"]=210000},{["world"]=0,["kind"]="figure",["label"]="Barchetta",["targets"]={{["x"]=4,["y"]=8},{["x"]=4,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Barchetta",["duration"]=210000},{["world"]=1,["kind"]="figure",["label"]="Freccia",["targets"]={{["x"]=4,["y"]=6},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=4,["y"]=9},{["x"]=4,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Freccia",["duration"]=210000},{["world"]=1,["kind"]="figure",["label"]="Cuoricino",["targets"]={{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Cuoricino",["duration"]=210000},{["world"]=2,["kind"]="figure",["label"]="Aquilone",["targets"]={{["x"]=4,["y"]=6},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=4,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Aquilone",["duration"]=210000},{["world"]=2,["kind"]="figure",["label"]="Corona",["targets"]={{["x"]=2,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=4,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Corona",["duration"]=210000},{["world"]=3,["kind"]="figure",["label"]="Goccia",["targets"]={{["x"]=4,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Goccia",["duration"]=225000},{["world"]=3,["kind"]="figure",["label"]="Fungo",["targets"]={{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=4,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Fungo",["duration"]=225000},{["world"]=4,["kind"]="figure",["label"]="Tulipano",["targets"]={{["x"]=2,["y"]=6},{["x"]=4,["y"]=6},{["x"]=6,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=4,["y"]=9},{["x"]=4,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11}},["title"]="Tulipano",["duration"]=225000},{["world"]=4,["kind"]="figure",["label"]="Montagna",["targets"]={{["x"]=4,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Montagna",["duration"]=225000},{["world"]=5,["kind"]="figure",["label"]="Pesciolino",["targets"]={{["x"]=4,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=1,["y"]=10},{["x"]=2,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Pesciolino",["duration"]=225000},{["world"]=5,["kind"]="figure",["label"]="Foglia",["targets"]={{["x"]=5,["y"]=6},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=3,["y"]=11}},["title"]="Foglia",["duration"]=225000},{["world"]=6,["kind"]="figure",["label"]="Faro",["targets"]={{["x"]=4,["y"]=6},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=4,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Faro",["duration"]=240000},{["world"]=6,["kind"]="figure",["label"]="Fiore",["targets"]={{["x"]=4,["y"]=5},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=4,["y"]=9},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Fiore",["duration"]=240000},{["world"]=7,["kind"]="figure",["label"]="Casetta",["targets"]={{["x"]=4,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Casetta",["duration"]=240000},{["world"]=7,["kind"]="figure",["label"]="Cuore",["targets"]={{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Cuore",["duration"]=240000},{["world"]=8,["kind"]="figure",["label"]="Gatto seduto",["targets"]={{["x"]=2,["y"]=6},{["x"]=6,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Gatto seduto",["duration"]=240000},{["world"]=8,["kind"]="figure",["label"]="Razza",["targets"]={{["x"]=4,["y"]=6},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=7,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Razza",["duration"]=240000},{["world"]=9,["kind"]="figure",["label"]="Farfalla",["targets"]={{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Farfalla",["duration"]=255000},{["world"]=9,["kind"]="figure",["label"]="Tartaruga",["targets"]={{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=7,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Tartaruga",["duration"]=255000},{["world"]=10,["kind"]="figure",["label"]="Cactus",["targets"]={{["x"]=3,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Cactus",["duration"]=255000},{["world"]=10,["kind"]="figure",["label"]="Albero",["targets"]={{["x"]=4,["y"]=5},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=1,["y"]=10},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=7,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Albero",["duration"]=255000},{["world"]=11,["kind"]="figure",["label"]="Balena",["targets"]={{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=7,["y"]=9},{["x"]=1,["y"]=10},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=7,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Balena",["duration"]=255000},{["world"]=11,["kind"]="figure",["label"]="Stella",["targets"]={{["x"]=4,["y"]=5},{["x"]=4,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Stella",["duration"]=255000},{["world"]=12,["kind"]="figure",["label"]="Pagoda",["targets"]={{["x"]=4,["y"]=5},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=1,["y"]=10},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=7,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Pagoda",["duration"]=270000},{["world"]=12,["kind"]="figure",["label"]="Castello",["targets"]={{["x"]=1,["y"]=6},{["x"]=4,["y"]=6},{["x"]=7,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=4,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Castello",["duration"]=270000},{["world"]=13,["kind"]="figure",["label"]="Pinguino",["targets"]={{["x"]=3,["y"]=5},{["x"]=4,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Pinguino",["duration"]=270000},{["world"]=13,["kind"]="figure",["label"]="Razzo",["targets"]={{["x"]=4,["y"]=4},{["x"]=3,["y"]=5},{["x"]=4,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Razzo",["duration"]=270000},{["world"]=14,["kind"]="figure",["label"]="Cristallo",["targets"]={{["x"]=3,["y"]=5},{["x"]=4,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=4,["y"]=11}},["title"]="Cristallo",["duration"]=270000},{["world"]=14,["kind"]="figure",["label"]="Farfalla grande",["targets"]={{["x"]=1,["y"]=6},{["x"]=2,["y"]=6},{["x"]=6,["y"]=6},{["x"]=7,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=1,["y"]=10},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=7,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Farfalla grande",["duration"]=270000},{["world"]=15,["kind"]="figure",["label"]="Tempio",["targets"]={{["x"]=4,["y"]=5},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=1,["y"]=11},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11},{["x"]=7,["y"]=11}},["title"]="Tempio",["duration"]=285000},{["world"]=15,["kind"]="figure",["label"]="Gatto viaggiatore",["targets"]={{["x"]=1,["y"]=5},{["x"]=2,["y"]=5},{["x"]=6,["y"]=5},{["x"]=7,["y"]=5},{["x"]=1,["y"]=6},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=7,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=2,["y"]=11},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11},{["x"]=6,["y"]=11}},["title"]="Gatto viaggiatore",["duration"]=285000},{["world"]=16,["kind"]="figure",["label"]="Globo",["targets"]={{["x"]=3,["y"]=5},{["x"]=4,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=7,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Globo",["duration"]=285000},{["world"]=16,["kind"]="figure",["label"]="Grande cuore",["targets"]={{["x"]=2,["y"]=5},{["x"]=3,["y"]=5},{["x"]=5,["y"]=5},{["x"]=6,["y"]=5},{["x"]=1,["y"]=6},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=7,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Grande cuore",["duration"]=285000},{["world"]=17,["kind"]="figure",["label"]="Conchiglia",["targets"]={{["x"]=4,["y"]=4},{["x"]=3,["y"]=5},{["x"]=4,["y"]=5},{["x"]=5,["y"]=5},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=1,["y"]=9},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=7,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Conchiglia",["duration"]=285000},{["world"]=17,["kind"]="figure",["label"]="Il mondo dei mici",["targets"]={{["x"]=1,["y"]=4},{["x"]=2,["y"]=4},{["x"]=6,["y"]=4},{["x"]=7,["y"]=4},{["x"]=1,["y"]=5},{["x"]=2,["y"]=5},{["x"]=3,["y"]=5},{["x"]=5,["y"]=5},{["x"]=6,["y"]=5},{["x"]=7,["y"]=5},{["x"]=1,["y"]=6},{["x"]=2,["y"]=6},{["x"]=3,["y"]=6},{["x"]=4,["y"]=6},{["x"]=5,["y"]=6},{["x"]=6,["y"]=6},{["x"]=7,["y"]=6},{["x"]=1,["y"]=7},{["x"]=2,["y"]=7},{["x"]=3,["y"]=7},{["x"]=4,["y"]=7},{["x"]=5,["y"]=7},{["x"]=6,["y"]=7},{["x"]=7,["y"]=7},{["x"]=1,["y"]=8},{["x"]=2,["y"]=8},{["x"]=3,["y"]=8},{["x"]=4,["y"]=8},{["x"]=5,["y"]=8},{["x"]=6,["y"]=8},{["x"]=7,["y"]=8},{["x"]=2,["y"]=9},{["x"]=3,["y"]=9},{["x"]=4,["y"]=9},{["x"]=5,["y"]=9},{["x"]=6,["y"]=9},{["x"]=2,["y"]=10},{["x"]=3,["y"]=10},{["x"]=4,["y"]=10},{["x"]=5,["y"]=10},{["x"]=6,["y"]=10},{["x"]=3,["y"]=11},{["x"]=4,["y"]=11},{["x"]=5,["y"]=11}},["title"]="Il mondo dei mici",["duration"]=285000}}}
+</ProtectedString>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000013">
+        <Properties>
+          <string name="Name">Core</string>
+          <ProtectedString name="Source">-- Micio Incastro 3: platform-independent rules. Zero-based board and stage coordinates.
+local Journey
+if script then Journey=require(script.Parent:WaitForChild('Journey')) else Journey=dofile('Journey.lua') end
+local Core={COLS=9,ROWS=12,MATCH=6,BLOCK=4,WORLDS=Journey.WORLDS,MISSIONS=Journey.MISSIONS}
+local C,R,B=Core.COLS,Core.ROWS,Core.BLOCK
+local SHAPES={{{0,0},{0,1},{0,2}},{{0,0},{1,0},{0,1}},{{0,0},{1,-1},{2,-1}},{{0,0},{-1,0},{1,0}},{{0,0},{0,1}}}
+local DIRS={{1,0},{1,-1},{0,-1},{-1,0},{-1,1},{0,1}}
+Core.WEAPON_IDS={'stone','dart','spear','bullet','laser'}
+Core.WEAPONS={
+ stone={name='Sassi',price=0,damage=1,cooldown=340,icon='●'},
+ dart={name='Freccette',price=6,damage=2,cooldown=300,icon='➤'},
+ spear={name='Lance',price=14,damage=3,cooldown=550,icon='↗'},
+ bullet={name='Proiettili',price=26,damage=2,cooldown=120,icon='▪'},
+ laser={name='Laser',price=44,damage=4,cooldown=260,icon='ϟ'}
+}
+local function copy(t) local out={};for k,v in pairs(t) do out[k]=type(v)=='table' and copy(v) or v end;return out end
+local function contains(t,v) for _,x in ipairs(t) do if x==v then return true end end;return false end
+local function cat(v) return type(v)=='number' and v==math.floor(v) and v&gt;=0 and v&lt;B end
+local function finite(v) return type(v)=='number' and v==v and v~=math.huge and v~=-math.huge end
+Core.isCat=cat
+local Game={};Game.__index=Game
+function Core.new(random) local self=setmetatable({random=random or math.random},Game);self:reset();return self end
+function Game:mission() return Core.MISSIONS[self.stage+1] end
+function Game:world() return Core.WORLDS[self:mission().world+1] end
+function Game:targets() return self:mission().targets end
+function Game:goal() return #self:targets() end
+function Game:progress() local n=0;for _,p in ipairs(self:targets()) do if cat(self.stamps[p.y*C+p.x]) then n=n+1 end end;return n end
+function Game:won() return self.endReason=='win' end
+function Game:campaignWon() return self:won() and self.stage==#Core.MISSIONS-1 end
+function Game:duration() return self:mission().duration end
+function Game:remaining() return self.mode=='flow' and self:duration()-self.elapsed or math.huge end
+function Game:interval() return math.max(260,760-self.stage*9-math.max(math.floor(self.saved/30),math.floor(self.elapsed/20000))*25) end
+function Game:reset(mode)
+ self.mode=mode=='chill' and 'chill' or 'flow';self.stage=0;self.score=0;self.coins=0;self.rescuedBefore=0;self.bestChain=0
+ self.owned={'stone'};self.weapon='stone';self:prepareStage()
+end
+function Game:prepareStage()
+ self.checkpoint={score=self.score,coins=self.coins,owned=copy(self.owned),weapon=self.weapon,bestChain=self.bestChain}
+ self.board={};for y=0,R-1 do self.board[y]={};for x=0,C-1 do self.board[y][x]=false end end
+ self.saved=0;self.stamps={};self.charge=0;self.moves=0;self.elapsed=0;self.over=false;self.endReason=nil
+ self.mosquito=nil;self.mosquitoMs=12000;self.mosquitoMoves=5;self.events={};self.bag={};self.queue={self:make(),self:make(),self:make()};self:spawn()
+end
+function Game:nextStage() if not self:won() or self:campaignWon() then return false end;self.rescuedBefore=self.rescuedBefore+self.saved;self.stage=self.stage+1;self:prepareStage();return true end
+function Game:retryStage() if not self.over or self:won() then return false end;local c=self.checkpoint;self.score=c.score;self.coins=c.coins;self.owned=copy(c.owned);self.weapon=c.weapon;self.bestChain=c.bestChain;self:prepareStage();return true end
+function Game:addScore(points) if not finite(points) or points&lt;=0 then return end;local before=math.floor(self.score/100);self.score=self.score+math.floor(points);self.coins=self.coins+math.floor(self.score/100)-before end
+function Game:finish(reason)
+ if self.over then return end
+ if reason=='win' then for _,p in ipairs(self:targets()) do if not cat(self.stamps[p.y*C+p.x]) then return end end end
+ self.over=true;self.endReason=reason;self.mosquito=nil;if reason=='win' then self:addScore(200) end
+end
+function Game:drainEvents() local out=self.events;self.events={};return out end
+function Game:advance(ms)
+ if self.over or not finite(ms) or ms&lt;=0 then return false end
+ if self.mode=='flow' then self.elapsed=math.min(self:duration(),self.elapsed+ms);if self.elapsed==self:duration() then self:finish('time');return true end end
+ if self.mosquito then local m=self.mosquito;m.age=m.age+ms;m.cooldown=math.max(0,m.cooldown-ms);if self.mode=='flow' then m.dropMs=math.max(0,m.dropMs-ms);if m.dropMs==0 then self:dropClutter() end end
+ elseif self.mode=='flow' then self.mosquitoMs=self.mosquitoMs-ms;if self.mosquitoMs&lt;=0 and self.moves&gt;=2 then self:appearMosquito() end end
+ return self.over
+end
+function Game:make()
+ if #self.bag==0 then self.bag={0,1,2,3};for i=4,2,-1 do local j=math.floor(self.random()*i)+1;self.bag[i],self.bag[j]=self.bag[j],self.bag[i] end end
+ return {cells=copy(SHAPES[math.floor(self.random()*#SHAPES)+1]),color=table.remove(self.bag)}
+end
+function Game:cells(piece)
+ piece=piece or self.active;local out={};for _,p in ipairs(piece.cells) do local x=p[1]+piece.q;out[#out+1]={x=x,y=p[2]+piece.r+math.floor(x/2),color=piece.color} end;return out
+end
+function Game:fits(piece) for _,p in ipairs(self:cells(piece)) do if p.x&lt;0 or p.x&gt;=C or p.y&lt;0 or p.y&gt;=R or self.board[p.y][p.x]~=false then return false end end;return true end
+function Game:spawn()
+ self.active=table.remove(self.queue,1);self.active.q=4;self.active.r=0;self.queue[#self.queue+1]=self:make()
+ local low=math.huge;for _,p in ipairs(self:cells()) do low=math.min(low,p.y) end;self.active.r=-low;self.swapped=false
+ if not self:fits(self.active) then self:finish('full') end
+end
+function Game:move(dx)
+ if self.over then return false end;local p=copy(self.active);p.q=p.q+dx;p.r=p.r+math.floor(self.active.q/2)-math.floor(p.q/2)
+ if not self:fits(p) then return false end;self.active=p;return true
+end
+function Game:turn()
+ if self.over then return false end
+ local cells={};for _,p in ipairs(self.active.cells) do cells[#cells+1]={-p[2],p[1]+p[2]} end
+ for _,kick in ipairs({{0,0},{-1,0},{1,-1},{0,1},{-1,1},{1,0},{0,-1}}) do local p=copy(self.active);p.cells=cells;p.q=p.q+kick[1];p.r=p.r+kick[2];if self:fits(p) then self.active=p;return true end end;return false
+end
+function Game:ghost() local p=copy(self.active);while true do local nextp=copy(p);nextp.r=nextp.r+1;if not self:fits(nextp) then return p end;p=nextp end end
+function Game:swap() if self.over or self.swapped then return false end;local p=copy(self.queue[1]);p.q=self.active.q;p.r=self.active.r;if not self:fits(p) then return false end;self.queue[1]={cells=copy(self.active.cells),color=self.active.color};self.active=p;self.swapped=true;return true end
+function Game:step() if self.over then return nil end;local p=copy(self.active);p.r=p.r+1;if self:fits(p) then self.active=p;return {moved=true,clears={}} end;return self:lock() end
+function Game:drop() if self.over then return nil end;self.active=self:ghost();return self:lock() end
+function Game:lock()
+ if self.over or not self:fits(self.active) then return nil end
+ for _,p in ipairs(self:cells()) do self.board[p.y][p.x]=p.color end
+ self.moves=self.moves+1;self:addScore(#self.active.cells*5);local result=self:resolve()
+ if not self.over then self:spawn() end
+ if not self.over and self.mode=='chill' then if self.mosquito then self.mosquito.placements=self.mosquito.placements-1;if self.mosquito.placements==0 then self:dropClutter() end else self.mosquitoMoves=self.mosquitoMoves-1;if self.mosquitoMoves&lt;=0 then self:appearMosquito() end end end
+ return result
+end
+local function neighbors(x,y) local out={};local r=y-math.floor(x/2);for _,d in ipairs(DIRS) do local xx=x+d[1];out[#out+1]={x=xx,y=r+d[2]+math.floor(xx/2)} end;return out end
+function Game:groups()
+ local seen,groups={},{}
+ for y=0,R-1 do for x=0,C-1 do local color,key=self.board[y][x],y*C+x
+  if cat(color) and not seen[key] then local group={{x=x,y=y,color=color}};seen[key]=true;local i=1
+   while i&lt;=#group do for _,p in ipairs(neighbors(group[i].x,group[i].y)) do local k=p.y*C+p.x
+    if p.x&gt;=0 and p.x&lt;C and p.y&gt;=0 and p.y&lt;R and not seen[k] and self.board[p.y][p.x]==color then seen[k]=true;p.color=color;group[#group+1]=p end
+   end;i=i+1 end
+   if #group&gt;=Core.MATCH then groups[#groups+1]=group end
+  end
+ end end;return groups
+end
+function Game:collapse(protect)
+ local occupied={};if protect then for _,p in ipairs(self:cells()) do occupied[p.y*C+p.x]=true end end
+ for x=0,C-1 do local dest=R-1;for y=R-1,0,-1 do
+  if occupied[y*C+x] then dest=y-1 elseif self.board[y][x]~=false then local value=self.board[y][x];self.board[y][x]=false;self.board[dest][x]=value;dest=dest-1 end
+ end end
+end
+function Game:stampTargets()
+ local before=self:progress();for _,p in ipairs(self:targets()) do if cat(self.board[p.y][p.x]) then self.stamps[p.y*C+p.x]=self.board[p.y][p.x] end end
+ local added=self:progress()-before;self:addScore(added*15);self.charge=math.min(4,self.charge+math.floor(self:progress()/6)-math.floor(before/6));return added
+end
+function Game:checkGoal() if self:progress()==self:goal() then self:finish('win') end end
+function Game:resolve(protect)
+ local clears,chain,stamped={},0,self:stampTargets();local groups=self:groups()
+ while #groups&gt;0 do chain=chain+1;local cells={}
+  for _,group in ipairs(groups) do for _,p in ipairs(group) do cells[#cells+1]=p;self.board[p.y][p.x]=false end end
+  local cats=#cells;local debris={};for _,p in ipairs(cells) do for _,n in ipairs(neighbors(p.x,p.y)) do if n.x&gt;=0 and n.x&lt;C and n.y&gt;=0 and n.y&lt;R and self.board[n.y][n.x]==B then n.color=B;debris[#debris+1]=n;self.board[n.y][n.x]=false end end end
+  for _,p in ipairs(debris) do cells[#cells+1]=p end
+  self.saved=self.saved+cats;self:addScore(cats*20*chain);self.charge=math.min(4,self.charge+#groups);clears[#clears+1]={cells=cells,chain=chain};self:collapse(protect);stamped=stamped+self:stampTargets();groups=self:groups()
+ end
+ self.bestChain=math.max(self.bestChain,chain);self:checkGoal();return {moved=false,clears=clears,chain=chain,stamped=stamped}
+end
+function Game:relocateActive()
+ if self:fits(self.active) then return true end;local old=self.active
+ for r=old.r-1,-R,-1 do local p=copy(old);p.r=r;if self:fits(p) then self.active=p;return true end end
+ for q=0,C-1 do for r=-R,R-1 do local p=copy(old);p.q=q;p.r=r;if self:fits(p) then self.active=p;return true end end end;return false
+end
+function Game:purr()
+ if self.over or self.charge&lt;4 then return nil end;self.charge=0;local cells,cats={},0
+ for y=R-2,R-1 do for x=0,C-1 do if self.board[y][x]~=false then local color=self.board[y][x];cells[#cells+1]={x=x,y=y,color=color};if cat(color) then cats=cats+1 end;self.board[y][x]=false end end end
+ self.saved=self.saved+cats;self:addScore(cats*10);self:collapse(true);local result=self:resolve(true);if not self.over and not self:relocateActive() then self:finish('full') end
+ table.insert(result.clears,1,{cells=cells,chain=0});result.purr=true;return result
+end
+function Game:appearMosquito()
+ if self.over or self.mosquito then return false end;local hp=4+math.floor(self.stage/9)
+ self.mosquito={hp=hp,maxHp=hp,age=0,phase=self.random()*math.pi*2,cooldown=0,dropMs=4200,placements=3,drops=0};self.events[#self.events+1]={type='mosquito-warning'};return true
+end
+function Game:restMosquito() self.mosquito=nil;self.mosquitoMs=20000+math.floor(self.random()*5000);self.mosquitoMoves=6 end
+function Game:dropClutter()
+ if not self.mosquito or self.over then return {} end
+ local cells,active,count,used={},{},0,{};for _,p in ipairs(self:cells()) do active[p.y*C+p.x]=true end
+ for y=0,R-1 do for x=0,C-1 do if self.board[y][x]==B then count=count+1 end end end
+ for _=1,math.min(10-count,self.stage&gt;=12 and 2 or 1) do local candidates={}
+  for x=0,C-1 do local y=R-1;for yy=0,R-1 do if self.board[yy][x]~=false then y=yy-1;break end end
+   if y&gt;=4 and not active[y*C+x] and not used[x] then candidates[#candidates+1]={x=x,y=y,color=B} end
+  end
+  if #candidates==0 then break end;local p=candidates[math.floor(self.random()*#candidates)+1];self.board[p.y][p.x]=B;cells[#cells+1]=p;used[p.x]=true
+ end
+ local m=self.mosquito;m.drops=m.drops+1;m.dropMs=math.max(2800,4200-self.stage*35);m.placements=3
+ if #cells&gt;0 then self.events[#self.events+1]={type='mosquito-clutter',cells=cells} end
+ if m.drops&gt;=3 or #cells==0 then self:restMosquito();self.events[#self.events+1]={type='mosquito-away'} end;return cells
+end
+function Game:clearClutter()
+ local cells={};for y=0,R-1 do for x=0,C-1 do if self.board[y][x]==B then cells[#cells+1]={x=x,y=y,color=B};self.board[y][x]=false end end end
+ self:collapse(true);local result=self:resolve(true);if #cells&gt;0 then table.insert(result.clears,1,{cells=cells,chain=0}) end;result.clutter=#cells;return result
+end
+function Game:shootMosquito(hit)
+ if self.over or not self.mosquito or self.mosquito.cooldown&gt;0 then return false end
+ self.mosquito.cooldown=Core.WEAPONS[self.weapon].cooldown
+ if hit==false then self.events[#self.events+1]={type='mosquito-miss'};return true end
+ self.mosquito.hp=math.max(0,self.mosquito.hp-Core.WEAPONS[self.weapon].damage);self.mosquito.dropMs=self.mosquito.dropMs+220
+ if self.mosquito.hp&gt;0 then self.events[#self.events+1]={type='mosquito-hit',hp=self.mosquito.hp}
+ else self:restMosquito();self:addScore(100);self.charge=math.min(4,self.charge+1);local result=self:clearClutter();self.events[#self.events+1]={type='mosquito-defeated',result=result} end;return true
+end
+function Game:canBuy(id) local w=Core.WEAPONS[id];return w~=nil and self:won() and not self:campaignWon() and not contains(self.owned,id) and self.coins&gt;=w.price end
+function Game:buy(id) if not self:canBuy(id) then return false end;self.coins=self.coins-Core.WEAPONS[id].price;self.owned[#self.owned+1]=id;self.weapon=id;return true end
+function Game:equip(id) if not contains(self.owned,id) then return false end;self.weapon=id;return true end
+function Game:cycleWeapon() local ids={};for _,id in ipairs(Core.WEAPON_IDS) do if contains(self.owned,id) then ids[#ids+1]=id end end;for i,id in ipairs(ids) do if id==self.weapon then self.weapon=ids[i%#ids+1];break end end;return self.weapon end
+return Core
+</ProtectedString>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000014">
+        <Properties>
+          <string name="Name">Layout</string>
+          <ProtectedString name="Source">-- Fill the available screen: no fixed-width page, outer card, sidebar or letterbox.
+local Layout={}
+function Layout.compute(w,h)
+ w=math.max(240,w);h=math.max(220,h)
+ local top=h&lt;450 and 48 or 58
+ local bottom=56
+ local out={w=w,h=h,top=top,bottom=bottom,boardX=5,boardY=top,boardW=w-10,boardH=h-top-bottom}
+ out.dx=out.boardW/(8+4/3);out.dy=out.boardH/12.5
+ out.cellW=out.dx*4/3;out.cellH=out.dy
+ out.font=h&lt;450 and 11 or 13
+ out.buttonGap=5;out.buttonW=(w-14-5*5)/6;out.buttonH=46
+ out.buttonY=h-50
+ return out
+end
+function Layout.cell(l,x,y) return l.boardX+l.cellW/2+x*l.dx,l.boardY+l.cellH/2+(y+(x%2)*.5)*l.dy end
+function Layout.column(l,x) return math.max(0,math.min(8,math.floor((x-l.boardX-l.cellW/2)/l.dx+.5))) end
+function Layout.buttons(l)
+ local buttons={};for i=1,6 do buttons[i]={x=7+(i-1)*(l.buttonW+5),y=l.buttonY,w=l.buttonW,h=l.buttonH} end;return buttons
+end
+return Layout
+</ProtectedString>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000015">
+        <Properties>
+          <string name="Name">Scenery</string>
+          <ProtectedString name="Source">-- Original asset-free vector scenery. Only the current destination exists in the GUI.
+-- Shapes are created once per destination, never rebuilt in the animation loop.
+local Art={}
+local function rgb(r,g,b) return Color3.fromRGB(r,g,b) end
+local function new(kind,parent,props) local o=Instance.new(kind);for k,v in pairs(props) do o[k]=v end;o.Parent=parent;return o end
+local palettes={
+ {rgb(40,56,84),rgb(229,137,103),rgb(30,98,114)}, {rgb(63,49,106),rgb(225,136,155),rgb(52,87,126)},
+ {rgb(28,92,131),rgb(235,168,119),rgb(37,124,129)}, {rgb(54,71,113),rgb(209,135,153),rgb(41,70,99)},
+ {rgb(70,48,104),rgb(230,159,118),rgb(49,108,118)}, {rgb(29,74,101),rgb(160,165,116),rgb(27,83,82)},
+ {rgb(59,50,108),rgb(220,158,180),rgb(34,91,103)}, {rgb(61,41,113),rgb(237,159,93),rgb(45,104,111)},
+ {rgb(42,53,101),rgb(205,105,142),rgb(30,64,114)}, {rgb(31,72,110),rgb(226,135,142),rgb(31,89,113)},
+ {rgb(27,83,111),rgb(231,169,102),rgb(25,115,127)}, {rgb(36,86,121),rgb(233,152,107),rgb(28,126,126)},
+ {rgb(37,66,101),rgb(170,199,197),rgb(33,124,142)}, {rgb(89,55,105),rgb(235,168,111),rgb(118,79,76)},
+ {rgb(60,57,90),rgb(237,155,92),rgb(108,103,69)}, {rgb(40,66,121),rgb(216,143,166),rgb(30,103,134)},
+ {rgb(25,60,87),rgb(153,191,171),rgb(26,101,118)}, {rgb(22,37,91),rgb(108,134,186),rgb(73,130,160)}
+}
+function Art.create(parent,index)
+ local old=parent:FindFirstChild('Destination');if old then old:Destroy() end
+ local p=palettes[(index-1)%#palettes+1]
+ local root=new('Frame',parent,{Name='Destination',Size=UDim2.fromScale(1,1),BorderSizePixel=0,BackgroundColor3=p[1],ClipsDescendants=true})
+ new('UIGradient',root,{Rotation=90,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,p[1]),ColorSequenceKeypoint.new(.61,p[2]),ColorSequenceKeypoint.new(1,p[3])})})
+ local function box(x,y,w,h,c,rot,radius,trans)
+  local o=new('Frame',root,{Position=UDim2.fromScale(x,y),Size=UDim2.fromScale(w,h),BackgroundColor3=c,BorderSizePixel=0,Rotation=rot or 0,BackgroundTransparency=trans or 0})
+  if radius then new('UICorner',o,{CornerRadius=UDim.new(radius,0)}) end;return o
+ end
+ local function oval(x,y,w,h,c,trans) return box(x-w/2,y-h/2,w,h,c,0,.5,trans) end
+ local cream=rgb(255,215,150);local ink=rgb(24,45,68);local rock=rgb(67,83,106);local green=rgb(28,78,79)
+ local function beam(x,y,w,h,c,rot) return box(x,y,w,h,c,rot,.08) end
+ local function tower(x,y,w,h,c,spire)
+  box(x,y,w,h,c);box(x-.008,y,w+.016,.013,cream)
+  if spire then beam(x+w*.46,y-h*.28,w*.08,h*.3,c);oval(x+w*.5,y-h*.27,w*.2,.014,cream) end
+  for col=0,2 do for row=0,3 do box(x+w*(.15+col*.28),y+h*(.1+row*.21),w*.12,h*.09,cream,0,.15,.1+((row+col)%3)*.19) end end
+ end
+ local function hill(x,y,w,h,c) return oval(x,y,w,h,c) end
+ local function tree(x,y,s,c)
+  beam(x,y-.15*s,.012*s,.22*s,ink,-5)
+  for i=0,3 do oval(x+(i-1.5)*.023*s,y-.16*s-(i%2)*.025*s,.09*s,.066*s,c or green) end
+ end
+ local function bridge(y)
+  box(-.03,y,1.06,.039,cream,-3,.05)
+  for j=0,6 do box(j*.18-.015,y+.025,.037,.16,rock);oval(j*.18+.073,y+.12,.15,.13,p[3]) end
+  box(-.03,y-.008,1.06,.012,ink,-3)
+ end
+ local function mountain(x,y,w,h,c)
+  -- Overlapping rotated rounded blocks form a faceted mountain silhouette.
+  box(x-w*.32,y-h*.47,w*.64,h*.72,c,45,.05);box(x-w*.43,y-h*.05,w*.86,h*.48,c,0,.1)
+ end
+ local function pagoda(x,y,s,c)
+  for j=0,3 do local w=(.2-j*.035)*s;box(x-w*.29,y-j*.058*s,w*.58,.057*s,c);beam(x-w/2,y-j*.058*s-.013*s,w,.018*s,cream,0);beam(x-w*.55,y-j*.058*s-.01*s,w*.32,.014*s,ink,-12);beam(x+w*.23,y-j*.058*s-.01*s,w*.32,.014*s,ink,12) end
+  beam(x-.004*s,y-.27*s,.008*s,.087*s,cream)
+ end
+ -- The sky and water span the playfield instead of framing a smaller board.
+ oval(.74,.19,.17,.13,cream,.26)
+ for i=1,7 do local x=(i*.19)%1;oval(x,.09+(i%3)*.065,.19,.027,rgb(255,218,205),.8) end
+ box(0,.68,1,.32,p[3])
+ for i=1,22 do box((i*.137)%1,.69+(i%9)*.034,.04+(i%4)*.022,.0025,cream,0,.5,.6+(i%3)*.08) end
+ if index==1 then
+  for i=0,3 do tower(i*.096-.04,.39-i*.014,.084,.31+i*.014,rgb(137+i*15,93+i*9,102),i==3);tower(.7+i*.092,.34+i*.025,.088,.36-i*.025,rgb(117+i*16,92+i*11,104),i==0) end
+  bridge(.65);box(.2,.84,.19,.014,ink,-9,.5);beam(.3,.77,.006,.092,ink,22)
+ elseif index==2 then
+  for i=0,3 do tower(i*.1,.48-i*.016,.08,.22+i*.016,rock,false) end
+  beam(.62,.34,.018,.36,cream,19);beam(.74,.34,.018,.36,cream,-19);beam(.68,.22,.009,.18,cream);beam(.6,.58,.18,.015,cream);beam(.648,.45,.084,.014,cream);bridge(.74)
+ elseif index==3 then
+  for i=0,5 do tower(.13+i*.116,.51-(i%3)*.056,.087,.22+(i%3)*.056,rgb(126+i*14,106+i*7,130),true) end
+  for i=1,24 do box((i*.097)%1,.81+(i%4)*.021,.06,.023,palettes[(i%18)+1][2],i%2==0 and 8 or -8,.2) end
+ elseif index==4 then
+  tower(.12,.33,.095,.4,rgb(135,111,117),true);oval(.167,.385,.056,.05,cream);beam(.165,.37,.003,.017,ink);beam(.165,.386,.015,.003,ink)
+  tower(.62,.47,.085,.24,rock,true);tower(.85,.47,.085,.24,rock,true);bridge(.7);beam(.66,.55,.23,.012,cream)
+ elseif index==5 then
+  box(.28,.53,.45,.16,rgb(203,182,191));oval(.505,.512,.29,.16,rgb(227,201,202));box(.36,.59,.29,.1,rgb(203,182,191));oval(.505,.635,.10,.12,p[1]);box(.32,.69,.37,.013,cream)
+  for _,x in ipairs({.2,.76}) do tower(x,.41,.032,.29,cream,true) end
+  beam(.5,.368,.007,.08,cream);box(.4,.73,.2,.27,rgb(68,143,156));tree(.1,.82,1.2);tree(.9,.81,1.1)
+ elseif index==6 then
+  for i=0,5 do mountain(i*.24,.66,.4,.3+(i%3)*.13,i%2==0 and green or rock) end
+  for i=0,12 do local y=.69-i*.027+math.sin(i)*.03;box(i*.075,y,.10,.022,cream,-15);box(i*.075,y-.02,.013,.024,rock) end
+  tower(.71,.35,.08,.15,rock,false)
+ elseif index==7 then
+  mountain(.7,.58,.42,.34,rock);pagoda(.36,.7,1.2,rgb(122,57,79));tree(.07,.6,1.8,rgb(185,115,160));tree(.9,.7,1.6,rgb(212,143,176))
+  for i=1,15 do oval((i*.173)%1,.27+(i%8)*.067,.009,.006,cream,.24) end
+ elseif index==8 then
+  for i=0,3 do pagoda(.2+i*.21,.7,1-(i%2)*.15,rgb(175,122,76)) end;bridge(.78)
+ elseif index==9 or index==10 then
+  for i=0,10 do local h=.12+((i*7)%6)*.045;tower(i*.098-.03,.7-h,.078,h,rgb(39+i*4,55+i*3,92),i==6 or i==3) end
+  if index==9 then bridge(.8);beam(.1,.64,.013,.17,cream);beam(.062,.64,.084,.009,cream) else oval(.49,.84,.22,.07,rgb(168,190,206));box(.15,.9,.7,.012,cream) end
+ elseif index==11 then
+  for i=0,4 do tower(i*.13-.02,.55-(i%2)*.035,.105,.18+(i%2)*.035,rgb(176+i*9,118+i*12,127),false) end
+  for i=0,4 do tower(.62+i*.083,.36+(i%2)*.11,.062,.35-(i%2)*.11,rock,false) end;tree(.16,.84,1.5);tree(.92,.8,1.2)
+ elseif index==12 then
+  mountain(.28,.64,.5,.38,green);hill(.83,.57,.37,.42,rock);box(0,.79,.75,.038,cream,-9,.4)
+  beam(.265,.37,.014,.1,cream);beam(.225,.385,.09,.012,cream);tree(.92,.88,1.5);tree(.04,.89,1.1)
+ elseif index==13 or index==17 or index==18 then
+  for i=0,4 do mountain(i*.27,.65,.36,.3+(i%3)*.1,index==17 and green or rgb(92+i*9,125+i*8,151));if index~=17 then mountain(i*.27,.50,.15,.13,cream) end end
+  if index==17 then for i=0,4 do tree(i*.24,.83,1.2) end
+  elseif index==18 then for i=0,3 do oval(.13+i*.23,.83,.044,.075,ink);oval(.13+i*.23,.842,.026,.047,cream) end
+  else box(.02,.78,.25,.13,rgb(160,207,219),-10,.18);box(.74,.81,.19,.10,rgb(182,219,225),9,.1) end
+ elseif index==14 then
+  box(0,.68,1,.32,rgb(134,91,93));mountain(.32,.68,.42,.33,rgb(188,140,113));mountain(.75,.67,.33,.26,rgb(164,116,110));hill(.31,.95,.9,.31,rgb(157,105,103));tree(.91,.75,.85)
+ elseif index==15 then
+  mountain(.55,.61,.48,.33,rock);mountain(.55,.43,.15,.11,cream);box(0,.70,1,.3,rgb(106,93,69));tree(.15,.61,2.3);tree(.79,.74,1.45)
+  for _,x in ipairs({.35,.62}) do oval(x,.8,.075,.057,ink);beam(x-.018,.81,.008,.058,ink);beam(x+.02,.81,.008,.058,ink);oval(x+.039,.79,.033,.043,ink);beam(x+.048,.79,.011,.045,ink,15) end
+ elseif index==16 then
+  bridge(.69);for i=0,3 do box(.33+i*.09,.69-(i%2)*.024,.11,.1,cream,-35+i*7,.2) end;box(.24,.79,.55,.026,rock)
+ end
+ -- A constant dark scrim keeps falling kittens and gold targets readable everywhere.
+ box(0,0,1,1,rgb(5,15,27),0,nil,.38)
+ return root
+end
+return Art
+</ProtectedString>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="RBX00000016">
+        <Properties>
+          <string name="Name">Micio3Client</string>
+          <bool name="Disabled">false</bool>
+          <ProtectedString name="Source">-- Native Roblox GUI edition. The board expands independently in X and Y.
+-- No webpage, fixed-width wrapper, letterboxing, external image requests or sidebar.
+local Players=game:GetService('Players')
+local UIS=game:GetService('UserInputService')
+local RunService=game:GetService('RunService')
+local GuiService=game:GetService('GuiService')
+local StarterGui=game:GetService('StarterGui')
+local SoundService=game:GetService('SoundService')
+local gui=script.Parent
+local Core=require(gui:WaitForChild('Core'))
+local Layout=require(gui:WaitForChild('Layout'))
+local Scenery=require(gui:WaitForChild('Scenery'))
+local player=Players.LocalPlayer
+local function make(kind,parent,props) local o=Instance.new(kind);for k,v in pairs(props or {}) do o[k]=v end;o.Parent=parent;return o end
+local function rgb(r,g,b) return Color3.fromRGB(r,g,b) end
+local C={ink=rgb(13,29,42),panel=rgb(20,39,54),white=rgb(244,252,253),mint=rgb(157,243,203),gold=rgb(255,222,119),muted=rgb(177,202,214),purple=rgb(207,165,255),danger=rgb(250,140,183)}
+local palette={rgb(192,174,255),rgb(255,181,139),rgb(155,239,206),rgb(150,219,255)}
+gui.ResetOnSpawn=false;gui.DisplayOrder=100;gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+-- Interactive content respects Roblox's top bar and device cutouts; only scenery is full bleed.
+gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.ClipToDeviceSafeArea=true
+local playerGui=player:WaitForChild('PlayerGui')
+if UIS.TouchEnabled then playerGui.ScreenOrientation=Enum.ScreenOrientation.Portrait end
+local sceneryGui=make('ScreenGui',playerGui,{Name='Micio3Scenery',DisplayOrder=99,ResetOnSpawn=false,ScreenInsets=Enum.ScreenInsets.None,ClipToDeviceSafeArea=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
+local scenery=make('Frame',sceneryGui,{Name='WorldBackground',Size=UDim2.fromScale(1,1),BackgroundColor3=C.ink,BorderSizePixel=0})
+local root=make('Frame',gui,{Name='FullScreenGame',Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0})
+local function frame(parent,name,x,y,w,h,color,z)
+ return make('Frame',parent,{Name=name,Position=UDim2.fromOffset(x,y),Size=UDim2.fromOffset(w,h),BackgroundColor3=color or C.panel,BorderSizePixel=0,ZIndex=z or 1})
+end
+local function round(o,r) make('UICorner',o,{CornerRadius=UDim.new(r or .22,0)}) end
+local function text(parent,name,value,size,color,z)
+ return make('TextLabel',parent,{Name=name,Text=value,Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Font=Enum.Font.GothamBold,TextSize=size or 14,TextColor3=color or C.white,TextWrapped=true,ZIndex=z or 2})
+end
+local function button(parent,name,value,color)
+ local o=make('TextButton',parent,{Name=name,Text=value,Font=Enum.Font.GothamBold,TextSize=16,TextColor3=C.white,BackgroundColor3=color or C.panel,BackgroundTransparency=.06,BorderSizePixel=0,AutoButtonColor=true,TextWrapped=true,ZIndex=6})
+ round(o,.22);return o
+end
+local function place(o,x,y,w,h) o.Position=UDim2.fromOffset(x,y);o.Size=UDim2.fromOffset(w,h) end
+local function line(parent,name,x1,y1,x2,y2,color,width,z)
+ local dx,dy=x2-x1,y2-y1
+ local f=frame(parent,name,(x1+x2)/2,(y1+y2)/2,math.sqrt(dx*dx+dy*dy),width or 1,color,z)
+ f.AnchorPoint=Vector2.new(.5,.5);f.Rotation=math.deg(math.atan2(dy,dx));return f
+end
+local header=frame(root,'CompactHUD',0,0,1,1,C.ink,6);header.BackgroundTransparency=.12;round(header,.13)
+local locationText=text(header,'Destination','VENEZIA · 1/36',13,C.white)
+locationText.TextXAlignment=Enum.TextXAlignment.Left
+local goalText=text(header,'Goal','DIAMANTE · 0/8',13,C.gold);goalText.TextXAlignment=Enum.TextXAlignment.Left
+local walletText=text(header,'Credits','0 ◇',12,C.mint)
+local timerText=text(header,'Time','3:30',12,C.white)
+local pauseButton=button(header,'Pause','Ⅱ')
+local goalTrack=frame(root,'GoalTrack',5,55,1,3,C.ink,6)
+local goalFill=frame(goalTrack,'Fill',0,0,0,3,C.mint,1)
+local board=frame(root,'Board',0,0,1,1,C.ink,2);board.Size=UDim2.fromScale(1,1);board.BackgroundTransparency=1;board.Active=true;board.ClipsDescendants=true
+local controls=frame(root,'Controls',0,0,1,1,C.panel,6);controls.Size=UDim2.fromScale(1,1);controls.BackgroundTransparency=1
+local controlSpec={{'Left','←'},{'Rotate','↻'},{'Right','→'},{'Drop','↓ POSA'},{'Purr','✳ 0/4'},{'Arsenal','ARMI'}}
+local buttons={};for _,spec in ipairs(controlSpec) do buttons[spec[1]]=button(controls,spec[1],spec[2],spec[1]=='Drop' and rgb(38,112,95) or C.panel) end
+local swapButton=button(root,'Swap','',C.panel);swapButton.TextSize=12
+local nextLabel=text(swapButton,'NextPiece','',13,C.mint);nextLabel.TextXAlignment=Enum.TextXAlignment.Left
+local swapArrow=text(swapButton,'SwapArrow','⇄',15,C.white)
+local shootButton=button(root,'Shoot','◎ SPARA\nX · SASSI',rgb(149,223,94));shootButton.TextColor3=C.ink;shootButton.TextSize=14;shootButton.Visible=false
+local toast=text(root,'Notice','',13,C.gold,8);toast.BackgroundColor3=C.ink;toast.BackgroundTransparency=.2;round(toast,.2);toast.Visible=false
+local g=Core.new();local phase='welcome';local paused=true;local dirty=true;local l=Layout.compute(390,800)
+local elapsed,dropClock,hudClock,toastUntil=0,0,0,0
+local held={};local pointer=nil;local lastResult=nil;local activeWorld=-1
+local function notice(msg,duration) toast.Text=msg;toastUntil=elapsed+(duration or 2.5);toast.Visible=false end
+
+-- A small fixed sound pool. Bundled Roblox sounds need no separately moderated assets.
+-- The mosquito is a pitched, looped electronic tone with mild distortion/modulation.
+local audioEnabled=true;local musicClock=0;local noteIndex=0
+local ping='rbxasset://sounds/electronicpingshort.wav'
+local buzz=make('Sound',SoundService,{Name='Micio3Mosquito',SoundId=ping,Volume=.055,Looped=true,PlaybackSpeed=1.64})
+make('DistortionSoundEffect',buzz,{Level=.18})
+make('EqualizerSoundEffect',buzz,{LowGain=-32,MidGain=-3,HighGain=-10})
+local voices={};for i=1,8 do voices[i]=make('Sound',SoundService,{Name='Micio3Voice'..i,SoundId=ping,Volume=.08}) end;local voiceIndex=0
+local function tone(speed,volume,id)
+ if not audioEnabled then return end;voiceIndex=voiceIndex%#voices+1;local s=voices[voiceIndex];s:Stop();s.SoundId=id or ping;s.PlaybackSpeed=speed or 1;s.Volume=volume or .08;s.TimePosition=0;s:Play()
+end
+local function silence() buzz:Stop();for _,s in ipairs(voices) do s:Stop() end end
+
+-- Pooled grid, cats and outlines: only changed cells are updated after an action.
+local views={}
+for y=0,11 do for x=0,8 do
+ local v={x=x,y=y};v.root=frame(board,'Cell_'..x..'_'..y,0,0,10,10,C.ink,2);v.root.BackgroundTransparency=1
+ v.edges={};for i=1,6 do v.edges[i]=frame(v.root,'Edge'..i,0,0,1,1,C.white,1);v.edges[i].AnchorPoint=Vector2.new(.5,.5) end
+ v.target=text(v.root,'Stamp','',14,C.gold,4)
+ v.cat=frame(v.root,'Kitten',0,0,1,1,palette[1],2);v.cat.BackgroundTransparency=1
+ v.parts={}
+ for _,sx in ipairs({.22,.66}) do local ear=make('Frame',v.cat,{Name='Ear',Position=UDim2.fromScale(sx,.14),Size=UDim2.fromScale(.19,.26),BackgroundColor3=palette[1],BorderSizePixel=0,Rotation=45,ZIndex=1});round(ear,.12);v.parts[#v.parts+1]=ear end
+ local face=make('Frame',v.cat,{Name='Face',Position=UDim2.fromScale(.12,.2),Size=UDim2.fromScale(.76,.68),BackgroundColor3=palette[1],BorderSizePixel=0,ZIndex=2});round(face,.38);v.parts[#v.parts+1]=face
+ make('UIStroke',face,{Color=C.white,Thickness=1,Transparency=.3})
+ for _,sx in ipairs({.26,.62}) do local eye=make('Frame',face,{Name='Eye',Position=UDim2.fromScale(sx,.36),Size=UDim2.fromScale(.085,.14),BackgroundColor3=C.ink,BorderSizePixel=0,ZIndex=3});round(eye,.5) end
+ for _,sx in ipairs({.12,.73}) do local cheek=make('Frame',face,{Name='Cheek',Position=UDim2.fromScale(sx,.58),Size=UDim2.fromScale(.15,.12),BackgroundColor3=rgb(250,125,170),BackgroundTransparency=.3,BorderSizePixel=0,ZIndex=3});round(cheek,.5) end
+ v.mouth=text(face,'Mouth','ω',12,C.ink,3);v.mouth.Position=UDim2.fromScale(.35,.51);v.mouth.Size=UDim2.fromScale(.3,.35)
+ v.mark=make('Frame',v.root,{Name='Clutter',Position=UDim2.fromScale(.18,.14),Size=UDim2.fromScale(.64,.74),BackgroundColor3=rgb(103,69,142),BorderSizePixel=0,ZIndex=3});round(v.mark,.3);text(v.mark,'Cross','✕',20,C.purple)
+ views[#views+1]=v
+end end
+local mosquito=button(board,'Mosquito','',C.ink);mosquito.BackgroundTransparency=1;mosquito.ZIndex=5;mosquito.Visible=false
+local wings={}
+for _,side in ipairs({-1,1}) do for row=0,1 do
+ local wing=make('Frame',mosquito,{Name='Wing',Position=UDim2.fromScale(side&lt;0 and .05 or .53,.08+row*.2),Size=UDim2.fromScale(.45,.23),BackgroundColor3=row==0 and rgb(159,244,242) or C.purple,BackgroundTransparency=.14,BorderSizePixel=0,Rotation=side*25,ZIndex=1});round(wing,.5);wings[#wings+1]={view=wing,side=side,row=row}
+end end
+local mosquitoBody=make('Frame',mosquito,{Name='Body',Position=UDim2.fromScale(.36,.35),Size=UDim2.fromScale(.25,.39),BackgroundColor3=rgb(132,83,175),BorderSizePixel=0,Rotation=-23,ZIndex=2});round(mosquitoBody,.5)
+local mosquitoFace=make('Frame',mosquito,{Name='Face',Position=UDim2.fromScale(.27,.22),Size=UDim2.fromScale(.40,.33),BackgroundColor3=rgb(75,47,112),BorderSizePixel=0,ZIndex=3});round(mosquitoFace,.5)
+text(mosquitoFace,'Eyes','&gt; &lt;',17,rgb(255,185,103),4)
+line(mosquito,'Proboscis',28,35,8,58,C.purple,3,4)
+for _,side in ipairs({-1,1}) do for row=0,2 do line(mosquito,'Leg',43+side*6,45+row*5,43+side*24,48+row*10,C.purple,2,1) end end
+local hpText=text(mosquito,'HP','4/4',12,C.purple,4);hpText.Position=UDim2.fromScale(.1,.81);hpText.Size=UDim2.fromScale(.8,.19)
+local projectile=frame(board,'Projectile',0,0,12,8,C.gold,9);round(projectile,.5);projectile.Visible=false;projectile.AnchorPoint=Vector2.new(.5,.5)
+local shotTime,shotFrom,shotTo=0,nil,nil
+
+local modal=frame(root,'Modal',0,0,1,1,C.ink,20);modal.Size=UDim2.fromScale(1,1);modal.BackgroundTransparency=.16;modal.Active=true
+local card=frame(modal,'Card',0,0,1,1,C.panel,1);round(card,.035)
+local modalTitle=text(card,'Title','MICIO INCASTRO 3',25,C.white)
+local modalCopy=text(card,'Summary','',13,C.muted)
+local content=make('ScrollingFrame',card,{Name='Choices',BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.mint,CanvasSize=UDim2.fromOffset(0,0),ScrollingDirection=Enum.ScrollingDirection.Y,ZIndex=3})
+local primary=button(card,'Primary','PARTI · SFIDA →',rgb(39,120,99));local secondary=button(card,'Secondary','SENZA FRETTA')
+local modalButtons={};local primaryAction,secondaryAction
+local function clearInput() held={};pointer=nil;dropClock=0 end
+local function modalLayout()
+ local cw=math.min(510,l.w-18);local ch=math.min(630,l.h-14)
+ place(card,(l.w-cw)/2,(l.h-ch)/2,cw,ch)
+ place(modalTitle,16,13,cw-32,35);modalTitle.TextSize=ch&lt;400 and 20 or 25
+ place(modalCopy,18,51,cw-36,64);modalCopy.TextSize=ch&lt;400 and 11 or 13
+ place(content,14,122,cw-28,math.max(24,ch-238))
+ for i,b in ipairs(modalButtons) do place(b,0,(i-1)*53,cw-36,47) end
+ content.CanvasSize=UDim2.fromOffset(0,#modalButtons*53)
+ place(primary,14,ch-105,cw-28,46);place(secondary,14,ch-54,cw-28,43)
+end
+local function openModal(kind,title,copyText,aText,a,bText,b)
+ phase=kind;paused=true;clearInput();silence();modal.Visible=true;modalTitle.Text=title;modalCopy.Text=copyText
+ for _,child in ipairs(content:GetChildren()) do child:Destroy() end;modalButtons={};content.CanvasPosition=Vector2.new(0,0)
+ primary.Text=aText;primaryAction=a;secondary.Text=bText or '';secondaryAction=b;secondary.Visible=b~=nil;modalLayout()
+end
+local function choice(name,value,handler,color)
+ local b=button(content,name,value,color);b.TextSize=13;b.Activated:Connect(handler);modalButtons[#modalButtons+1]=b;modalLayout();return b
+end
+local function resume() phase='playing';paused=false;clearInput();modal.Visible=false;dirty=true end
+local update,act,showResult,showArsenal,showPause
+local function newGame(mode) g:reset(mode);activeWorld=-1;lastResult=nil;resume();notice('Riempi TUTTE le caselle dorate. Le verdi restano tue.',5);update() end
+local function audioChoice()
+ local b; b=choice('Audio',audioEnabled and '♫  Suoni e musica: ON' or '♫  Suoni e musica: OFF',function() audioEnabled=not audioEnabled;silence();b.Text=audioEnabled and '♫  Suoni e musica: ON' or '♫  Suoni e musica: OFF' end)
+end
+local function weapons(canPurchase)
+ for _,id in ipairs(Core.WEAPON_IDS) do local w=Core.WEAPONS[id];local owned=false;for _,v in ipairs(g.owned) do if v==id then owned=true end end
+  local label=w.icon..'  '..w.name..'   ·   '..w.damage..' danni   ·   '..(owned and (g.weapon==id and 'IN USO' or 'SCEGLI') or tostring(w.price)..' crediti')
+  local b=choice('Weapon_'..id,label,function()
+   if owned then g:equip(id) elseif canPurchase then if not g:buy(id) then tone(.5,.08);return end;tone(1.8,.1) else return end
+   if canPurchase then showResult() else showArsenal() end
+  end,owned and rgb(36,82,79) or C.ink)
+  b.AutoButtonColor=owned or (canPurchase and g:canBuy(id));if not b.AutoButtonColor then b.TextColor3=C.muted;b.BackgroundTransparency=.48 end
+ end
+end
+showArsenal=function()
+ openModal('arsenal','IL TUO ARSENALE',g.coins..' crediti · Cambia con E oppure 1–5.\nNuove armi si comprano tra le tappe. I colpi sono illimitati.','TORNA AL GIOCO →',resume,'CAMBIA GRUPPO · C',function() resume();act('swap') end)
+ weapons(false);audioChoice()
+end
+showPause=function()
+ if g.over then showResult();return end
+ openModal('pause','PAUSA',g:world().name..' · Tappa '..(g.stage+1)..'/36\nCopri ogni casella dorata, anche quelle interne.','RIPRENDI →',resume,'ARMI',showArsenal)
+ audioChoice();choice('Help','Frecce: muovi / ruota · Spazio: posa · X: spara\nTouch: trascina / scorri giù · Tocca: ruota',function() end)
+ choice('Passport','PASSAPORTO · 18 DESTINAZIONI',function()
+  openModal('passport','IL TUO VIAGGIO','Due sagome per destinazione.\nSi avanza completando ogni casella, senza buchi.','RIPRENDI →',resume,'TORNA ALLA PAUSA',showPause)
+  for i,w in ipairs(Core.WORLDS) do local completed=math.max(0,math.min(2,g.stage-(i-1)*2));choice('World'..i,w.name..' · '..w.country..'   '..completed..'/2',function() end) end
+ end)
+end
+showResult=function()
+ lastResult=g.endReason
+ if g:won() then
+  local all=g:campaignWon()
+  openModal('result',all and 'IL MONDO È DEI MICI!' or 'SAGOMA COMPLETA!',(all and 'Tutte le 36 sagome completate. Hai vinto il viaggio!' or g:mission().label..' conquistata. Nessun buco!')..'\n'..g.score..' punti · '..g.coins..' crediti',all and 'NUOVO VIAGGIO →' or 'PROSSIMA TAPPA →',function() if all then newGame(g.mode) else g:nextStage();lastResult=nil;resume();notice(g:world().name..' · '..g:mission().label,3);update() end end,'',nil)
+  if not all then weapons(true) end
+ else openModal('result',g.endReason=='time' and 'TEMPO SCADUTO' or 'NIDO PIENO',g:progress()..'/'..g:goal()..' caselle conquistate.\nRiprova la tappa: conservi armi e crediti delle tappe precedenti.','RIPROVA →',function() g:retryStage();lastResult=nil;resume();update() end,'',nil) end
+end
+primary.Activated:Connect(function() if primaryAction then primaryAction() end end)
+secondary.Activated:Connect(function() if secondaryAction then secondaryAction() end end)
+
+local function resize()
+ local size=root.AbsoluteSize;if size.X&lt;1 or size.Y&lt;1 then return end;l=Layout.compute(size.X,size.Y)
+ place(header,5,3,l.w-10,l.top-8);place(locationText,8,2,l.w-142,21);place(goalText,8,22,l.w-140,20)
+ place(walletText,l.w-132,3,66,19);place(timerText,l.w-132,23,66,18);place(pauseButton,l.w-61,0,44,44)
+ place(goalTrack,7,l.top-3,l.w-14,3);goalFill.Size=UDim2.new(g:progress()/g:goal(),0,1,0)
+ for i,p in ipairs(Layout.buttons(l)) do place(buttons[controlSpec[i][1]],p.x,p.y,p.w,p.h);buttons[controlSpec[i][1]].TextSize=l.w&lt;370 and 12 or 14;if i==6 then place(shootButton,p.x,p.y,p.w,p.h);shootButton.TextSize=l.w&lt;500 and 11 or 14 end end
+ place(swapButton,8,l.top+4,70,27);place(nextLabel,6,1,42,24);place(swapArrow,47,1,18,24)
+ place(toast,18,l.h-l.bottom-33,l.w-36,28);toast.TextSize=l.font
+ for _,v in ipairs(views) do local x,y=Layout.cell(l,v.x,v.y);local w,h=l.cellW*.94,l.cellH*.94;place(v.root,x-w/2,y-h/2,w,h);local catWidth=math.min(w,h*1.7);place(v.cat,(w-catWidth)/2,0,catWidth,h)
+  local points={{w,h/2},{w*.75,h},{w*.25,h},{0,h/2},{w*.25,0},{w*.75,0}}
+  for i,edge in ipairs(v.edges) do local a,b=points[i],points[i%6+1];local dx,dy=b[1]-a[1],b[2]-a[2];place(edge,(a[1]+b[1])/2,(a[2]+b[2])/2,math.sqrt(dx*dx+dy*dy),1);edge.Rotation=math.deg(math.atan2(dy,dx)) end
+  v.mouth.TextSize=math.max(9,math.min(21,h*.23));v.target.TextSize=math.max(11,math.min(22,h*.38));v.cache=nil
+ end
+ modalLayout();dirty=true
+end
+update=function()
+ local world=g:mission().world
+ if world~=activeWorld then Scenery.create(scenery,world+1);activeWorld=world end
+ locationText.Text=string.upper(g:world().name)..' · '..(g.stage+1)..'/36'
+ goalText.Text=(elapsed&lt;toastUntil and #toast.Text&lt;=38) and toast.Text or (g:mission().label..' · '..g:progress()..'/'..g:goal());walletText.Text=g.coins..' ◇'
+ local seconds=math.ceil(g:remaining()/1000);timerText.Text=seconds==math.huge and '∞' or string.format('%d:%02d',math.floor(seconds/60),seconds%60)
+ goalFill.Size=UDim2.new(g:progress()/g:goal(),0,1,0)
+ buttons.Purr.Text='✳ '..g.charge..'/4';buttons.Purr.TextColor3=g.charge&gt;=4 and C.mint or C.muted
+ buttons.Arsenal.Text=Core.WEAPONS[g.weapon].icon..' ARMI'
+ nextLabel.Text=string.rep('●',#g.queue[1].cells);nextLabel.TextColor3=palette[g.queue[1].color+1]
+ local m=g.mosquito;shootButton.Visible=m~=nil and not paused;mosquito.Visible=m~=nil and not paused
+ buttons.Arsenal.Visible=not shootButton.Visible
+ shootButton.Text='SPARA\n'..(UIS.TouchEnabled and Core.WEAPONS[g.weapon].icon or ('X · '..Core.WEAPONS[g.weapon].icon))
+ if m then hpText.Text=m.hp..'/'..m.maxHp end
+ if not dirty then return end;dirty=false
+ local targets,active,ghost={},{},{}
+ for _,p in ipairs(g:targets()) do targets[p.y*9+p.x]=true end
+ if not g.over then for _,p in ipairs(g:cells()) do active[p.y*9+p.x]=p.color end;for _,p in ipairs(g:cells(g:ghost())) do ghost[p.y*9+p.x]=p.color end end
+ for _,v in ipairs(views) do local k=v.y*9+v.x;local color=g.board[v.y][v.x];local isActive=active[k]~=nil;local stamped=Core.isCat(g.stamps[k]);local isTarget=targets[k];if isActive then color=active[k] end
+  local key=tostring(color)..':'..tostring(isActive)..':'..tostring(stamped)..':'..tostring(isTarget)..':'..tostring(ghost[k])
+  if key~=v.cache then v.cache=key;v.root.ZIndex=isActive and 4 or 2
+   local edgeColor=isTarget and (stamped and C.mint or C.gold) or (ghost[k]~=nil and C.white or C.muted)
+   for _,edge in ipairs(v.edges) do edge.BackgroundColor3=edgeColor;edge.BackgroundTransparency=isTarget and .04 or (ghost[k]~=nil and .16 or .88);edge.Size=UDim2.new(edge.Size.X.Scale,edge.Size.X.Offset,0,isTarget and 2 or 1) end
+   v.cat.Visible=Core.isCat(color);v.mark.Visible=color==Core.BLOCK
+   v.target.Text=isTarget and (stamped and '✓' or '•') or '';v.target.TextColor3=stamped and C.mint or C.gold
+   if v.cat.Visible then for _,part in ipairs(v.parts) do part.BackgroundColor3=palette[color+1] end;v.target.Size=UDim2.fromScale(.26,.3);v.target.Position=UDim2.fromScale(.68,.64)
+   else v.target.Size=UDim2.fromScale(1,1);v.target.Position=UDim2.fromScale(0,0) end
+  end
+ end
+end
+local function feedback(result)
+ if not result then return end
+ if result.stamped and result.stamped&gt;0 then notice('+'..result.stamped..' caselle · '..(g:goal()-g:progress())..' da riempire',2);tone(1.5,.1) end
+ if result.clears and #result.clears&gt;0 then tone(2,.1);notice(result.purr and 'Fusa! Spazio liberato.' or 'Incastro! '..(result.chain or 1)..'×',2) end
+end
+act=function(action)
+ if paused or phase~='playing' or g.over then return false end
+ local result,ok
+ if action=='left' then ok=g:move(-1) elseif action=='right' then ok=g:move(1)
+ elseif action=='rotate' then ok=g:turn();if ok then tone(.9,.035,'rbxasset://sounds/button.wav') end
+ elseif action=='drop' then result=g:drop();dropClock=0;tone(.6,.07,'rbxasset://sounds/button.wav')
+ elseif action=='down' then result=g:step() elseif action=='swap' then ok=g:swap()
+ elseif action=='purr' then result=g:purr();if not result then notice('Le Fusa si caricano con incastri e zanzare.',2) end
+ elseif action=='weapon' then g:cycleWeapon();notice(Core.WEAPONS[g.weapon].name,1)
+ elseif action=='shoot' then
+  local m=g.mosquito;if not m then return false end
+  local target={x=mosquito.Position.X.Offset+44,y=mosquito.Position.Y.Offset+40}
+  ok=g:shootMosquito();if ok then shotTime=.25;shotFrom={x=l.w*.5,y=l.h-l.bottom};shotTo=target;projectile.Visible=true;projectile.BackgroundColor3=g.weapon=='laser' and C.purple or C.gold;tone(g.weapon=='laser' and 2 or 1.2,.12) end
+ end
+ feedback(result);dirty=true;update();return ok or result~=nil
+end
+for name,action in pairs({Left='left',Rotate='rotate',Right='right',Drop='drop',Purr='purr'}) do local a=action;buttons[name].Activated:Connect(function() act(a) end) end
+buttons.Arsenal.Activated:Connect(function() if not paused then showArsenal() end end)
+swapButton.Activated:Connect(function() act('swap') end)
+pauseButton.Activated:Connect(function() if not paused then showPause() end end)
+shootButton.Activated:Connect(function() act('shoot') end)
+mosquito.Activated:Connect(function() act('shoot') end)
+local keyActions={Left='left',Right='right',Up='rotate',Down='down',A='left',D='right',W='rotate',S='down',Space='drop',X='shoot',E='weapon',C='swap',F='purr',DPadLeft='left',DPadRight='right',DPadUp='rotate',DPadDown='down',ButtonA='drop',ButtonX='shoot',ButtonY='weapon'}
+UIS.InputBegan:Connect(function(input,processed)
+ if processed then return end;local key=input.KeyCode.Name
+ if key=='P' or key=='ButtonStart' then if phase=='playing' then showPause() elseif phase=='pause' then resume() end;return end
+ if paused then return end
+ local numbers={One=1,Two=2,Three=3,Four=4,Five=5}
+ if numbers[key] then if g:equip(Core.WEAPON_IDS[numbers[key]]) then dirty=true;update() end;return end
+ local a=keyActions[key];if a then if held[key] then return end;act(a);if a=='left' or a=='right' or a=='down' then held[key]={action=a,wait=.27} end end
+end)
+UIS.InputEnded:Connect(function(input)
+ held[input.KeyCode.Name]=nil
+ if not pointer or pointer.input~=input then return end
+ local p=pointer;pointer=nil;if paused or input.UserInputState==Enum.UserInputState.Cancel then return end
+ local dy=input.Position.Y-p.startY
+ if dy&gt;math.max(50,l.dy*1.2) and math.abs(input.Position.X-p.startX)&lt;l.w*.5 then act('drop') elseif not p.moved and elapsed-p.time&lt;.4 then act('rotate') end
+end)
+board.InputBegan:Connect(function(input)
+ if paused or pointer then return end
+ if input.UserInputType~=Enum.UserInputType.Touch and input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
+ local y=input.Position.Y-root.AbsolutePosition.Y;if y&lt;l.top+40 or y&gt;l.h-l.bottom then return end
+ pointer={input=input,startX=input.Position.X,startY=input.Position.Y,lastX=input.Position.X,time=elapsed,moved=false}
+end)
+UIS.InputChanged:Connect(function(input)
+ if paused or not pointer then return end
+ if input~=pointer.input and input.UserInputType~=Enum.UserInputType.MouseMovement then return end
+ local dx=input.Position.X-pointer.lastX;local steps=math.floor(math.abs(dx)/math.max(15,l.dx*.65))
+ if steps&gt;0 then pointer.moved=true;local direction=dx&gt;0 and 1 or -1;for _=1,math.min(8,steps) do act(direction&gt;0 and 'right' or 'left') end;pointer.lastX=pointer.lastX+direction*steps*math.max(15,l.dx*.65) end
+end)
+GuiService.MenuOpened:Connect(function() if phase=='playing' then showPause() end end)
+UIS.WindowFocusReleased:Connect(function() if phase=='playing' then showPause() end end)
+root:GetPropertyChangedSignal('AbsoluteSize'):Connect(function() resize();update() end)
+local melody={0,7,12,4,9,7,2,7,0,12,16,14,9,7,4,2,5,9,12,7,4,2,0,-5}
+RunService.RenderStepped:Connect(function(dt)
+ dt=math.min(math.max(dt,0),.1);elapsed=elapsed+dt
+ if elapsed&gt;=toastUntil then toast.Visible=false end
+ if not paused and not g.over then
+  g:advance(dt*1000)
+  for _,h in pairs(held) do h.wait=h.wait-dt;if h.wait&lt;=0 then act(h.action);h.wait=.095 end end
+  if g.mode=='flow' then dropClock=dropClock+dt*1000;if dropClock&gt;=g:interval() then dropClock=dropClock-g:interval();feedback(g:step());dirty=true end end
+  for _,e in ipairs(g:drainEvents()) do
+   if e.type=='mosquito-warning' then notice('Zzz! Premi SPARA o X.',3);tone(1.6,.11)
+   elseif e.type=='mosquito-clutter' then dirty=true;notice('La zanzara sporca il nido! SPARA / X',2)
+   elseif e.type=='mosquito-defeated' then feedback(e.result);dirty=true;notice('Zanzara scacciata! +1 credito',2);tone(2.1,.12) end
+  end
+  local m=g.mosquito
+  if m then
+   local t=m.age/1000;local mx=math.max(8,math.min(l.w-88,l.w*(.5+.34*math.sin(t*1.45+m.phase))-44));local my=l.top+l.boardH*(.22+.16*math.sin(t*2.03+m.phase))-25
+   place(mosquito,mx,my,88,82);for _,wing in ipairs(wings) do wing.view.Rotation=wing.side*(24+math.sin(t*44)*24) end
+   if audioEnabled then buzz.PlaybackSpeed=1.64+math.sin(t*17)*.05;if not buzz.IsPlaying then buzz:Play() end end
+  else buzz:Stop() end
+  if audioEnabled then musicClock=musicClock+dt;if musicClock&gt;.46 then musicClock=0;noteIndex=noteIndex%#melody+1;tone(.52*2^((melody[noteIndex]+(g:mission().world%5)*2)/12),.035) end end
+ end
+ if not paused and g.over and lastResult~=g.endReason then showResult() end
+ if paused then mosquito.Visible=false;shootButton.Visible=false end
+ if shotTime&gt;0 then shotTime=math.max(0,shotTime-dt);local t=1-shotTime/.25;local x=shotFrom.x+(shotTo.x-shotFrom.x)*t;local y=shotFrom.y+(shotTo.y-shotFrom.y)*t-math.sin(t*math.pi)*30;projectile.Position=UDim2.fromOffset(x,y);projectile.Rotation=t*280;projectile.Visible=shotTime&gt;0 and not paused else projectile.Visible=false end
+ hudClock=hudClock+dt;if dirty or hudClock&gt;.18 then hudClock=0;update() end
+end)
+for _,kind in ipairs({Enum.CoreGuiType.Backpack,Enum.CoreGuiType.Health,Enum.CoreGuiType.PlayerList,Enum.CoreGuiType.Chat}) do pcall(function() StarterGui:SetCoreGuiEnabled(kind,false) end) end
+task.spawn(function()
+ local scripts=player:WaitForChild('PlayerScripts',8);local module=scripts and scripts:WaitForChild('PlayerModule',8)
+ if module then pcall(function() require(module):GetControls():Disable() end) end
+end)
+local function camera() if workspace.CurrentCamera then workspace.CurrentCamera.CameraType=Enum.CameraType.Scriptable;workspace.CurrentCamera.CFrame=CFrame.new(0,100,0) end end
+camera();workspace:GetPropertyChangedSignal('CurrentCamera'):Connect(camera)
+resize();update()
+openModal('welcome','MICIO INCASTRO 3','36 sagome · 18 destinazioni\nCopri TUTTE le caselle dorate. 100 punti = 1 credito.\nLa zanzara si scaccia con SPARA o X.','PARTI · SFIDA →',function() newGame('flow') end,'SENZA FRETTA',function() newGame('chill') end)
+choice('Instructions','Trascina per spostare · Tocca per ruotare\nScorri giù o premi POSA per far cadere',function() end)
+audioChoice()
+</ProtectedString>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+</roblox>

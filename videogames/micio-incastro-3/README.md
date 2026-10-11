@@ -2,6 +2,12 @@
 
 A separate, buildless sequel in Italian. Static HTML/CSS/JavaScript, no dependencies, advertising, accounts, tracking, downloads or real-money purchases. V1 and V2 are preserved at their existing URLs; V3 has its own directory, source, artwork, manifest and local-storage keys.
 
+## Native Roblox edition
+
+The independent [Roblox Studio place](roblox/Micio_Incastro_3_Roblox.rbxlx) keeps the 36 silhouettes, mosquito and weapon economy in native Luau. Its board fills the usable screen, with subdued vector scenery behind the falling cats, a compact HUD and bottom touch controls. It has no web-page wrapper or sidebar. The [ZIP package](roblox/Micio_Incastro_3_Roblox_Package.zip) includes the place, sources and [Italian guide](roblox/README.md). Progress checkpoints last for the current Roblox session. The web edition and its saved journeys are unchanged.
+
+The port was checked against 650 JavaScript action states and a mocked Roblox UI runtime. No Roblox Studio/device execution was available in the development environment; the guide explains the Studio playtest and publication steps.
+
 ## A world of silhouettes
 
 There are **36 unique filled silhouettes in 18 destinations**, two stops per destination:
