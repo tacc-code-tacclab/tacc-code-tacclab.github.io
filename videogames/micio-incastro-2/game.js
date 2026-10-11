@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d'),next=$('next'),nc=next.getContext('2d'),objective=$('objective'),oc=objective.getContext('2d');
   const game=new Micio.Game(),sound=MicioAudio.create(),dialog=$('dialog'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let started=false,paused=true,last=0,fall=0,width=0,height=0,needsDraw=true,particles=[],worldIndex=-1,phase='welcome',mainAction=null,secondaryAction=null;
-  let repeatDelay=0,repeatTimer=0,drag=null,screenBusy=false,palette='pastel',noticeUntil=0,wand=false,source=null,cursor={x:4,y:11},effects=[];
+  let repeatDelay=0,repeatTimer=0,drag=null,screenBusy=false,palette='pastel',noticeUntil=0,wand=false,source=null,cursor={x:4,y:11},effects=[],beePointerAt=-Infinity;
   const bests={flow:0,chill:0};
   try{const stored=JSON.parse(localStorage.getItem('micio2-records-v1')||'{}');for(const mode of ['flow','chill'])if(Number.isFinite(stored[mode])&&stored[mode]>=0)bests[mode]=stored[mode];sound.on=localStorage.getItem('micio-music')!=='off';}catch{}
   function setText(id,text){if($(id).textContent!==text)$(id).textContent=text;}
@@ -167,8 +167,8 @@
   for(const item of Object.keys(Micio.SHOP))$('buy-'+item).onclick=()=>{if(game.buy(item)){sound.fx('swap');setText('shop-feedback',Micio.SHOP[item].name+' in borsa!');refreshShop();refresh();}};
   $('help').onclick=help;$('pause').onclick=pause;$('restart').onclick=requestRestart;
   for(const action of ['swap','honey','slow','wand','purr'])$(action).onclick=()=>act(action);
-  $('flying-bee').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();shoot();});
-  $('flying-bee').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(e.detail===0)shoot();});
+  $('flying-bee').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();beePointerAt=performance.now();shoot();});
+  $('flying-bee').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if((e.detail===0&&!e.pointerType)||performance.now()-beePointerAt>500)shoot();});
   $('sound').onclick=()=>{if(!sound.on&&!sound.enable()){notice('Audio non disponibile in questo browser.');return;}sound.on=!sound.on;sound.stop();if(sound.on)resumeSound();try{localStorage.setItem('micio-music',sound.on?'on':'off');}catch{}soundLabel();};
   function setPalette(name,save=true){palette=MicioDraw.setPalette(name);document.body.dataset.palette=palette;const label=palette==='neon'?'Fluorescenti':'Pastello';setText('palette-label',label);$('palette').setAttribute('aria-label','Colori '+label.toLowerCase()+': passa a '+(palette==='neon'?'pastello':'fluorescenti'));document.querySelectorAll('[data-colors]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.colors===palette)));if(save)try{localStorage.setItem('micio-palette',palette);}catch{}refresh();}
   $('palette').onclick=()=>setPalette(palette==='pastel'?'neon':'pastel');document.querySelectorAll('[data-colors]').forEach(el=>el.onclick=()=>setPalette(el.dataset.colors));

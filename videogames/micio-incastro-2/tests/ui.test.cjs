@@ -46,6 +46,11 @@ test('a missed canvas shot does not rotate; drags still move and normal taps ret
  const q=g.active.q;canvas.emit('pointerdown');canvas.emit('pointermove',{clientX:170});canvas.emit('pointerup',{clientX:170});assert.ok(g.active.q>q);assert.equal(g.bee.hp,3);
  h.g.act('honey');canvas.emit('pointerdown');canvas.emit('pointerup');assert.notEqual(JSON.stringify(g.active.cells),cells);
 });
+test('a delayed compatibility click cannot double-fire; click-only controls can shoot',()=>{
+ const h=harness();h.get('dialog-secondary').click();const g=h.g.game;g.appearBee();h.frame();const bee=h.get('flying-bee');
+ bee.emit('pointerdown',{pointerType:'touch'});assert.equal(g.bee.hp,2);h.frame(300);bee.emit('click',{detail:1});assert.equal(g.bee.hp,2);
+ h.frame(250);bee.emit('click',{detail:1});assert.equal(g.bee.hp,1);
+});
 test('wand selection freezes the bee and blocks shots; reduced motion fixes its position',()=>{
  const h=harness({reduced:true});h.get('dialog-secondary').click();h.g.act('drop');h.g.game.appearBee();h.frame();const p=h.get('flying-bee').style.transform;h.frame(1000);assert.equal(h.get('flying-bee').style.transform,p);
  h.g.act('wand');const age=h.g.game.bee.age;h.frame(5000);h.get('flying-bee').emit('pointerdown');h.g.act('shoot');assert.equal(h.g.game.bee.age,age);assert.equal(h.g.game.bee.hp,3);assert.equal(h.get('flying-bee').disabled,true);h.g.act('wand');assert.equal(h.get('flying-bee').disabled,false);
