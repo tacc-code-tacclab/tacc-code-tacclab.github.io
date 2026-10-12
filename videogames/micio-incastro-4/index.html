@@ -5,12 +5,12 @@
   <meta name="theme-color" content="#142430"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Micio Incastro 4 — il giro del mondo</title>
   <meta name="description" content="Un mondo dentro il gioco: 36 sagome a tutto schermo. Su smartphone trascina i gattini senza ruotarli; su PC cadono e ruotano. Zanzare veloci e colpi limitati.">
-  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=1">
-  <script src="journey.js?v=1" defer></script><script src="engine.js?v=1" defer></script><script src="draw.js?v=1" defer></script><script src="audio.js?v=1" defer></script><script src="game.js?v=1" defer></script>
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=2">
+  <script src="journey.js?v=2" defer></script><script src="engine.js?v=2" defer></script><script src="draw.js?v=2" defer></script><script src="audio.js?v=2" defer></script><script src="game.js?v=2" defer></script>
 </head>
 <body data-palette="pastel">
   <main id="arena" class="arena" aria-label="Micio Incastro 4: campo di gioco a tutto schermo">
-    <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro-3/backgrounds/italia-small.webp"><img id="scene" src="../micio-incastro-3/backgrounds/italia.webp" alt="" width="1440" height="960" fetchpriority="high" decoding="async"></picture>
+    <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro-3/backgrounds/italia-small.webp"><img id="scene" draggable="false" src="../micio-incastro-3/backgrounds/italia.webp" alt="" width="1440" height="960" fetchpriority="high" decoding="async"></picture>
     <div class="shade" aria-hidden="true"></div>
     <canvas id="board" tabindex="0" aria-label="Completa la sagoma dorata con i gattini. Su PC frecce e spazio; su telefono trascina il gruppo dall’alto. Tocca la zanzara per sparare."></canvas>
     <header class="hud">

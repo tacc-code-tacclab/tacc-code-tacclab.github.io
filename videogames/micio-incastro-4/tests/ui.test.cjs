@@ -7,8 +7,8 @@ function harness(options={}){
   click(){if(this.disabled)return;const result=this.onclick?.();this.emit('click',{detail:0});return result;}
   setAttribute(n,v){this.attributes[n]=v;}
   querySelector(selector){return this.nodes[selector]||(this.nodes[selector]=new El());}
-  getContext(){return new Proxy({},{get:()=>()=>{}});}
-  getBoundingClientRect(){const [width,height]=this.id==='board'?[options.width||390,options.height||844]:this.id==='objective'?[64,42]:[180,50];return {left:10,top:20,width,height};}
+  getContext(){return new Proxy({arc(x,y,r){if(r<0){const error=new Error('Canvas arc radius must not be negative');error.name='IndexSizeError';throw error;}}},{get:(target,key)=>key in target?target[key]:()=>{}});}
+  getBoundingClientRect(){if((this.id==='next'&&options.mobile)||(this.id==='piece'&&!options.mobile))return {left:0,top:0,width:0,height:0};const [width,height]=this.id==='board'?[options.width||390,options.height||844]:this.id==='objective'?[64,42]:[180,50];return {left:10,top:20,width,height};}
   setPointerCapture(){}showModal(){this.open=true;}close(){this.open=false;this.emit('close');}
  }
  const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new El(id));return elements.get(id);};
@@ -64,4 +64,8 @@ test('field fills available width in portrait, landscape and PC; every cell cent
 });
 test('mobile and desktop resume using device controls, without touching any V3 save',()=>{
  const data=new Map([['micio3-trip-v1','untouched']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const h=harness({storage,mobile:true});h.get('dialog-main').click();assert.equal(h.g.game.mode,'place');const pc=harness({storage});pc.get('resume-trip').click();assert.equal(pc.g.game.mode,'flow');const phone=harness({storage,mobile:true});phone.get('resume-trip').click();assert.equal(phone.g.game.mode,'place');assert.equal(data.get('micio3-trip-v1'),'untouched');
+});
+test('phone boot reaches Play with the PC queue hidden; field text selection and native drag are blocked',()=>{
+ const h=harness({mobile:true});assert.equal(h.get('next').getBoundingClientRect().width,0);assert.equal(h.get('dialog').open,true);assert.match(h.get('dialog-main').textContent,/Trascina/);h.get('dialog-main').click();h.frame();assert.equal(h.g.paused,false);assert.ok(h.get('piece').width>0);assert.ok(h.get('board').width>0);
+ for(const event of ['selectstart','dragstart','contextmenu']){let blocked=false;h.get('arena').emit(event,{preventDefault(){blocked=true;}});assert.equal(blocked,true);}
 });

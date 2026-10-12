@@ -6,3 +6,6 @@ body[data-input="place"] .piece-tray{display:flex}body[data-input="place"] .cont
 @media(max-height:500px){.hud{height:53px;display:flex;align-items:flex-start}.mission{height:48px}.stats{height:48px;gap:9px}.mission span{display:none}.mission h1{font-size:13px}#objective{width:40px}.mission>b{font-size:13px}.stats>span:first-child,.score-stat,#help{display:none}.piece-tray{top:calc(env(safe-area-inset-top,0px) + 55px);height:42px}#piece{height:38px;width:116px}.piece-tray>span{font-size:7px}#tray-swap{min-height:32px}.dock{height:42px}.dock button{height:38px;min-height:38px}.board-status{font-size:9px}.travel-badge{display:none}dialog h2{font-size:25px}}
 @media(prefers-reduced-motion:reduce){*,*:before{animation:none!important;transition:none!important}}
 .arena{--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+
+/* Touch gestures on the field belong to the game, never text selection or image dragging. */
+.arena{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.arena img{-webkit-user-drag:none;user-drag:none}

@@ -4,6 +4,7 @@
   const game=new Micio4.Game(),sound=Micio4Audio.create(),dialog=$('dialog'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mobile=matchMedia('(pointer: coarse)').matches, tray=$('piece'),tc=tray.getContext('2d');
   document.body.dataset.input=mobile?'place':'fall';
+  for(const event of ['selectstart','dragstart','contextmenu'])$('arena').addEventListener(event,e=>e.preventDefault());
   const weaponButtons=[...document.querySelectorAll('[data-weapon]')];
   let started=false,paused=true,last=0,fall=0,width=0,height=0,needsDraw=true,worldIndex=-1,phase='welcome',mainAction=null,secondaryAction=null;
   let repeatDelay=0,repeatTimer=0,drag=null,screenBusy=false,palette='pastel',noticeUntil=0,particles=[],effects=[],mosquitoPointerAt=-Infinity,savedTrip=null;
