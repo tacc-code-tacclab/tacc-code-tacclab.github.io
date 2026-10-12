@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#142430"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Micio Incastro 5 — il giro del mondo</title>
+  <meta name="description" content="Un mondo dentro il gioco: 36 sagome a tutto schermo. Su smartphone trascina e ruota i gattini; su PC cadono e ruotano. Movimenti fluidi, zanzara e ronzio graduali, colpi limitati.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=1">
+  <script src="journey.js?v=1" defer></script><script src="engine.js?v=1" defer></script><script src="draw.js?v=1" defer></script><script src="audio.js?v=1" defer></script><script src="motion.js?v=1" defer></script><script src="game.js?v=1" defer></script>
+</head>
+<body data-palette="pastel">
+  <main id="arena" class="arena" aria-label="Micio Incastro 5: campo di gioco a tutto schermo">
+    <picture class="scenery" aria-hidden="true"><source id="scene-mobile" media="(max-width:900px)" srcset="../micio-incastro-3/backgrounds/italia-small.webp"><img id="scene" draggable="false" src="../micio-incastro-3/backgrounds/italia.webp" alt="" width="1440" height="960" fetchpriority="high" decoding="async"></picture>
+    <div class="shade" aria-hidden="true"></div>
+    <canvas id="board" tabindex="0" aria-label="Completa la sagoma dorata con i gattini. Su PC frecce e spazio; su telefono trascina il gruppo dall’alto. Tocca la zanzara per sparare."></canvas>
+    <header class="hud">
+      <div class="mission"><canvas id="objective" aria-label="Sagoma da completare"></canvas><div><span id="mission-kind">VENEZIA · ITALIA</span><h1 id="mission-title">Completa la sagoma</h1></div><b id="progress-text">0 / 8</b></div>
+      <div class="stats"><span>MICIO <b>5</b> <span id="stage">1 / 36</span></span><span class="score-stat">✦ <b id="score">0</b></span><span>◇ <b id="coins">0</b></span><span id="timer" role="timer">3:30</span><button id="fullscreen" aria-label="Schermo intero">⛶</button><button id="help" aria-label="Come si gioca">?</button><button id="pause" aria-label="Pausa e impostazioni">Ⅱ</button></div>
+      <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Sagoma completata" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><i id="goal-fill"></i></div>
+    </header>
+    <div id="piece-tray" class="piece-tray"><span>TOCCA: RUOTA<br>TRASCINA: SPOSTA</span><canvas id="piece" aria-label="Tocca il gruppo per ruotarlo, trascinalo sul campo e conferma con Posa"></canvas><button id="tray-swap" aria-label="Cambia gruppo">⇄</button><button id="confirm-piece" aria-label="Conferma la posizione del gruppo" disabled>✓ Posa</button></div>
+    <button id="flying-mosquito" class="flying-mosquito" aria-label="Colpisci la zanzara" hidden><svg class="mosquito-art" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <g class="mosquito-wing mosquito-wing-left" stroke="#bdefff" stroke-width="2"><path d="M58 49C30 10 10 9 14 26S40 49 58 54Z" fill="#acf1ff"/><path d="M56 53C28 34 10 43 18 52s24 9 40 5Z" fill="#bdc3ff"/><path d="m23 24 29 23m-28 4 29 4" stroke="#738ccb"/></g>
+  <g class="mosquito-wing mosquito-wing-right" stroke="#bdefff" stroke-width="2"><path d="M63 49C78 9 102 3 105 21S83 49 61 55Z" fill="#acf1ff"/><path d="M63 53C93 32 110 42 104 51S81 63 61 57Z" fill="#bdc3ff"/><path d="m98 21-29 27m30 3-29 5" stroke="#738ccb"/></g>
+  <g stroke="#edb3ff" stroke-width="2.5"><path d="m63 59 29 12 12 13m-40-21 15 19-3 12m-19-33-6 22-15 7m27-36 30-9 16 5m-47 5 25-22 12 1"/></g>
+  <path d="M60 45c18 11 22 28 4 43-10-14-21-28-13-37Z" fill="#864fc0" stroke="#f6c1ff" stroke-width="2"/>
+  <path d="m59 65 12-3m-11 12 10-3" stroke="#342c59" stroke-width="5"/>
+  <ellipse cx="46" cy="47" rx="21" ry="18" fill="#59427e" stroke="#f6c1ff" stroke-width="2"/>
+  <path d="m28 51-18 9 19-3" fill="#ffa584" stroke="#ffe5b1" stroke-width="2"/>
+  <path d="m38 30-8-13m23 12 7-13" stroke="#edb3ff" stroke-width="2.5"/>
+  <g fill="#ff926f"><ellipse cx="38" cy="45" rx="6" ry="7"/><ellipse cx="54" cy="44" rx="6" ry="7"/></g>
+  <g fill="#302439"><ellipse cx="37" cy="46" rx="2.2" ry="4"/><ellipse cx="53" cy="45" rx="2.2" ry="4"/></g>
+  <path d="m30 35 13 5m5 0 12-7" stroke="#211c38" stroke-width="4"/>
+  <path d="m42 58 10-3" stroke="#ffddd6" stroke-width="2"/>
+  <g fill="#ffc28f"><circle cx="35" cy="43" r="1.4"/><circle cx="51" cy="42" r="1.4"/></g>
+</svg><span id="mosquito-hp">4 / 4</span></button>
+    <div id="board-status" class="board-status" role="status" aria-live="polite"></div>
+    <footer class="dock">
+      <div class="next-preview"><canvas id="next" aria-label="Prossimi gruppi"></canvas><button id="swap" aria-label="Cambia gruppo, C">⇄ <kbd>C</kbd></button></div>
+      <div class="controls" aria-label="Comandi PC"><button data-action="left" aria-label="Sinistra">←</button><button data-action="rotate" aria-label="Ruota">↻</button><button data-action="right" aria-label="Destra">→</button><button data-action="drop" aria-label="Posa, spazio">↓</button></div>
+      <button id="purr" aria-label="Fusa: libera spazio, F">✳ <span id="charge-text">0/4</span></button>
+      <button id="cycle-weapon" aria-label="Cambia arma, E"><span id="weapon-name">Sassi</span><small id="ammo-text">18 colpi</small></button>
+      <button id="refill" aria-label="Compra otto colpi per due crediti">+8 <small>2 ◇</small></button>
+      <button id="shoot-mosquito" class="shoot" aria-label="Spara, X" hidden>◎ <b>SPARA</b><kbd>X</kbd><small id="shot-name">SASSI</small></button>
+    </footer>
+    <div class="sr-only" aria-hidden="true"><div id="world-name"></div><div id="world-number"></div><div id="world-caption"></div><i id="travel-fill"></i><div id="mosquito-banner"><span id="mosquito-text"></span><span id="mosquito-help"></span><span id="mosquito-count"></span></div></div>
+  </main>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <button id="dialog-close" class="close" aria-label="Chiudi e riprendi">×</button>
+    <div class="travel-badge" aria-hidden="true">✧ <span>MICIO WORLD TOUR</span> ✧</div>
+    <p id="dialog-kicker" class="eyebrow">MICIO INCASTRO 5</p><h2 id="dialog-title">Il mondo, un incastro alla volta.</h2>
+    <div id="dialog-copy"></div>
+    <section id="shop" class="shop" aria-label="Armeria" hidden><div class="shop-heading"><h3>L’armeria del viaggiatore</h3><strong>◇ <span id="shop-coins">0</span></strong></div><p>Le armi restano tue. Ogni tiro consuma un colpo, anche se manca la zanzara.</p><div id="shop-items" class="shop-items"></div><button id="buy-ammo">+8 colpi · 2 ◇</button><p id="shop-feedback" role="status" aria-live="polite"></p></section>
+    <section id="passport" class="passport" aria-label="Passaporto delle destinazioni" hidden></section>
+    <div id="palette-picker" class="palette-picker" role="group" aria-label="Scegli i colori"><button data-colors="pastel" aria-pressed="true">● Pastello</button><button data-colors="neon" aria-pressed="false">✦ Fluorescenti</button></div>
+    <div id="settings-tools" class="settings-tools"><div class="settings-row"><button id="sound" aria-label="Disattiva musica e suoni" aria-pressed="true">♫ <span id="sound-label">Musica on</span></button><button id="palette"><span id="palette-label">Pastello</span> ↻</button><button id="passport-button">◎ Passaporto</button></div><div class="arsenal-list" role="group" aria-label="Armi: tasti da 1 a 5, E per cambiare">
+          <button data-weapon="stone" aria-pressed="true"><i aria-hidden="true">●</i><span>Sassi</span><small>Gratis</small><kbd>1</kbd></button>
+          <button data-weapon="dart" aria-pressed="false"><i aria-hidden="true">➤</i><span>Freccette</span><small>6 ◇</small><kbd>2</kbd></button>
+          <button data-weapon="spear" aria-pressed="false"><i aria-hidden="true">↗</i><span>Lance</span><small>14 ◇</small><kbd>3</kbd></button>
+          <button data-weapon="bullet" aria-pressed="false"><i aria-hidden="true">▪</i><span>Proiettili</span><small>26 ◇</small><kbd>4</kbd></button>
+          <button data-weapon="laser" aria-pressed="false"><i aria-hidden="true">ϟ</i><span>Laser</span><small>44 ◇</small><kbd>5</kbd></button>
+        </div><div class="settings-row"><button id="restart">↺ Nuovo viaggio</button><a href="../micio-incastro-4/">Versione 4 ↗</a><a href="../../#videogames">Tutti i giochi ↗</a></div></div><div class="dialog-actions"><button id="dialog-main">Parti · Sfida →</button><button id="dialog-secondary">Senza fretta</button></div>
+    <button id="resume-trip" class="resume-trip" hidden>Riprendi il viaggio salvato →</button>
+    <p id="save-hint" class="save-hint">Salvataggio automatico a ogni tappa. Nessun acquisto con denaro reale.</p>
+    <p id="screen-status" role="status" hidden></p>
+  </dialog>
+</body></html>

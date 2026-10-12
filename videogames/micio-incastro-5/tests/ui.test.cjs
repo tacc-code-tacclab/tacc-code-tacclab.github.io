@@ -1,0 +1,116 @@
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+function harness(options={}){
+ class El{
+  constructor(id=''){this.id=id;this.listeners={};this.dataset={};this.style={setProperty(n,v){this[n]=v;}};this.nodes={};this.attributes={};this.hidden=false;this.disabled=false;this.open=false;this.textContent='';this.children=[];const classes=new Set();this.classList={add:n=>classes.add(n),remove:n=>classes.delete(n),contains:n=>classes.has(n),toggle:(n,on)=>on?classes.add(n):classes.delete(n)};}
+  addEventListener(n,f){(this.listeners[n]||=[]).push(f);}
+  emit(n,e={}){const event={preventDefault(){},stopPropagation(){},pointerId:1,clientX:100,clientY:100,key:'',...e};for(const f of this.listeners[n]||[])f(event);}
+  click(){if(this.disabled)return;const result=this.onclick?.();this.emit('click',{detail:0});return result;}
+  setAttribute(n,v){this.attributes[n]=v;}
+  querySelector(selector){return this.nodes[selector]||(this.nodes[selector]=new El());}
+  getContext(){return new Proxy({arc(x,y,r){if(r<0){const error=new Error('Canvas arc radius must not be negative');error.name='IndexSizeError';throw error;}}},{get:(target,key)=>key in target?target[key]:()=>{}});}
+  getBoundingClientRect(){if((this.id==='next'&&options.mobile)||(this.id==='piece'&&!options.mobile))return {left:0,top:0,width:0,height:0};const [width,height]=this.id==='board'?[options.width||390,options.height||844]:this.id==='objective'?[64,42]:[180,50];return {left:10,top:20,width,height};}
+  setPointerCapture(){}showModal(){this.open=true;}close(){this.open=false;this.emit('close');}
+ }
+ const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new El(id));return elements.get(id);};
+ const weapons=require('../engine.js').WEAPON_IDS.map(id=>{const e=new El();e.dataset.weapon=id;return e;});
+ const colors=['pastel','neon'].map(name=>{const e=new El();e.dataset.colors=name;return e;}),stops=Array.from({length:8},()=>new El());
+ const actions=['left','rotate','right','drop'].map(action=>{const e=action==='rotate'?get('rotate-action'):action==='drop'?get('drop-action'):new El();e.dataset.action=action;return e;});
+ const doc=new El();doc.body=new El();doc.documentElement=new El();doc.getElementById=get;doc.querySelectorAll=s=>s==='[data-weapon]'?weapons:s==='[data-colors]'?colors:s==='[data-stop]'?stops:s==='[data-action]'?actions:[];
+ if(options.fullscreen){doc.documentElement.requestFullscreen=async()=>{if(options.fullscreen==='reject')throw Error('rejected');doc.fullscreenElement=doc.documentElement;doc.emit('fullscreenchange');};doc.exitFullscreen=async()=>{doc.fullscreenElement=null;doc.emit('fullscreenchange');};}
+ const win=new El(),frames=[],timers=new Map(),audio=[];let now=0,id=0;
+ if(options.audio)win.AudioContext=class{
+  constructor(){this.currentTime=0;this.state='suspended';this.nodes=new Set();this.played=[];audio.push(this);}
+  resume(){this.state='running';return Promise.resolve();}
+  createGain(){return {gain:{value:0,setValueAtTime(v){this.value=v;},exponentialRampToValueAtTime(v){this.value=v;}},connect(){},disconnect(){this.disconnected=true;}};}
+  createBiquadFilter(){return {frequency:{value:0},Q:{value:0},connect(){},disconnect(){this.disconnected=true;}};}
+  createOscillator(){const c=this,o={frequency:{value:0,setValueAtTime(v){this.value=v;},exponentialRampToValueAtTime(){}},connect(){},disconnect(){c.nodes.delete(o);},start(t){c.played.push({t,f:o.frequency.value});},stop(t=c.currentTime){o.end=t;if(t<=c.currentTime)o.onended?.();}};c.nodes.add(o);return o;}
+  advance(t){this.currentTime=t;for(const o of [...this.nodes])if(o.end<=t)o.onended?.();}
+ };
+ const storage=options.storage||{getItem(){throw Error('blocked');},setItem(){throw Error('blocked');}};
+ const context={console,window:win,document:doc,Micio5:require('../engine.js'),Micio5Draw:require('../draw.js'),Micio5Motion:require('../motion.js'),matchMedia:q=>({matches:q.includes('pointer')?!!options.mobile:!!options.reduced}),getComputedStyle:()=>({getPropertyValue:()=>''}),devicePixelRatio:2,performance:{now:()=>now},localStorage:storage,requestAnimationFrame:f=>frames.push(f),setTimeout:f=>{timers.set(++id,f);return id;},setInterval:f=>{timers.set(++id,f);return id;},clearTimeout:i=>timers.delete(i),clearInterval:i=>timers.delete(i)};
+ vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../audio.js'),'utf8'),context);
+ let source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8'),anchor='  resize();welcome();requestAnimationFrame(loop);';assert.ok(source.includes(anchor));source=source.replace(anchor,'  window.test={game,act,refresh,sound,boardMotion,trayMotion,get paused(){return paused;},get drag(){return drag;},get pending(){return pending;},showResult,resize};'+anchor);vm.runInContext(source,context);
+ return {g:win.test,get,doc,win,colors,stops,actions,weapons,timers,audio,frame(ms=16){now+=ms;for(const a of audio)a.advance(now/1000);for(const f of frames.splice(0))f(now);}};
+}
+function winCurrent(h){for(const c of h.g.game.targets)h.g.game.board[c.y][c.x]=0;h.g.act('drop');}
+test('welcome pauses, Play starts gravity and timer, all objectives are full silhouettes',()=>{const h=harness();h.frame(10000);assert.equal(h.g.game.elapsed,0);h.get('dialog-main').click();assert.equal(h.g.paused,false);assert.equal(h.get('progress-text').textContent,'0 / 8');assert.equal(h.get('stage').textContent,'1 / 36');const r=h.g.game.active.r;h.frame();h.frame(800);assert.ok(h.g.game.active.r>r);assert.equal(h.get('board').width,780);assert.equal(h.get('timer').textContent,'3:30');});
+test('Relax waits for touch/buttons; drag and cancellation do not stick or drop twice',()=>{const h=harness();h.get('dialog-secondary').click();h.frame();h.frame(1000000);assert.equal(h.g.game.elapsed,0);assert.equal(h.get('timer').textContent,'∞');const q=h.g.game.active.q,c=h.get('board');c.emit('pointerdown');c.emit('pointermove',{clientX:170});c.emit('pointerup',{clientX:170});assert.ok(h.g.game.active.q>q);c.emit('pointerdown');c.emit('pointercancel');assert.equal(h.g.drag,null);h.actions[0].emit('pointerdown');assert.ok(h.timers.size);h.actions[0].emit('pointercancel');assert.equal(h.timers.size,0);h.actions[3].click();assert.equal(h.g.game.moves,1);});
+test('finite shots work from the button, touch and X without rotating kittens or using locked guns',()=>{const h=harness();h.get('dialog-secondary').click();const g=h.g.game;g.appearMosquito();h.frame();assert.equal(h.get('shoot-mosquito').hidden,false);const active=JSON.stringify(g.active);h.doc.emit('keydown',{key:'5'});assert.equal(g.weapon,'stone');h.get('shoot-mosquito').click();assert.equal(g.mosquito.hp,3);h.frame(350);{const p=require('../draw.js').mosquitoPosition(390,844,g.mosquito);h.get('flying-mosquito').emit('pointerdown',{pointerType:'touch',clientX:p.x+10,clientY:p.y+20});}h.get('flying-mosquito').emit('click',{detail:1});assert.equal(g.mosquito.hp,2);h.frame(350);h.doc.emit('keydown',{key:'x',repeat:true});assert.equal(g.mosquito.hp,2);h.doc.emit('keydown',{key:'x'});assert.equal(g.mosquito.hp,1);h.frame(350);h.get('shoot-mosquito').click();assert.equal(g.mosquito,null);assert.equal(g.coins,1);assert.equal(h.get('shoot-mosquito').hidden,true);assert.equal(JSON.stringify(g.active),active);});
+test('pause and page hiding freeze flight, wings, clocks and the higher mosquito buzz',()=>{const h=harness({audio:true});h.get('dialog-main').click();h.g.game.appearMosquito();h.frame();const sound=h.g.sound,buzz=sound.mosquitoVoice;assert.ok(buzz.tone.frequency.value>490);const t=h.g.game.elapsed;h.get('pause').click();assert.equal(sound.mosquitoVoice,null);assert.equal(h.get('flying-mosquito').dataset.still,'true');h.frame(30000);h.doc.emit('keydown',{key:'x'});assert.equal(h.g.game.mosquito.hp,4);assert.equal(h.g.game.elapsed,t);h.get('dialog-main').click();h.frame();assert.ok(sound.mosquitoVoice);h.doc.hidden=true;h.doc.emit('visibilitychange');h.frame(100000);assert.equal(h.g.paused,true);assert.equal(sound.voices.size,0);assert.equal(sound.mosquitoVoice,null);});
+test('mute releases the buzz, resume reuses bounded audio, defeat disconnects it',()=>{const h=harness({audio:true});h.get('dialog-secondary').click();h.g.game.appearMosquito();h.frame();const first=h.g.sound.mosquitoVoice;for(let i=0;i<200;i++){h.frame();assert.equal(h.g.sound.mosquitoVoice,first);assert.ok(h.g.sound.voices.size<=16);}h.get('sound').click();h.frame();assert.equal(h.g.sound.voices.size,0);h.get('sound').click();h.frame();assert.ok(h.g.sound.mosquitoVoice);for(let i=0;i<4;i++){h.get('shoot-mosquito').click();h.frame(350);}assert.equal(h.g.sound.mosquitoVoice,null);});
+test('a completed shape opens the weapon shop, pays once, equips and carries the purchase',()=>{const h=harness();h.get('dialog-secondary').click();h.g.game.addScore(1500);winCurrent(h);assert.equal(h.g.game.won,true);assert.equal(h.get('shop').hidden,false);const before=h.g.game.coins;h.get('buy-dart').click();assert.equal(h.g.game.coins,before-6);assert.equal(h.get('buy-dart').disabled,true);assert.equal(h.g.game.weapon,'dart');h.get('dialog-main').click();assert.equal(h.g.game.stage,1);assert.equal(h.g.game.weapon,'dart');h.doc.emit('keydown',{key:'1'});assert.equal(h.g.game.weapon,'stone');h.doc.emit('keydown',{key:'e'});assert.equal(h.g.game.weapon,'dart');h.weapons[0].click();assert.equal(h.g.game.weapon,'stone');});
+test('saved shop purchases resume correctly and V1/V2 storage remains untouched',()=>{const data=new Map([['micio2-records-v1','original']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const h=harness({storage});h.get('dialog-secondary').click();h.g.game.addScore(1000);winCurrent(h);h.get('buy-dart').click();const coins=h.g.game.coins;const resumed=harness({storage});assert.equal(resumed.get('resume-trip').hidden,false);resumed.get('resume-trip').click();assert.equal(resumed.g.game.won,true);assert.equal(resumed.get('shop').hidden,false);assert.equal(resumed.g.game.coins,coins);assert.equal(resumed.g.game.weapon,'dart');resumed.get('dialog-main').click();assert.equal(resumed.g.game.stage,1);assert.equal(resumed.g.paused,false);assert.equal(data.get('micio2-records-v1'),'original');});
+test('all 36 UI transitions use the destination artwork and finish without a score shortcut',()=>{const h=harness();h.get('dialog-secondary').click();for(let i=0;i<36;i++){assert.equal(h.g.game.stage,i);assert.equal(h.get('scene').src,'../micio-incastro-3/backgrounds/'+h.g.game.world.asset+'.webp');assert.equal(h.get('scene-mobile').srcset,'../micio-incastro-3/backgrounds/'+h.g.game.world.asset+'-small.webp');winCurrent(h);assert.equal(h.get('dialog').dataset.result,'win');assert.equal(h.get('shop').hidden,i===35);if(i<35)h.get('dialog-main').click();}assert.equal(h.g.game.campaignWon,true);assert.match(h.get('dialog-kicker').textContent,/36 \/ 36/);assert.equal(h.get('goal-fill').style.width,'100%');});
+test('result cannot be dismissed into a frozen board; passport and help safely pause',()=>{const h=harness();h.get('dialog-main').click();h.get('passport-button').click();assert.equal(h.g.paused,true);assert.equal(h.get('passport').hidden,false);assert.match(h.get('passport').innerHTML,/antartide-small.webp/);h.get('dialog-main').click();assert.equal(h.g.paused,false);h.get('help').click();h.get('dialog-close').click();assert.equal(h.g.paused,false);winCurrent(h);h.get('dialog').emit('cancel');assert.equal(h.get('dialog').open,true);h.get('dialog-main').click();assert.equal(h.g.game.stage,1);});
+test('reduced motion and narrow arenas retain an accessible stationary enemy target',()=>{const h=harness({reduced:true});h.get('dialog-secondary').click();h.g.game.appearMosquito();h.frame();const p=h.get('flying-mosquito').style.transform;h.frame(1000);assert.equal(h.get('flying-mosquito').style.transform,p);const {mosquitoPosition}=require('../draw.js');for(const [w,hh]of [[320,568],[390,844],[844,390]])for(let t=0;t<10000;t+=127){const pos=mosquitoPosition(w,hh,{age:t,phase:1});assert.ok(pos.size>=44);assert.ok(pos.x-pos.size/2>=0&&pos.x+pos.size/2<=w);assert.ok(pos.y-pos.size*.48>=0&&pos.y+pos.size*.48<=hh);}});
+test('fullscreen denial and unavailable storage/audio do not prevent playing',async()=>{for(const fullscreen of ['native','reject']){const h=harness({fullscreen});h.get('dialog-main').click();await new Promise(resolve=>setImmediate(resolve));h.g.act('drop');assert.equal(h.g.game.moves,1);assert.equal(h.g.paused,false);if(fullscreen==='native')assert.equal(h.doc.fullscreenElement,h.doc.documentElement);}});
+test('phone drag stays editable: tap rotates, drag repositions, only Posa commits without firing',()=>{
+ const h=harness({mobile:true});h.get('dialog-main').click();const g=h.g.game,D=require('../draw.js'),tray=h.get('piece'),board=h.get('board');assert.equal(g.mode,'place');assert.equal(h.get('dialog-secondary').hidden,true);const original=JSON.stringify(g.active.cells);h.frame();h.frame(10000);assert.equal(JSON.stringify(g.active.cells),original);
+ tray.emit('pointerdown');tray.emit('pointerup');assert.notEqual(JSON.stringify(g.active.cells),original);for(let i=0;i<5;i++){tray.emit('pointerdown');tray.emit('pointerup');}assert.equal(JSON.stringify(g.active.cells),original);
+ tray.emit('pointerdown');tray.emit('pointermove',{clientX:250,clientY:350});tray.emit('pointercancel');assert.equal(g.moves,0);assert.equal(h.g.drag,null);assert.equal(h.g.pending,null);
+ tray.emit('pointerdown');tray.emit('pointerup',{clientX:-100,clientY:200});assert.equal(g.moves,0);
+ const geom=D.geometry(390,844),point=D.point(geom,4,5),event={clientX:point.x+10,clientY:point.y+20+Math.max(34,geom.ry*2)};g.appearMosquito();const ammo=g.ammo;
+ tray.emit('pointerdown');tray.emit('pointermove',event);assert.ok(h.g.drag.preview);tray.emit('pointerup',event);assert.equal(g.moves,0);assert.deepEqual({...h.g.pending},{x:4,y:5});assert.equal(g.board.flat().every(c=>c===null),true);assert.equal(h.get('confirm-piece').disabled,false);
+ for(let i=0;i<6;i++){board.emit('pointerdown',{clientX:point.x+10,clientY:point.y+20});board.emit('pointerup',{clientX:point.x+10,clientY:point.y+20});}assert.equal(JSON.stringify(g.active.cells),original);assert.equal(g.ammo,ammo);
+ const end=D.point(geom,5,6);board.emit('pointerdown',{clientX:point.x+10,clientY:point.y+20});board.emit('pointermove',{clientX:end.x+10,clientY:end.y+20});board.emit('pointerup',{clientX:end.x+10,clientY:end.y+20});assert.deepEqual({...h.g.pending},{x:5,y:6});assert.equal(g.moves,0);
+ const cells=g.cells(g.placement(5,6));h.get('confirm-piece').click();assert.equal(g.moves,1);assert.equal(g.ammo,ammo);for(const c of cells)assert.equal(g.board[c.y][c.x],c.color);assert.equal(h.g.pending,null);assert.equal(h.get('confirm-piece').disabled,true);
+});
+test('invalid mobile preview cannot commit and can be rotated into a valid placement',()=>{
+ const h=harness({mobile:true});h.get('dialog-main').click();const g=h.g.game,D=require('../draw.js'),tray=h.get('piece'),board=h.get('board');g.active={cells:[[0,0],[0,1],[0,2]],color:1,q:4,r:-2};
+ const geom=D.geometry(390,844),p=D.point(geom,4,10),event={clientX:p.x+10,clientY:p.y+20+Math.max(34,geom.ry*2)};
+ tray.emit('pointerdown');tray.emit('pointermove',event);tray.emit('pointerup',event);assert.equal(h.get('confirm-piece').disabled,true);h.get('confirm-piece').click();assert.equal(g.moves,0);
+ board.emit('pointerdown',{clientX:p.x+10,clientY:p.y+20});board.emit('pointerup',{clientX:p.x+10,clientY:p.y+20});assert.equal(h.get('confirm-piece').disabled,false);h.get('confirm-piece').click();assert.equal(g.moves,1);
+});
+test('phone mosquito taps hit at their actual location; missed taps cost ammo, drags and generated clicks do not double-fire',()=>{
+ const h=harness({mobile:true});h.get('dialog-main').click();const g=h.g.game,D=require('../draw.js');g.appearMosquito();h.frame();let ammo=g.ammo;const p=D.mosquitoPosition(390,844,g.mosquito),target=h.get('flying-mosquito');target.emit('pointerdown',{clientX:p.x+10,clientY:p.y+20,pointerType:'touch'});target.emit('click',{detail:1,pointerType:'touch'});assert.equal(g.ammo,--ammo);assert.equal(g.mosquito.hp,3);h.frame(350);
+ const board=h.get('board');board.emit('pointerdown',{clientX:10,clientY:21});board.emit('pointerup',{clientX:10,clientY:21});assert.equal(g.ammo,--ammo);assert.equal(g.mosquito.hp,3);h.frame(350);board.emit('pointerdown');board.emit('pointermove',{clientX:240});board.emit('pointerup',{clientX:240});assert.equal(g.ammo,ammo);h.doc.emit('keydown',{key:'x'});assert.equal(g.ammo,ammo);h.get('shoot-mosquito').click();assert.equal(g.ammo,ammo);
+ g.ammo=0;h.frame(350);target.emit('pointerdown',{clientX:p.x+10,clientY:p.y+20});assert.equal(g.mosquito.hp,3);assert.match(h.get('board-status').textContent,/Colpi finiti/);
+});
+test('field fills available width in portrait, landscape and PC; every cell center maps back accurately',()=>{
+ const D=require('../draw.js');for(const [w,hh,mobile]of [[320,568,true],[390,844,true],[430,932,true],[844,390,true],[932,430,true],[1280,720,false],[1920,1080,false]]){
+  const h=harness({mobile,width:w,height:hh});h.get('dialog-main').click();const g=D.geometry(w,hh),left=D.point(g,0,0),right=D.point(g,8,11);assert.ok(left.x-g.rx<9);assert.ok(right.x+g.rx>w-9);assert.ok(right.y+Math.sqrt(3)*g.ry/2<=hh-64);
+  for(let y=0;y<12;y++)for(let x=0;x<9;x++){const p=D.point(g,x,y);assert.deepEqual(D.hit(w,hh,p.x,p.y),{x,y});}for(let t=0;t<5000;t+=97){const p=D.mosquitoPosition(w,hh,{age:t,phase:1,speed:2.2});assert.ok(p.x-p.size/2>=0&&p.x+p.size/2<=w);assert.ok(p.y-p.size/2>50&&p.y+p.size/2<hh-60);}
+ }
+});
+test('mobile and desktop resume using device controls, without touching V3 or V4 saves',()=>{
+ const data=new Map([['micio3-trip-v1','untouched'],['micio4-trip-v1','v4-untouched']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const h=harness({storage,mobile:true});h.get('dialog-main').click();assert.equal(h.g.game.mode,'place');const pc=harness({storage});pc.get('resume-trip').click();assert.equal(pc.g.game.mode,'flow');const phone=harness({storage,mobile:true});phone.get('resume-trip').click();assert.equal(phone.g.game.mode,'place');assert.equal(data.get('micio3-trip-v1'),'untouched');assert.equal(data.get('micio4-trip-v1'),'v4-untouched');
+});
+test('phone boot reaches Play with the PC queue hidden; field text selection and native drag are blocked',()=>{
+ const h=harness({mobile:true});assert.equal(h.get('next').getBoundingClientRect().width,0);assert.equal(h.get('dialog').open,true);assert.match(h.get('dialog-main').textContent,/Trascina/);h.get('dialog-main').click();h.frame();assert.equal(h.g.paused,false);assert.ok(h.get('piece').width>0);assert.ok(h.get('board').width>0);
+ for(const event of ['selectstart','dragstart','contextmenu']){let blocked=false;h.get('arena').emit(event,{preventDefault(){blocked=true;}});assert.equal(blocked,true);}
+});
+
+test('phone drag follows fractional finger coordinates; release glides to an exact legal cell without committing',()=>{
+ const h=harness({mobile:true}),D=require('../draw.js');h.get('dialog-main').click();h.frame();
+ const g=h.g.game,geom=D.geometry(390,844),point=D.point(geom,4,5),tray=h.get('piece');
+ const event={clientX:point.x+10+7,clientY:point.y+20+Math.max(34,geom.ry*2)+3};
+ tray.emit('pointerdown');tray.emit('pointermove',event);h.frame();
+ let pose=h.g.boardMotion.sample(32),anchor=D.posePoints(geom,{...pose,cells:[[0,0]]})[0];
+ assert.ok(Math.abs(anchor.x-point.x-7)<1e-8&&Math.abs(anchor.y-point.y-3)<1e-8);
+ tray.emit('pointerup',event);assert.equal(g.moves,0);assert.deepEqual({...h.g.pending},{x:4,y:5});
+ assert.ok(h.g.boardMotion.busy(32));h.frame(120);pose=h.g.boardMotion.sample(152);assert.equal(pose.q,4);assert.equal(pose.r,3);
+ assert.equal(h.g.boardMotion.busy(152),false);h.get('confirm-piece').click();assert.equal(g.moves,1);h.frame();assert.equal(h.g.boardMotion.sample(168),null);
+});
+test('rapid touch rotations change the model immediately, finish quickly and never fire or queue delayed turns',()=>{
+ const h=harness({mobile:true});h.get('dialog-main').click();h.frame();const g=h.g.game,tray=h.get('piece'),original=JSON.stringify(g.active.cells);g.appearMosquito();const ammo=g.ammo;
+ for(let i=0;i<6;i++){tray.emit('pointerdown');tray.emit('pointerup');h.frame(20);}
+ assert.equal(JSON.stringify(g.active.cells),original);assert.equal(g.ammo,ammo);h.frame(130);assert.equal(h.g.trayMotion.busy(266),false);
+ assert.equal(JSON.stringify(h.g.trayMotion.sample(266).cells),original);
+});
+test('buzz starts quietly, rises by level without adding nodes, and mute still disconnects it',()=>{
+ const h=harness({audio:true});h.get('dialog-secondary').click();const g=h.g.game,sound=h.g.sound;let prev=0;
+ for(const stage of [0,1,2,3,12,20,35]){
+  g.stage=stage;g.prepareStage();g.appearMosquito();h.frame();
+  const buzz=sound.mosquitoVoice,volume=buzz.gain.gain.value;
+  assert.ok(volume>=prev&&volume<=.035);if(stage===0)assert.ok(volume<.009);
+  h.frame();assert.equal(sound.mosquitoVoice,buzz);assert.equal(buzz.gain.gain.value,volume);assert.ok(sound.voices.size<=16);prev=volume;
+ }
+ h.get('sound').click();assert.equal(sound.mosquitoVoice,null);assert.equal(sound.voices.size,0);
+});
+test('PC movement eases visually while collision coordinates update immediately; reduced motion stays instant',()=>{
+ for(const reduced of [false,true]){
+  const h=harness({reduced});h.get('dialog-secondary').click();h.frame();const g=h.g.game,q=g.active.q;
+  h.g.act('left');assert.equal(g.active.q,q-1);const pose=h.g.boardMotion.sample(16);
+  assert.equal(pose.q,reduced?q-1:q);h.frame(130);assert.equal(h.g.boardMotion.sample(146).q,q-1);assert.equal(h.g.boardMotion.busy(146),false);
+ }
+});

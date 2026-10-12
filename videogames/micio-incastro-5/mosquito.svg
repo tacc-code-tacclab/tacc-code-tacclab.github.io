@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <g class="mosquito-wing mosquito-wing-left" stroke="#bdefff" stroke-width="2"><path d="M58 49C30 10 10 9 14 26S40 49 58 54Z" fill="#acf1ff"/><path d="M56 53C28 34 10 43 18 52s24 9 40 5Z" fill="#bdc3ff"/><path d="m23 24 29 23m-28 4 29 4" stroke="#738ccb"/></g>
+  <g class="mosquito-wing mosquito-wing-right" stroke="#bdefff" stroke-width="2"><path d="M63 49C78 9 102 3 105 21S83 49 61 55Z" fill="#acf1ff"/><path d="M63 53C93 32 110 42 104 51S81 63 61 57Z" fill="#bdc3ff"/><path d="m98 21-29 27m30 3-29 5" stroke="#738ccb"/></g>
+  <g stroke="#edb3ff" stroke-width="2.5"><path d="m63 59 29 12 12 13m-40-21 15 19-3 12m-19-33-6 22-15 7m27-36 30-9 16 5m-47 5 25-22 12 1"/></g>
+  <path d="M60 45c18 11 22 28 4 43-10-14-21-28-13-37Z" fill="#864fc0" stroke="#f6c1ff" stroke-width="2"/>
+  <path d="m59 65 12-3m-11 12 10-3" stroke="#342c59" stroke-width="5"/>
+  <ellipse cx="46" cy="47" rx="21" ry="18" fill="#59427e" stroke="#f6c1ff" stroke-width="2"/>
+  <path d="m28 51-18 9 19-3" fill="#ffa584" stroke="#ffe5b1" stroke-width="2"/>
+  <path d="m38 30-8-13m23 12 7-13" stroke="#edb3ff" stroke-width="2.5"/>
+  <g fill="#ff926f"><ellipse cx="38" cy="45" rx="6" ry="7"/><ellipse cx="54" cy="44" rx="6" ry="7"/></g>
+  <g fill="#302439"><ellipse cx="37" cy="46" rx="2.2" ry="4"/><ellipse cx="53" cy="45" rx="2.2" ry="4"/></g>
+  <path d="m30 35 13 5m5 0 12-7" stroke="#211c38" stroke-width="4"/>
+  <path d="m42 58 10-3" stroke="#ffddd6" stroke-width="2"/>
+  <g fill="#ffc28f"><circle cx="35" cy="43" r="1.4"/><circle cx="51" cy="42" r="1.4"/></g>
+</svg>
