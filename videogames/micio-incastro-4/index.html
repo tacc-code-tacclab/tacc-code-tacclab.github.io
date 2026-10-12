@@ -4,9 +4,9 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#142430"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Micio Incastro 4 — il giro del mondo</title>
-  <meta name="description" content="Un mondo dentro il gioco: 36 sagome a tutto schermo. Su smartphone trascina i gattini senza ruotarli; su PC cadono e ruotano. Zanzare veloci e colpi limitati.">
-  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=2">
-  <script src="journey.js?v=2" defer></script><script src="engine.js?v=2" defer></script><script src="draw.js?v=2" defer></script><script src="audio.js?v=2" defer></script><script src="game.js?v=2" defer></script>
+  <meta name="description" content="Un mondo dentro il gioco: 36 sagome a tutto schermo. Su smartphone trascina e ruota i gattini; su PC cadono e ruotano. Zanzare veloci e colpi limitati.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=3">
+  <script src="journey.js?v=3" defer></script><script src="engine.js?v=3" defer></script><script src="draw.js?v=3" defer></script><script src="audio.js?v=3" defer></script><script src="game.js?v=3" defer></script>
 </head>
 <body data-palette="pastel">
   <main id="arena" class="arena" aria-label="Micio Incastro 4: campo di gioco a tutto schermo">
@@ -18,7 +18,7 @@
       <div class="stats"><span>MICIO <b>4</b> <span id="stage">1 / 36</span></span><span class="score-stat">✦ <b id="score">0</b></span><span>◇ <b id="coins">0</b></span><span id="timer" role="timer">3:30</span><button id="fullscreen" aria-label="Schermo intero">⛶</button><button id="help" aria-label="Come si gioca">?</button><button id="pause" aria-label="Pausa e impostazioni">Ⅱ</button></div>
       <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Sagoma completata" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><i id="goal-fill"></i></div>
     </header>
-    <div id="piece-tray" class="piece-tray"><span>TRASCINA<br>QUESTO GRUPPO</span><canvas id="piece" aria-label="Gruppo da trascinare sul campo, orientamento fisso"></canvas><button id="tray-swap" aria-label="Cambia gruppo">⇄</button></div>
+    <div id="piece-tray" class="piece-tray"><span>TOCCA: RUOTA<br>TRASCINA: SPOSTA</span><canvas id="piece" aria-label="Tocca il gruppo per ruotarlo, trascinalo sul campo e conferma con Posa"></canvas><button id="tray-swap" aria-label="Cambia gruppo">⇄</button><button id="confirm-piece" aria-label="Conferma la posizione del gruppo" disabled>✓ Posa</button></div>
     <button id="flying-mosquito" class="flying-mosquito" aria-label="Colpisci la zanzara" hidden><svg class="mosquito-art" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
   <g class="mosquito-wing mosquito-wing-left" stroke="#bdefff" stroke-width="2"><path d="M58 49C30 10 10 9 14 26S40 49 58 54Z" fill="#acf1ff"/><path d="M56 53C28 34 10 43 18 52s24 9 40 5Z" fill="#bdc3ff"/><path d="m23 24 29 23m-28 4 29 4" stroke="#738ccb"/></g>
   <g class="mosquito-wing mosquito-wing-right" stroke="#bdefff" stroke-width="2"><path d="M63 49C78 9 102 3 105 21S83 49 61 55Z" fill="#acf1ff"/><path d="M63 53C93 32 110 42 104 51S81 63 61 57Z" fill="#bdc3ff"/><path d="m98 21-29 27m30 3-29 5" stroke="#738ccb"/></g>

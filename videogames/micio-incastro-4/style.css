@@ -9,3 +9,9 @@ body[data-input="place"] .piece-tray{display:flex}body[data-input="place"] .cont
 
 /* Touch gestures on the field belong to the game, never text selection or image dragging. */
 .arena{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.arena img{-webkit-user-drag:none;user-drag:none}
+
+/* Placement stays editable until confirmed; the entire mobile tool tray fits in 320px. */
+.piece-tray{width:min(330px,calc(100% - 16px));gap:5px;padding-left:7px;padding-right:7px}.piece-tray>span{width:66px;flex:none;font-size:7px;letter-spacing:0}#piece{width:90px;min-width:0;flex:1}#tray-swap{width:36px;min-width:36px;flex:none}#confirm-piece{width:62px;flex:none;padding:5px;font-size:12px;font-weight:700;background:var(--mint);color:#163f36;min-height:42px}#confirm-piece:disabled{background:#24404b;color:#acc5cb;opacity:.6}
+@media(max-height:500px){#confirm-piece{min-height:32px;height:32px}#piece{width:90px}}
+
+@media(max-height:500px){.piece-tray{padding-top:1px;padding-bottom:1px}#piece{height:36px}}
