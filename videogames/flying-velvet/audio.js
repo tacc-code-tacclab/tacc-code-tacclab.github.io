@@ -1,0 +1,12 @@
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.FlyingVelvetAudio=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+  const hz=n=>440*2**((n-69)/12);
+  function create(){return {ctx:null,bus:null,on:true,next:0,step:0,act:0,voices:new Set(),
+    enable(){if(!this.on)return false;const A=window.AudioContext||window.webkitAudioContext;if(!A)return false;if(!this.ctx){this.ctx=new A();this.bus=this.ctx.createGain();this.bus.gain.value=.34;this.bus.connect(this.ctx.destination);}this.ctx.resume();return true;},
+    tone(note,duration=.1,volume=.04,when=null,type='triangle',end=null){if(!this.on||!this.ctx||this.voices.size>18)return;const t=when??this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(hz(note),t);if(end)o.frequency.exponentialRampToValueAtTime(hz(end),t+duration);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.bus);this.voices.add(o);o.onended=()=>{this.voices.delete(o);o.disconnect();g.disconnect();};o.start(t);o.stop(t+duration+.02);},
+    tick(act=0){if(!this.on||!this.ctx||this.ctx.state!=='running')return;const now=this.ctx.currentTime,beat=.125-Math.min(20,act)*.0015;if(this.next<now-.2)this.next=now+.02;const melody=[72,0,76,79,72,76,81,0,79,0,76,74,72,67,69,71];while(this.next<now+.11){const s=this.step%16,bar=Math.floor(this.step/16);if(melody[s])this.tone(melody[s]+(bar%4===2?2:0),beat*.9,.045,this.next,'square');if(s%4===0)this.tone([48,53,50,55][(bar+act)%4],beat*3.2,.065,this.next,'triangle');if(s%2===0)this.tone(60+(s%4)*2,beat*.45,.018,this.next,'sine');if(s===3||s===11)this.tone(84,.04,.025,this.next,'sine',64);this.next+=beat;this.step++;}},
+    fx(kind,value=0){if(!this.enable())return;const t=this.ctx.currentTime;if(kind==='release'){this.tone(64,.13,.07,t,'triangle',84);}else if(kind==='catch'){[76,81,88].forEach((n,i)=>this.tone(n+Math.min(5,value),.24,.07,t+i*.055,'triangle'));}else if(kind==='act'){[60,64,67,72,76,79,84].forEach((n,i)=>this.tone(n,.4,.075,t+i*.07,'square'));}else if(kind==='fail'){[55,51,48,43].forEach((n,i)=>this.tone(n,.3,.065,t+i*.13,'sawtooth'));}else if(kind==='tilt'){this.tone(91,.12,.04,t,'sine',98);}},
+    stop(){for(const o of this.voices){try{o.stop();}catch{}}this.voices.clear();this.next=0;}
+  };}
+  return {create};
+});

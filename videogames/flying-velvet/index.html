@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#12042f"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Flying Velvet — Infinite Neon Circus</title>
+  <meta name="description" content="Tilt, twist and fly through an infinite fluorescent circus. Catch moving trapezes before the tigers catch you.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=1">
+  <script src="engine.js?v=1" defer></script><script src="draw.js?v=1" defer></script><script src="audio.js?v=1" defer></script><script src="game.js?v=1" defer></script>
+</head>
+<body>
+  <main id="game" aria-label="Flying Velvet circus game">
+    <canvas id="stage" aria-label="Infinite circus playing field"></canvas>
+    <header class="hud">
+      <div class="brand"><span>FLYING</span> VELVET</div>
+      <div class="meter"><span>ACT <b id="act">1</b></span><span>FLIGHTS <b id="flights">0</b></span><span>SCORE <b id="score">0</b></span></div>
+      <div class="actions"><button id="calibrate" aria-label="Recalibrate tilt">⌁ <span>LEVEL</span></button><button id="sound" aria-label="Mute sound" aria-pressed="false">♪</button><button id="screen" aria-label="Enter fullscreen">⛶</button><button id="pause" aria-label="Pause">Ⅱ</button></div>
+    </header>
+    <div class="act-progress" aria-label="Act progress"><i id="progress"></i></div>
+    <div id="hint" class="hint" role="status">WAIT FOR THE FORWARD SWING — THEN RELEASE</div>
+    <div class="tilt-gauge" aria-hidden="true"><i id="tilt-dot"></i><span>LEAN LEFT</span><span>LEAN RIGHT</span></div>
+    <div class="touch-controls" aria-label="Touch controls">
+      <button id="left" aria-label="Rotate counter-clockwise">↶</button><button id="release" aria-label="Release the trapeze">RELEASE</button><button id="right" aria-label="Rotate clockwise">↷</button>
+    </div>
+    <section id="intro" class="panel open" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+      <div class="ticket">
+        <p class="kicker">THE INFINITE NEON CIRCUS PRESENTS</p>
+        <h1 id="intro-title">FLYING<br><em>VELVET</em></h1>
+        <p>Release at the peak. Tilt your phone to spin in mid-air. Reach for the next moving trapeze before the tigers reach you.</p>
+        <div class="control-copy"><span>PHONE<br><b>TILT + RELEASE</b></span><span>KEYBOARD<br><b>A / D + SPACE</b></span></div>
+        <button id="play" class="primary">ENABLE TILT &amp; ENTER THE RING</button>
+        <button id="fallback">PLAY WITH TOUCH / KEYBOARD</button>
+        <p class="small">Best in landscape. Motion access is used only while this page is open.</p>
+      </div>
+    </section>
+    <section id="pause-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="ticket compact"><p class="kicker">INTERMISSION</p><h2 id="pause-title">THE CROWD IS WAITING</h2><button id="resume" class="primary">BACK TO THE RING</button><button id="restart">RESTART RUN</button></div>
+    </section>
+    <section id="result" class="panel" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="ticket compact"><p class="kicker">THE TIGERS APPLAUD</p><h2 id="result-title">WHAT A FLIGHT!</h2><p id="result-copy"></p><button id="again" class="primary">FLY AGAIN</button><a href="../../#videogames">LEAVE THE BIG TOP</a></div>
+    </section>
+    <div id="act-card" class="act-card" aria-live="polite"><small>THE TENT TRANSFORMS</small><b>ACT <span></span></b><em>FASTER · FARTHER · BRIGHTER</em></div>
+  </main>
+</body></html>
