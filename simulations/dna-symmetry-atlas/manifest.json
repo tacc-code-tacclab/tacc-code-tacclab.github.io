@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "kdf": "PBKDF2-SHA-256",
+  "cipher": "AES-256-GCM",
+  "iterations": 600000,
+  "salt": "F3Oe3h49ovfbOskJZbb6Ng==",
+  "iv": "VyvsAK4QzCwLfmRN",
+  "context": "DNA Symmetry Atlas protected bundle v1",
+  "payload": "atlas.payload.enc",
+  "bytes": 17604492,
+  "ciphertextSHA256": "2cea37990abf88b50a27906fd899b0a3837961529ade2aa51503fb0cd2aae96a"
+}
