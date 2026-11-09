@@ -40,7 +40,7 @@ function objectURL(path){
       const target=canonical(href,path);
       if(target&&own(files,target)){
         if(files[target].type==='text/html'){link.href='#';link.dataset.protectedPath=target}
-        else{link.href=objectURL(target);link.target='_blank';link.rel='noopener noreferrer'}
+        else{link.href=objectURL(target);link.target='_blank';link.rel='noopener noreferrer';if(/\.(gz|bib)$/i.test(target))link.download=target.split('/').pop()}
       }else if(/^(https?:)?\/\//i.test(href)){link.target='_blank';link.rel='noopener noreferrer'}
     }
     const navigation=doc.createElement('script');
