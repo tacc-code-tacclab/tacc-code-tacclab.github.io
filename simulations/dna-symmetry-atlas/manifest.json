@@ -3,10 +3,10 @@
   "kdf": "PBKDF2-SHA-256",
   "cipher": "AES-256-GCM",
   "iterations": 600000,
-  "salt": "2zCf3xBidsacvM/14iaQmg==",
-  "iv": "h8btuenC9bS2CZlG",
+  "salt": "gopERpUMXOjkjltNUEg1+g==",
+  "iv": "nGRJxoK/ciU2Y9C9",
   "context": "DNA Symmetry Atlas protected bundle v1",
-  "payload": "atlas.4eb4aefe74ca54ef6630.enc",
-  "bytes": 85003688,
-  "ciphertextSHA256": "4eb4aefe74ca54ef6630530cb017292a06ac4a89d04e0de065c0a2be46fb8203"
+  "payload": "atlas.0abb9f75f4f0e49ff9c2.enc",
+  "bytes": 93739965,
+  "ciphertextSHA256": "0abb9f75f4f0e49ff9c254077c6479d070a63a2c6f7b9218e076788712446e52"
 }
