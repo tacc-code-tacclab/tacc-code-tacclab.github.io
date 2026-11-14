@@ -1,6 +1,6 @@
 # The Northern Kthulu and the Silent Vessel
 
-Browser 3D first-person survival-horror shooter (three.js, WebGL 2). `index.html` is a self-contained build (version 7):
+Browser 3D first-person survival-horror shooter (three.js, WebGL 2). `index.html` is a self-contained build (version 8):
 geometry, textures, creatures and sound are all generated in code.
 
 Languages: Italiano (default), English, Español, Français, Deutsch — Settings → Language.
