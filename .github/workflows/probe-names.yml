@@ -1,0 +1,47 @@
+name: Probe IAU nomenclature (temporary)
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/probe-names.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          cd "$RUNNER_TEMP"
+          for u in \
+            "https://planetarynames.wr.usgs.gov/shapefiles/MOON_nomenclature_center_pts.zip" \
+            "https://asc-planetarynames-data.s3.us-west-2.amazonaws.com/MOON_nomenclature_center_pts.zip" \
+            "https://asc-planetarynames-data.s3.us-west-2.amazonaws.com/MOON_nomenclature_center_pts.kmz" \
+            "https://planetarynames.wr.usgs.gov/GIS_Downloads" \
+            "https://planetarynames.wr.usgs.gov/SearchResults?Target=16_Moon&displayType=CSV" ; do
+            r=$(curl -sIL -m 60 "$u" | grep -iE '^(HTTP|location|content-type|content-length|last-modified)' | tr '\r\n' '  ')
+            echo "::warning::HEAD $u => $r"
+          done
+          links=$(curl -sL -m 60 "https://planetarynames.wr.usgs.gov/GIS_Downloads" | grep -oiE '(href|src)="[^"]*"' | grep -iE 'moon|\.js|shapefile|kmz' | head -40 | tr '\n' ' ')
+          echo "::warning::GIS_Downloads links: $links"
+          for u in "https://asc-planetarynames-data.s3.us-west-2.amazonaws.com/MOON_nomenclature_center_pts.zip" "https://planetarynames.wr.usgs.gov/shapefiles/MOON_nomenclature_center_pts.zip"; do
+            if curl -sfL -m 120 "$u" -o m.zip && unzip -o -q m.zip -d m 2>/dev/null; then
+              echo "::warning::ZIP OK $u: $(ls -la m | tr '\n' ';')"
+              python3 - <<'PY'
+          import glob, struct
+          f = glob.glob('m/**/*.dbf', recursive=True)[0]
+          b = open(f, 'rb').read()
+          n, hl, rl = struct.unpack('<IHH', b[4:12])
+          flds = []; p = 32
+          while b[p] != 0x0D:
+              flds.append((b[p:p+11].split(b'\0')[0].decode(), chr(b[p+11]), b[p+16], b[p+17])); p += 32
+          print(f"::warning::DBF {f}: records={n} fields={flds}")
+          for i in (0, 1, 2, n // 2, n - 1):
+              rec = b[hl + i * rl: hl + (i + 1) * rl]; o = 1; out = []
+              for name, t, ln, dc in flds:
+                  out.append(f"{name}={rec[o:o+ln].decode('utf-8', 'replace').strip()}"); o += ln
+              print("::warning::REC " + " | ".join(out)[:1500])
+          cpg = glob.glob('m/**/*.cpg', recursive=True)
+          print("::warning::CPG " + (open(cpg[0]).read().strip() if cpg else 'none'))
+          prj = glob.glob('m/**/*.prj', recursive=True)
+          print("::warning::PRJ " + (open(prj[0]).read().strip()[:400] if prj else 'none'))
+          PY
+              break
+            else echo "::warning::ZIP FAIL $u"; fi
+          done
