@@ -54,7 +54,9 @@ requests. `assets/<site>/manifest.json` records every source URL, byte range and
 main engine 0-10 m/s^2 along the body axis, RCS translation, attitude thrusters with optional rate damping
 and auto-level, hover assist (vertical-speed hold), time warp. Touchdown limits: 3 m/s vertical, 2 m/s
 horizontal, 25 deg tilt; on touchdown the position locks and the inspection camera (free look + zoom) opens.
-Press `G` in the app for all controls. The Moon's rotation is neglected. Propellant is unlimited.
+Press `G` in the app for all controls. On phones and tablets on-screen controls appear instead: a left stick (lean up to 30 deg with
+auto-level, or RCS translation), climb / hold / descend and turn buttons, one-finger look and pinch zoom; the menu
+holds the other toggles and a compact flight panel replaces the two desktop panels (full data under the menu). The Moon's rotation is neglected. Propellant is unlimited.
 
 ## Known limits
 
