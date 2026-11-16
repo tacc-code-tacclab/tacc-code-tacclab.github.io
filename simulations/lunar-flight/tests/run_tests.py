@@ -103,7 +103,7 @@ def main():
     fp.LOLA_BASE = base
     fp.LROC_BASE = base
     fp.SVS_COLOR = base + "lroc_color_poles_4k.tif"
-    fp.SITES["apollo11"]["nac_dtm"] = base + "NAC_DTM_APOLLO11.IMG"
+    fp.SITES["apollo11"]["nac_dtm"] = base + "NAC_DTM_APOLLO11_E008N0234.IMG"
     fp.SITES["apollo11"]["nac_ortho"] = base + "NAC_DTM_APOLLO11_M150361817_50CM.IMG"
     orig = fp.Builder.lroc
     fp.Builder.lroc = lambda self, url: orig(self, base + url.rsplit("/", 1)[-1])

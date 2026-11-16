@@ -62,7 +62,7 @@ SITES = {
     "apollo11": {
         "name": "Apollo 11 - Tranquility Base (Mare Tranquillitatis)",
         "lat": 0.67416, "lon": 23.47314,  # LM descent stage
-        "nac_dtm": LROC_BASE + "SDP/NAC_DTM/APOLLO11/NAC_DTM_APOLLO11.IMG",
+        "nac_dtm": LROC_BASE + "SDP/NAC_DTM/APOLLO11/NAC_DTM_APOLLO11_E008N0234.IMG",
         "nac_ortho": LROC_BASE + "SDP/NAC_DTM/APOLLO11/NAC_DTM_APOLLO11_M150361817_50CM.IMG",
     },
 }

@@ -164,7 +164,7 @@ def main(outdir):
     lroc(outdir, "WAC_GLOBAL_E300S0450_100M", 100.0, -30.0, 45.0, -60, 0, 0, 90, "u8", rows=band(-8, 0))
     # NAC strip: slanted valid area with ragged no-data margins, like a real stereo DTM
     valid = lambda r, c, L, S: (c > 150 + 0.02 * r) & (c < S - 420 + 0.02 * r) & (r > 80) & (r < L - 80)
-    lroc(outdir, "NAC_DTM_APOLLO11", 2.0, 0.78, 23.44, 0.31, 1.24, 23.37, 23.51, "dtm", valid=valid)
+    lroc(outdir, "NAC_DTM_APOLLO11_E008N0234", 2.0, 0.78, 23.44, 0.31, 1.24, 23.37, 23.51, "dtm", valid=valid)
     lroc(outdir, "NAC_DTM_APOLLO11_M150361817_50CM", 0.5, 0.78, 23.44, 0.31, 1.24, 23.37, 23.51, "i16",
          rows=band(SITE[0] - 0.06, SITE[0] + 0.06))
     # SVS colour map stand-in (centre = 0 deg lon)
