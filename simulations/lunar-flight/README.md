@@ -57,8 +57,8 @@ requests. `assets/<site>/manifest.json` records every source URL, byte range and
 
 ## Simulator
 
-**Fast flight** (default, `B` to switch): the vehicle is moved over the real terrain at a chosen top speed, from
-18 km/h to 1000 km/s (`,` `.`, or the on-screen buttons), with the arrow keys or `W/S A/D` to move, `Q/E` to turn and
+**Fast flight** (default, `B` to switch): the vehicle is moved over the real terrain. The top speed grows with height
+above the ground (level x height per second, 8 levels with `,` `.` or the on-screen buttons, limits 36 km/h to 1000 km/s), with the arrow keys or `W/S A/D` to move, `Q/E` to turn and
 `PgUp/PgDn` or `R/F` to go up / down (the rate grows with height, up to
 3000 km). It follows the Moon's curvature and stays above the DEM. This mode is kinematic: no forces are integrated,
 the speeds are not achievable by the lander, and the HUD labels it "kinematic, not physics". It cannot land.

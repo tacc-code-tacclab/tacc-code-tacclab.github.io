@@ -149,7 +149,7 @@
   <div id="tright">
     <div class="lcol">
       <div id="tSpeed">
-        <div><span id="tSpeedVal"></span><small>top speed</small></div>
+        <div><span id="tSpeedVal"></span><small>top speed &middot; climb = faster</small></div>
         <button type="button" data-tap="Comma" aria-label="Slower">&minus;</button>
         <button type="button" data-tap="Period" aria-label="Faster">+</button>
       </div>
@@ -190,8 +190,11 @@ const HOLE_INSET = 0.005;
 const LIMIT_MAG = 4;            // data pixel spans >= this many screen pixels -> "resolution limit"
 const WARPS = [1, 2, 5, 10, 25, 50, 100];
 // fast (survey) flight: selectable top speed, m/s. Kinematic - not part of the lander physics.
-const CRUISE = [5, 20, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000];
-const fmSpd = v => v < 1000 ? `${(v * 3.6).toLocaleString('en-US', { maximumFractionDigits: 0 })} km/h` : `${(v / 1000).toLocaleString('en-US')} km/s`;
+// The top speed grows with height above the ground, so the view always moves at a similar pace:
+// top speed = level x height per second (level 1 at 20 km up = 20 km/s), between V_MIN and V_MAX.
+const CRUISE = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20], V_MIN = 10, V_MAX = 1.0e6;
+const topSpd = (agl = veh.agl) => clamp(CRUISE[cruiseIdx] * Math.max(0, agl), V_MIN, V_MAX);
+const fmSpd = v => v < 1000 ? `${(v * 3.6).toLocaleString('en-US', { maximumFractionDigits: 0 })} km/h` : `${(v / 1000).toLocaleString('en-US', { maximumFractionDigits: v < 100000 ? 1 : 0 })} km/s`;
 const CRUISE_YAW = 0.9, CRUISE_CLIMB = 0.6, CRUISE_MIN_AGL = 2, CRUISE_MAX_ALT = 3.0e6;   // rad/s, 1/s, m, m
 
 const $ = id => document.getElementById(id);
@@ -487,7 +490,7 @@ const tUp = new THREE.Vector3(), tF = new THREE.Vector3(), tR = new THREE.Vector
 const up = new THREE.Vector3(), east = new THREE.Vector3(), north = new THREE.Vector3();
 const bUp = new THREE.Vector3(), bFwd = new THREE.Vector3(), bRight = new THREE.Vector3();
 const t1 = new THREE.Vector3(), t2 = new THREE.Vector3(), acc = new THREE.Vector3(), dq = new THREE.Quaternion(), qi = new THREE.Quaternion();
-let terrain, warpIdx = 0, crashInfo = null, cruiseIdx = 4;
+let terrain, warpIdx = 0, crashInfo = null, cruiseIdx = 3;
 const m4 = new THREE.Matrix4();
 
 function bodyAxes() { bUp.set(0, 1, 0).applyQuaternion(veh.q); bFwd.set(0, 0, -1).applyQuaternion(veh.q); bRight.set(1, 0, 0).applyQuaternion(veh.q); }
@@ -523,8 +526,8 @@ function stepCruise(dt) {
   tF.copy(bFwd).addScaledVector(up, -bFwd.dot(up)); if (tF.lengthSq() < 1e-9) tF.copy(north); tF.normalize();
   if (yaw) tF.applyAxisAngle(up, yaw * CRUISE_YAW * dt);
   tR.crossVectors(tF, up);
-  const v = CRUISE[cruiseIdx], rel = t1.copy(veh.pos).sub(geo.center), r0 = rel.length();
-  const ll0 = geo.fromWorld(veh.pos), agl0 = Math.max(0, r0 - R - terrain.height(ll0.lat, ll0.lon) - GEAR);
+  const rel = t1.copy(veh.pos).sub(geo.center), r0 = rel.length();
+  const ll0 = geo.fromWorld(veh.pos), agl0 = Math.max(0, r0 - R - terrain.height(ll0.lat, ll0.lon) - GEAR), v = topSpd(agl0);
   const climb = vz * Math.max(5, CRUISE_CLIMB * agl0);
   veh.cin = Math.max(Math.abs(f), Math.abs(s)); veh.cvz = Math.abs(vz);          // how hard the controls are pushed (sound, hints)
   veh.vel.copy(tF).multiplyScalar(f * v).addScaledVector(tR, s * v).addScaledVector(up, climb);
@@ -662,8 +665,9 @@ const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
                   speed; it is a viewing aid, not physics. Switch it off to fly and land the lander.
                ↑ ↓ forward/back   ← → turn   PgUp/PgDn up/down (faster the higher you are)
                same on letters: W/S forward/back   Q/E turn   R/F up/down   A/D slide sideways
-               , .  (or - +, or the buttons bottom left)  top speed, ${fmSpd(CRUISE[0])} to ${fmSpd(CRUISE[CRUISE.length - 1])}
-                  at ${fmSpd(CRUISE[CRUISE.length - 1])} the far side is about five seconds away
+               The top speed grows with your height, so you always cover ground at a similar pace:
+               climb to go fast (20 km up: about 20 km/s; 1000 km up: the far side in seconds).
+               , .  (or - +, or the buttons bottom left)  speed level, ${CRUISE.length} steps; limits ${fmSpd(V_MIN)} to ${fmSpd(V_MAX)}
  NAMES         N  IAU feature names on/off — click a name for type, position, diameter, origin
 
  — lander physics (fast flight off) —
@@ -690,7 +694,7 @@ const HELP_TOUCH = `HOW TO FLY (touch)
 
 The button above the stick switches between three ways to fly.
 
-Fast flight (the default) — push the stick up to fly forward, down to go back, sideways to turn. − / + set the top speed, from ${fmSpd(CRUISE[0])} to ${fmSpd(CRUISE[CRUISE.length - 1])}. Hold ▲ / ▼ to go up or down — the higher you are, the faster it goes. This mode simply moves the vehicle over the real terrain; it is a viewing aid, not physics, and it cannot land.
+Fast flight (the default) — push the stick up to fly forward, down to go back, sideways to turn. The top speed grows with your height, so climb to go fast; − / + make it slower or faster (limits ${fmSpd(V_MIN)} to ${fmSpd(V_MAX)}). Hold ▲ / ▼ to go up or down — the higher you are, the faster it goes. This mode simply moves the vehicle over the real terrain; it is a viewing aid, not physics, and it cannot land.
 
 Lander — real physics, for landing. With "Lander: tilt" the vehicle leans the way you push (up to 30°) and drifts that way; let go and it levels itself. There is no air to slow you down: to stop, push the other way. "Lander: thrusters" gives small sideways corrections (RCS) without leaning — best for the last metres.
 
@@ -722,7 +726,7 @@ addEventListener('keydown', e => {
   if (e.repeat || !terrain) return;
   const P = (lat, lon, agl, o) => { spawn(lat, lon, agl, o); setCam(0); };
   switch (e.code) {
-    case 'KeyB': setCruise(!veh.cruise); toast(veh.cruise ? `Fast flight — top speed ${fmSpd(CRUISE[cruiseIdx])}` : 'Lander physics — hovering', 2500); break;
+    case 'KeyB': setCruise(!veh.cruise); toast(veh.cruise ? `Fast flight — top speed now ${fmSpd(topSpd())}` : 'Lander physics — hovering', 2500); break;
     case 'KeyN': namesOn = !namesOn; break;
     case 'KeyH': veh.assist = !veh.assist; veh.vsTarget = 0; break;
     case 'KeyV': veh.level = !veh.level; break;
@@ -802,7 +806,7 @@ function setStick(x, y) {                                // x right, y up, each 
   $('stickMode').addEventListener('click', () => {      // fast flight -> lander: tilt -> lander: thrusters -> ...
     if (veh.cruise) { setCruise(false); stickRcs = false; } else if (!stickRcs) stickRcs = true; else { stickRcs = false; setCruise(true); }
     setStick(sx, sy); updateTouchUI();
-    toast(veh.cruise ? `Fast flight — top speed ${fmSpd(CRUISE[cruiseIdx])}` : stickRcs ? 'Lander physics — stick fires the side thrusters' : 'Lander physics — stick tilts the vehicle', 2500);
+    toast(veh.cruise ? `Fast flight — top speed now ${fmSpd(topSpd())}` : stickRcs ? 'Lander physics — stick fires the side thrusters' : 'Lander physics — stick tilts the vehicle', 2500);
   });
   addEventListener('blur', () => { sid = null; sx = sy = 0; setStick(0, 0); });
 }
@@ -821,7 +825,7 @@ function updateTouchUI() {
   $('mSunLbl').style.display = shadeMode ? '' : 'none';
   $('stickMode').textContent = veh.cruise ? 'Fast flight' : stickRcs ? 'Lander: thrusters' : 'Lander: tilt';
   $('stickMode').classList.toggle('on', veh.cruise);
-  $('tSpeedVal').textContent = fmSpd(CRUISE[cruiseIdx]);
+  $('tSpeedVal').textContent = fmSpd(topSpd());
   set('mCruise', veh.cruise, `Fast flight: ${veh.cruise ? 'on' : 'off'}`);
   set('mSound', sound.on, `Sound: ${sound.on ? 'on' : 'off'}`);
   set('mNames', namesOn, names.count ? `Names: ${namesOn ? 'on' : 'off'}` : 'Names: not loaded');
@@ -1056,7 +1060,7 @@ function updateHUD() {
     row('THROTTLE', `${fm(veh.throttle * 100, 0)} %  (${fm(veh.throttle * A_MAX, 2)} m/s²)`) +
     row('GRAVITY', `${fm(GM / (veh.r * veh.r), 3)} m/s²`) +
     row('STATUS', veh.landed ? 'LANDED — LOCKED' : 'FLIGHT', veh.landed ? 'ok' : 'v') +
-    (veh.cruise ? row('MODE', `FAST FLIGHT (kinematic, not physics)`, 'warn') + row('TOP SPEED', `${fmSpd(CRUISE[cruiseIdx])}  (${fm(CRUISE[cruiseIdx], 0)} m/s)`)
+    (veh.cruise ? row('MODE', `FAST FLIGHT (kinematic, not physics)`, 'warn') + row('TOP SPEED', `${fmSpd(topSpd())}  (level ${cruiseIdx + 1}/${CRUISE.length}, grows with height)`)
       : row('ASSIST', `${veh.assist ? `HOVER (VS tgt ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)})` : 'MANUAL'}${veh.level ? ' · LEVEL' : ''}${veh.sas ? ' · SAS' : ''}`)) +
     row('TIME WARP', `×${WARPS[warpIdx]}`, warpIdx ? 'warn' : 'v');
   // ---- data resolution under the camera
@@ -1079,8 +1083,8 @@ function updateHUD() {
     row('RENDER', `${fm(fps, 0)} fps · ${terrain.stats.chunks} chunks · ${fm(renderer.info.render.triangles / 1000, 0)}k tris drawn · detail ${DETAIL[detailIdx][0]}`);
   if (!touchUI) {
     $('tl').innerHTML = tlFull; $('tr').innerHTML = trFull;
-    $('spdVal').textContent = veh.cruise ? fmSpd(CRUISE[cruiseIdx]) : `time ×${WARPS[warpIdx]}`;
-    $('spdLbl').textContent = veh.cruise ? `top speed ${cruiseIdx + 1} of ${CRUISE.length}  ·  keys , .` : 'lander physics  ·  B: fast flight';
+    $('spdVal').textContent = veh.cruise ? fmSpd(topSpd()) : `time ×${WARPS[warpIdx]}`;
+    $('spdLbl').textContent = veh.cruise ? `top speed · level ${cruiseIdx + 1} of ${CRUISE.length} · climb = faster` : 'lander physics  ·  B: fast flight';
     $('sndBtn').classList.toggle('on', sound.on);
   }
   else {
@@ -1141,9 +1145,9 @@ async function boot() {
   document.body.classList.toggle('cruise', veh.cruise);
   names.load(root + 'nomenclature.json');
   $('load').style.display = 'none';
-  toast(touchUI ? `${man.name}\nFast flight: stick to fly and turn, − + for speed, ▲▼ for height.\n☰ → How to fly` : `${man.name}\nArrow keys: ↑ ↓ forward / back, ← → turn.  PgUp / PgDn: up / down.  , and . : speed\nB: lander physics   G: all controls`, 8000);
-  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, stepCruise, setCruise, setCam, keys, man, THREE, names, sound, CRUISE, get cruiseIdx() { return cruiseIdx; }, get camMode() { return camMode; } };
-  let last = performance.now(), hudT = 0, slowT = 0, hintT = 0;
+  toast(touchUI ? `${man.name}\nFast flight: stick to fly and turn, ▲▼ for height.\nThe higher you are, the faster you fly (− + to adjust).\n☰ → How to fly` : `${man.name}\nArrow keys: ↑ ↓ forward / back, ← → turn.  PgUp / PgDn: up / down.\nThe higher you are, the faster you fly.  , and . : slower / faster\nB: lander physics   G: all controls`, 8000);
+  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, stepCruise, setCruise, setCam, keys, man, THREE, names, sound, CRUISE, topSpd, get cruiseIdx() { return cruiseIdx; }, get camMode() { return camMode; } };
+  let last = performance.now(), hudT = 0;
   renderer.setAnimationLoop(now => {
     const rawDt = (now - last) / 1000, real = Math.min(0.1, rawDt); last = now; fps += (1 / Math.max(real, 1e-3) - fps) * 0.05;
     // held keys
@@ -1153,11 +1157,7 @@ async function boot() {
     const da = sk('BracketRight', 'BracketLeft'), de = sk('Equal', 'Minus');
     if ((da || de) && shadeMode) { sun.az = (sun.az + da * 40 * real + 360) % 360; sun.el = clamp(sun.el + de * 25 * real, 1, 90); updateSun(); }
     if (veh.agl < 500 && warpIdx > 0) { warpIdx = 0; toast('Time warp off below 500 m', 1500); }
-    if (veh.cruise && veh.cin > 0.5 && CRUISE[cruiseIdx] < 0.04 * veh.agl && cruiseIdx < CRUISE.length - 1) {
-      slowT += rawDt;
-      if (slowT > 2 && now > hintT) { hintT = now + 12000; toast(`${fmSpd(CRUISE[cruiseIdx])} is slow from this height.\n${touchUI ? 'Tap +' : 'Press . (full stop) or click +'} to go faster — up to ${fmSpd(CRUISE[CRUISE.length - 1])}`, 5000); }
-    } else slowT = 0;
-    sound.update(veh.cruise ? Math.max(veh.cin || 0, 0.7 * (veh.cvz || 0)) * (0.3 + 0.7 * cruiseIdx / (CRUISE.length - 1)) : veh.throttle);
+    sound.update(veh.cruise ? Math.max(veh.cin || 0, 0.7 * (veh.cvz || 0)) * clamp(0.25 + 0.75 * Math.log10(Math.max(V_MIN, topSpd()) / V_MIN) / 5, 0, 1) : veh.throttle);
     if (veh.cruise) { warpIdx = 0; stepCruise(Math.min(0.5, rawDt)); }   // true speed even at a low frame rate
     else { const dt = real * WARPS[warpIdx], n = Math.min(200, Math.ceil(dt / 0.02)); for (let i = 0; i < n; i++) step(dt / n); }
     const ll = geo.fromWorld(veh.pos); veh.lat = ll.lat; veh.lon = ll.lon; veh.r = ll.r; veh.hTerr = terrain.height(ll.lat, ll.lon);
