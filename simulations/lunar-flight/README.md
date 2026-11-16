@@ -58,9 +58,12 @@ requests. `assets/<site>/manifest.json` records every source URL, byte range and
 ## Simulator
 
 **Fast flight** (default, `B` to switch): the vehicle is moved over the real terrain at a chosen top speed, from
-18 km/h to 100 km/s (`,` `.`), with `W/S A/D` move, `Q/E` turn and `R/F` up / down (the rate grows with height, up to
+18 km/h to 1000 km/s (`,` `.`, or the on-screen buttons), with the arrow keys or `W/S A/D` to move, `Q/E` to turn and
+`PgUp/PgDn` or `R/F` to go up / down (the rate grows with height, up to
 3000 km). It follows the Moon's curvature and stays above the DEM. This mode is kinematic: no forces are integrated,
 the speeds are not achievable by the lander, and the HUD labels it "kinematic, not physics". It cannot land.
+`6` jumps to the point opposite the site. Engine sound and background music (`U`) are synthesised in the browser with
+Web Audio; they are atmosphere, not data.
 
 **Lander physics** (`B`): 6-DOF rigid body under central gravity GM/r^2 (1.62 m/s^2 at the surface; a 100 km orbit is stable),
 main engine 0-10 m/s^2 along the body axis, RCS translation, attitude thrusters with optional rate damping
