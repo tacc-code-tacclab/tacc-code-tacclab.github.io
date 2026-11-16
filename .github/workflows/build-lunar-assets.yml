@@ -29,6 +29,22 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check numpy requests Pillow
+      - name: Complete incomplete TLS chains of data hosts (verification stays on)
+        run: |
+          ca="$RUNNER_TEMP/ca.pem"; cp "$(python -m certifi)" "$ca"
+          for h in $(python fetch_and_process.py --list-sources | sed -nE 's#^https://([^/]+)/.*#\1#p' | sort -u); do
+            if echo | openssl s_client -connect "$h:443" -servername "$h" -CAfile "$ca" -verify_return_error >/dev/null 2>&1; then
+              echo "$h: chain OK"; continue
+            fi
+            echo | openssl s_client -connect "$h:443" -servername "$h" 2>/dev/null | openssl x509 > "$RUNNER_TEMP/leaf.pem"
+            url=$(openssl x509 -in "$RUNNER_TEMP/leaf.pem" -noout -ext authorityInfoAccess | sed -n 's/.*CA Issuers - URI://p' | head -1)
+            echo "$h: missing intermediate, fetching $url"
+            curl -sfL "$url" -o "$RUNNER_TEMP/issuer.crt"
+            openssl x509 -inform DER -in "$RUNNER_TEMP/issuer.crt" >> "$ca" 2>/dev/null || openssl x509 -in "$RUNNER_TEMP/issuer.crt" >> "$ca"
+            echo | openssl s_client -connect "$h:443" -servername "$h" -CAfile "$ca" -verify_return_error >/dev/null 2>&1 \
+              && echo "$h: chain now verifies" || { echo "::error::$h: TLS chain still does not verify"; exit 1; }
+          done
+          echo "REQUESTS_CA_BUNDLE=$ca" >> "$GITHUB_ENV"
       - name: Offline pipeline self-test
         run: python tests/run_tests.py && rm -rf tests/_work
       - name: Download and process real LRO data (Apollo 11 site)
