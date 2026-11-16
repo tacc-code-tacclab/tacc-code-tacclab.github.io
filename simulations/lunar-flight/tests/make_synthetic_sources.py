@@ -10,7 +10,9 @@ Files are sparse: only the rows the test site needs are written.
 """
 import math
 import os
+import struct
 import sys
+import zipfile
 
 import numpy as np
 from PIL import Image
@@ -153,6 +155,45 @@ END
     arr.flush()
 
 
+# Gazetteer stand-in: same dBASE layout as MOON_nomenclature_center_pts.dbf, invented test names only
+NAMES = [  # name, clean_name, diameter km, lon 0..360 E, lat, type, code, approval, origin, feature id
+    ("Tèst Alpha", "Test Alpha", 93.5, 339.92, 9.62, "Crater, craters", "AA", "Adopted by IAU", "synthetic test record", 1),
+    ("Mare Probationis", "Mare Probationis", 875.75, 30.83, 8.35, "Mare, maria", "ME", "Adopted by IAU", "synthetic", 2),
+    ("Test Beta", "Test Beta", 0.0, 23.47314, 0.67416, "Landing site name", "LF", "Adopted by IAU", "", 3),
+    ("Test Dropped", "Test Dropped", 12.0, 10.0, 5.0, "Crater, craters", "AA", "Dropped, disallowed", "", 4),
+    ("Test Gamma K", "Test Gamma K", 4.25, 180.0, -89.5, "Satellite Feature", "SF", "Adopted by IAU", "", 5),
+]
+NAME_FIELDS = [("name", "C", 254, 0), ("clean_name", "C", 254, 0), ("approvaldt", "C", 29, 0), ("origin", "C", 254, 0),
+               ("diameter", "N", 24, 15), ("center_lon", "N", 24, 15), ("center_lat", "N", 24, 15), ("type", "C", 254, 0),
+               ("code", "C", 254, 0), ("approval", "C", 254, 0), ("min_lon", "N", 24, 15), ("max_lon", "N", 24, 15),
+               ("min_lat", "N", 24, 15), ("max_lat", "N", 24, 15), ("ethnicity", "C", 254, 0), ("continent", "C", 254, 0),
+               ("quad_name", "C", 254, 0), ("quad_code", "C", 20, 0), ("link", "C", 80, 0)]
+
+
+def nomenclature(outdir):
+    rows = []
+    for name, clean, d, lon, lat, typ, code, appr, origin, fid in NAMES:
+        rows.append({"name": name, "clean_name": clean, "approvaldt": "2000/01/01 00:00:00", "origin": origin,
+                     "diameter": d, "center_lon": lon, "center_lat": lat, "type": typ, "code": code, "approval": appr,
+                     "min_lon": lon, "max_lon": lon, "min_lat": lat, "max_lat": lat, "ethnicity": "", "continent": "",
+                     "quad_name": "", "quad_code": "", "link": f"http://planetarynames.wr.usgs.gov/Feature/{fid}"})
+    rlen = 1 + sum(f[2] for f in NAME_FIELDS)
+    hlen = 32 + 32 * len(NAME_FIELDS) + 1
+    head = struct.pack("<BBBBIHH20x", 3, 126, 11, 16, len(rows), hlen, rlen)
+    for n, t, ln, dc in NAME_FIELDS:
+        head += struct.pack("<11sc4xBB14x", n.encode(), t.encode(), ln, dc)
+    body = b""
+    for r in rows:
+        body += b" "
+        for n, t, ln, dc in NAME_FIELDS:
+            v = r[n]
+            b = (f"{v:{ln}.{dc}f}" if t == "N" else str(v)).encode("utf-8")
+            body += (b.rjust(ln) if t == "N" else b.ljust(ln))[:ln]
+    with zipfile.ZipFile(os.path.join(outdir, "MOON_nomenclature_center_pts.zip"), "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("MOON_nomenclature_center_pts.dbf", head + b"\r" + body + b"\x1a")
+        z.writestr("MOON_nomenclature_center_pts.cpg", "UTF-8")
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
     lola(outdir, "LDEM_16", 16, -90, 90, 0, 360)
@@ -173,6 +214,7 @@ def main(outdir):
     a = albedo(lat[:, None] * 0.01, lon[None, :] * 0.01)
     rgb = np.stack([a, a * 0.95, a * 0.9], -1)
     Image.fromarray(np.round(rgb * 255).astype("u1")).save(os.path.join(outdir, "lroc_color_poles_4k.tif"))
+    nomenclature(outdir)
     print("synthetic sources written to", outdir)
 
 

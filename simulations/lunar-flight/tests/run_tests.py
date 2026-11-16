@@ -81,6 +81,16 @@ def check(assets, label):
             ok &= sh > 3 * tol
         img = np.asarray(Image.open(os.path.join(assets, "apollo11", t["image"]["file"])))
         ok &= img.shape[0] == t["image"]["height"] and img.std() > 5
+    # feature names: adopted records only, values copied, longitude wrapped to -180..180
+    nom = json.load(open(os.path.join(assets, "nomenclature.json"), encoding="utf-8"))
+    got = {f[0]: f for f in nom["features"]}
+    exp = {n[0]: [n[0], round(n[4], 5), round(((n[3] + 180) % 360) - 180, 5), round(n[2], 3), n[6], n[8], n[9]]
+           for n in syn.NAMES if n[7] == "Adopted by IAU"}
+    good = got == exp and nom["counts"] == {"records_in_table": len(syn.NAMES), "kept": len(exp),
+                                             "not_adopted_by_iau": len(syn.NAMES) - len(exp), "unreadable": 0}
+    good &= [f[3] for f in nom["features"]] == sorted((f[3] for f in nom["features"]), reverse=True)
+    print(f"  [{label}] names     {len(got)} of {len(syn.NAMES)} records kept, values identical: {'OK' if good else 'FAIL'}")
+    ok &= good
     return ok
 
 
@@ -89,6 +99,8 @@ def main():
     mirror = os.path.join(work, "mirror")
     if not os.path.exists(os.path.join(mirror, "lroc_color_poles_4k.tif")):
         syn.main(mirror)
+    elif not os.path.exists(os.path.join(mirror, "MOON_nomenclature_center_pts.zip")):
+        syn.nomenclature(mirror)
     script = os.path.join(ROOT, "fetch_and_process.py")
     a1 = os.path.join(work, "assets_disk")
     subprocess.check_call([sys.executable, script, "--mirror", mirror, "--out", a1, "--cache", os.path.join(work, "c1")],
@@ -103,6 +115,7 @@ def main():
     fp.LOLA_BASE = base
     fp.LROC_BASE = base
     fp.SVS_COLOR = base + "lroc_color_poles_4k.tif"
+    fp.IAU_NAMES = base + "MOON_nomenclature_center_pts.zip"
     fp.SITES["apollo11"]["nac_dtm"] = base + "NAC_DTM_APOLLO11_E008N0234.IMG"
     fp.SITES["apollo11"]["nac_ortho"] = base + "NAC_DTM_APOLLO11_M150361817_50CM.IMG"
     orig = fp.Builder.lroc

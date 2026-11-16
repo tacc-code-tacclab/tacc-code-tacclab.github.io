@@ -11,6 +11,10 @@ Downloads ONLY real LRO products and converts them into lightweight web assets:
   regional  LOLA GDR LDEM_512    (  59 m/px)        LROC WAC global mosaic (100 m/px)
   local     LROC NAC DTM         (   2 m/px)        LROC NAC orthophoto   (0.5 m/px)
 
+plus the feature names (step "names"): the IAU / USGS Gazetteer of Planetary
+Nomenclature centre-point table (name, type, centre lat/lon, diameter, origin),
+written unchanged in value to assets/nomenclature.json.
+
 Nothing is synthesised: no procedural craters, no texture synthesis, no hole
 filling. The only numerical operations are windowing, bilinear / block-mean
 resampling, linear contrast stretch (16-bit imagery only) and finite-difference
@@ -35,8 +39,10 @@ import json
 import math
 import os
 import re
+import struct
 import sys
 import time
+import zipfile
 
 import numpy as np
 
@@ -57,6 +63,8 @@ M_PER_DEG = math.pi * R_MOON / 180.0
 LOLA_BASE = "https://imbrium.mit.edu/DATA/LOLA_GDR/CYLINDRICAL/IMG/"  # LOLA PDS data node
 LROC_BASE = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/"
 SVS_COLOR = "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_4k.tif"
+# IAU Working Group for Planetary System Nomenclature gazetteer, published by the USGS Astrogeology Science Center
+IAU_NAMES = "https://planetarynames.wr.usgs.gov/shapefiles/MOON_nomenclature_center_pts.zip"
 
 SITES = {
     "apollo11": {
@@ -561,6 +569,81 @@ def wac_tiles(bounds):
     return sorted(names)
 
 
+def read_dbf(raw: bytes, encoding: str = "utf-8"):
+    """Records of a dBASE III table (the attribute table of a shapefile) as dicts of stripped strings."""
+    n, hlen, rlen = struct.unpack("<IHH", raw[4:12])
+    fields, p = [], 32
+    while raw[p] != 0x0D:
+        fields.append((raw[p:p + 11].split(b"\0")[0].decode("ascii"), raw[p + 16]))
+        p += 32
+    for i in range(n):
+        rec = raw[hlen + i * rlen: hlen + (i + 1) * rlen]
+        if len(rec) < rlen or rec[:1] == b"*":      # truncated / deleted record
+            continue
+        o, d = 1, {}
+        for name, ln in fields:
+            d[name] = rec[o:o + ln].decode(encoding, "replace").strip()
+            o += ln
+        yield d
+
+
+def build_nomenclature(out_root, cache, mirror):
+    """IAU / USGS gazetteer -> assets/nomenclature.json. Names and numbers are copied, never edited or completed."""
+    log("names: IAU / USGS Gazetteer of Planetary Nomenclature (Moon, feature centre points)")
+    src = ByteSource(IAU_NAMES, mirror, cache)
+    path = src.download_full()
+    with zipfile.ZipFile(path) as z:
+        dbf = [n for n in z.namelist() if n.lower().endswith(".dbf")]
+        if len(dbf) != 1:
+            raise ValueError(f"{src.name}: expected exactly one .dbf, found {dbf}")
+        cpg = [n for n in z.namelist() if n.lower().endswith(".cpg")]
+        enc = z.read(cpg[0]).decode("ascii", "replace").strip() if cpg else "utf-8"
+        raw = z.read(dbf[0])
+        stamp = "%04d-%02d-%02d" % z.getinfo(dbf[0]).date_time[:3]
+    feats, types, total, not_adopted, bad = [], {}, 0, 0, 0
+    for r in read_dbf(raw, enc or "utf-8"):
+        total += 1
+        if r.get("approval", "") != "Adopted by IAU":
+            not_adopted += 1
+            continue
+        try:
+            lat, lon, diam = float(r["center_lat"]), float(r["center_lon"]), float(r["diameter"])
+        except (KeyError, ValueError):
+            bad += 1
+            continue
+        if not r.get("name") or not (-90 <= lat <= 90) or not math.isfinite(lon) or not math.isfinite(diam):
+            bad += 1
+            continue
+        lon = ((lon + 180.0) % 360.0) - 180.0                      # 0..360 E  ->  -180..180 E
+        types[r["code"]] = r["type"]
+        m = re.search(r"/Feature/(\d+)", r.get("link", ""))
+        feats.append([r["name"], round(lat, 5), round(lon, 5), round(diam, 3), r["code"], r.get("origin", ""),
+                      int(m.group(1)) if m else None])
+    if not feats:
+        raise ValueError(f"{src.name}: no adopted features found")
+    feats.sort(key=lambda f: (-f[3], f[0]))
+    out = {"schema": 1,
+           "source": {"publisher": "IAU Working Group for Planetary System Nomenclature / USGS Astrogeology Science Center",
+                      "title": "Gazetteer of Planetary Nomenclature - Moon, feature centre points (shapefile attribute table)",
+                      "url": IAU_NAMES, "file": src.name, "table": os.path.basename(dbf[0]), "table_date": stamp,
+                      "feature_page": "https://planetarynames.wr.usgs.gov/Feature/<id>"},
+           "generated_utc": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "processing": "kept records whose approval status is 'Adopted by IAU'; longitude converted from 0..360 E to "
+                         "-180..180 E; coordinates rounded to 1e-5 deg and diameters to 1 m. Nothing else is changed "
+                         "and nothing is added.",
+           "counts": {"records_in_table": total, "kept": len(feats), "not_adopted_by_iau": not_adopted, "unreadable": bad},
+           "fields": ["name", "center_lat_deg_north", "center_lon_deg_east", "diameter_km", "feature_type_code",
+                      "origin_of_name", "gazetteer_feature_id"],
+           "feature_types": dict(sorted(types.items())),
+           "features": feats}
+    os.makedirs(out_root, exist_ok=True)
+    dst = os.path.join(out_root, "nomenclature.json")
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+    log(f"  {len(feats)} adopted names of {total} records ({not_adopted} not adopted, {bad} unreadable) -> {dst}")
+    return out
+
+
 class Builder:
     def __init__(self, site_id, site, out, cache, mirror):
         self.site_id, self.site = site_id, site
@@ -728,7 +811,8 @@ def main(argv=None):
     ap.add_argument("--lat", type=float, help="custom site latitude (deg N); disables the NAC tier")
     ap.add_argument("--lon", type=float, help="custom site longitude (deg E)")
     ap.add_argument("--name", help="custom site id / name")
-    ap.add_argument("--tiers", default="global,wide,regional,local")
+    ap.add_argument("--tiers", default="global,wide,regional,local,names",
+                    help="comma-separated steps; 'names' = IAU/USGS feature names (site independent)")
     ap.add_argument("--out", default=os.path.join(here, "assets"))
     ap.add_argument("--cache", default=os.path.join(here, "cache"))
     ap.add_argument("--mirror", help="directory with pre-downloaded source files (matched by file name)")
@@ -754,14 +838,19 @@ def main(argv=None):
         urls += [LOLA_BASE + n for n in lola512_tiles(b)]
         urls += [LROC_BASE + "BDR/WAC_GLOBAL/" + n for n in sorted(set(wac_tiles(b) + wac_tiles(bw)))]
         urls += [site[k] for k in ("nac_dtm", "nac_ortho") if k in site]
+        urls.append(IAU_NAMES)
         print("\n".join(urls))
         return 0
 
     bld = Builder(sid, site, a.out, a.cache, a.mirror)
     t0 = time.time()
     for t in [x.strip() for x in a.tiers.split(",") if x.strip()]:
-        getattr(bld, "build_" + t)()
-    bld.write_manifest()
+        if t == "names":
+            build_nomenclature(a.out, a.cache, a.mirror)
+        else:
+            getattr(bld, "build_" + t)()
+    if bld.tiers:                                   # "--tiers names" alone must not overwrite a site manifest
+        bld.write_manifest()
     log(f"done in {time.time() - t0:.0f} s")
     return 0
 

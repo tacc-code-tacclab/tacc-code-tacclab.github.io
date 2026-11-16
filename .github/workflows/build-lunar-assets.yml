@@ -67,6 +67,17 @@ jobs:
             echo "::error title=LRO build failed::$msg"
             exit 1
           }
+      - name: Report feature names (IAU / USGS gazetteer)
+        run: |
+          python - <<'PY'
+          import json
+          j = json.load(open("assets/nomenclature.json", encoding="utf-8"))
+          print("::notice::names " + json.dumps(j["counts"]) + " table_date=" + j["source"]["table_date"] + " types=" + str(len(j["feature_types"])))
+          want = ["Copernicus", "Tycho", "Statio Tranquillitatis", "West", "Mare Tranquillitatis", "Tsiolkovskiy", "Mare Crisium", "Aldrin"]
+          for f in j["features"]:
+              if f[0] in want:
+                  print("::notice::" + json.dumps(f, ensure_ascii=False))
+          PY
       - name: Check GitHub size limits
         run: |
           du -sh assets
