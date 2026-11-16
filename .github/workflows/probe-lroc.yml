@@ -10,10 +10,11 @@ jobs:
       - run: |
           B=https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0
           for u in "$B/" "$B/LROLRC_2001/DATA/SDP/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO11/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO_11/"; do
-            code=$(curl -s -o /tmp/p.html -w '%{http_code}' "$u")
+            code=$(curl -sL -o /tmp/p.html -w '%{http_code} %{url_effective}' "$u")
             names=$(grep -oE 'href="[^"?]+"' /tmp/p.html | sed 's/href="//;s/"$//' | grep -vE '^(/|\.\.|http)' | tr '\n' ' ' | cut -c1-3000)
             echo "::warning::$code $u => $names"
           done
           for u in "$B/LROLRC_2001/DATA/SDP/NAC_DTM/" "$B/"; do
-            curl -s "$u" | grep -oiE 'href="[^"]*(apollo|a11|tranq)[^"]*"' | head -20 | tr '\n' ' ' | sed "s#^#::warning::match in $u => #"; echo
+            curl -sL "$u" | grep -oiE 'href="[^"]*(apollo|a11|tranq)[^"]*"' | head -20 | tr '\n' ' ' | sed "s#^#::warning::match in $u => #"; echo
           done
+# run 2
