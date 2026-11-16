@@ -65,11 +65,28 @@
   #tright .vcol{display:flex;flex-direction:column;gap:8px}
   #tright button{width:56px;height:56px;font-size:20px}
   #tHold{font-size:11px !important}
+  #tright .lcol{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  #tSpeed{display:none;grid-template-columns:1fr 1fr;gap:6px}
+  body.cruise #tSpeed{display:grid}
+  #tSpeed div{grid-column:1 / -1;text-align:center;font-size:11px;color:#eaffff;background:rgba(4,10,14,.62);
+    border:1px solid rgba(120,200,220,.28);border-radius:6px;padding:5px 2px;text-shadow:0 0 2px #000}
+  #tSpeed div small{display:block;color:#7fb6c4;font-size:9px}
+  #tright #tSpeed button{width:auto;height:44px;font-size:18px}
+  body.cruise #tHold{visibility:hidden}
+  /* ---- IAU feature names ---- */
+  #names{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+  .nm{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;line-height:1.15;color:#eaffff;padding:0 4px 2px 10px;
+    text-shadow:0 0 3px #000,0 0 2px #000,0 1px 1px #000;pointer-events:auto;cursor:pointer;will-change:transform}
+  .nm::before{content:"";position:absolute;left:-3px;top:-3px;width:5px;height:5px;border:1px solid #9fe3f2;border-radius:50%;background:rgba(4,10,14,.5)}
+  .nm small{display:block;font-size:9px;color:#9fd0dc}
+  .nm.sf{font-size:10px;color:#cfe}
+  body.touch .nm{font-size:10px} body.touch .nm small{font-size:8px}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
 <canvas id="gl"></canvas>
+<div id="names"></div>
 <div id="limit"><div id="limitText"></div></div>
 <div class="panel" id="tl"></div>
 <div class="panel" id="tr"></div>
@@ -89,6 +106,8 @@
     <button type="button" data-tap="Digit5">Hover at 20 m</button>
   </div>
   <div class="sheet" id="tMenu">
+    <button type="button" id="mCruise" data-tap="KeyB" data-keep>Fast flight</button>
+    <button type="button" id="mNames" data-tap="KeyN" data-keep>Names</button>
     <button type="button" id="mAssist" data-tap="KeyH" data-keep>Hover assist</button>
     <button type="button" id="mLevel" data-tap="KeyV" data-keep>Auto-level</button>
     <button type="button" id="mSas" data-tap="KeyT" data-keep>Rate damping</button>
@@ -96,8 +115,8 @@
     <button type="button" id="mDisp" data-tap="KeyM" data-keep>Display</button>
     <button type="button" id="mPix" data-tap="KeyP" data-keep>True data pixels</button>
     <button type="button" id="mDet" data-tap="KeyO" data-keep>Mesh detail</button>
-    <button type="button" data-tap="Comma" data-keep>Time warp &minus;</button>
-    <button type="button" data-tap="Period" data-keep>Time warp +</button>
+    <button type="button" class="warp" data-tap="Comma" data-keep>Time warp &minus;</button>
+    <button type="button" class="warp" data-tap="Period" data-keep>Time warp +</button>
     <button type="button" class="wide" id="mData">Full flight data</button>
     <p id="mSunLbl">Sun for the relief display (hold)</p>
     <button type="button" class="sun" data-hold="BracketLeft">Azimuth &minus;</button>
@@ -108,13 +127,20 @@
   </div>
   <div class="sheet" id="tdata"></div>
   <div id="stickWrap">
-    <button type="button" id="stickMode">Stick: tilt</button>
+    <button type="button" id="stickMode">Fast flight</button>
     <div id="stick"><div id="knob"></div></div>
   </div>
   <div id="tright">
-    <div class="yaw">
-      <button type="button" data-hold="KeyQ" aria-label="Turn left">&#8634;</button>
-      <button type="button" data-hold="KeyE" aria-label="Turn right">&#8635;</button>
+    <div class="lcol">
+      <div id="tSpeed">
+        <div><span id="tSpeedVal"></span><small>top speed</small></div>
+        <button type="button" data-tap="Comma" aria-label="Slower">&minus;</button>
+        <button type="button" data-tap="Period" aria-label="Faster">+</button>
+      </div>
+      <div class="yaw">
+        <button type="button" data-hold="KeyQ" aria-label="Turn left">&#8634;</button>
+        <button type="button" data-hold="KeyE" aria-label="Turn right">&#8635;</button>
+      </div>
     </div>
     <div class="vcol">
       <button type="button" data-hold="KeyR" id="tUp" aria-label="Up">&#9650;</button>
@@ -147,6 +173,10 @@ const BLEND = 0.04;             // border band where a tier is blended into its 
 const HOLE_INSET = 0.005;
 const LIMIT_MAG = 4;            // data pixel spans >= this many screen pixels -> "resolution limit"
 const WARPS = [1, 2, 5, 10, 25, 50, 100];
+// fast (survey) flight: selectable top speed, m/s. Kinematic - not part of the lander physics.
+const CRUISE = [5, 20, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+const fmSpd = v => v < 1000 ? `${(v * 3.6).toLocaleString('en-US', { maximumFractionDigits: 0 })} km/h` : `${(v / 1000).toLocaleString('en-US')} km/s`;
+const CRUISE_YAW = 0.9, CRUISE_CLIMB = 0.6, CRUISE_MIN_AGL = 2, CRUISE_MAX_ALT = 3.0e6;   // rad/s, 1/s, m, m
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -432,16 +462,17 @@ class Terrain {
    The Moon's slow rotation is neglected (body-fixed frame treated as inertial).
    ====================================================================== */
 const veh = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), q: new THREE.Quaternion(), w: new THREE.Vector3(),
-  throttle: 0, landed: false, assist: true, vsTarget: 0, level: true, sas: true, agl: 0, lat: 0, lon: 0, r: R, hTerr: 0 };
+  throttle: 0, landed: false, assist: true, vsTarget: 0, level: true, sas: true, cruise: true, agl: 0, lat: 0, lon: 0, r: R, hTerr: 0 };
 const keys = new Set();
 // touch inputs (all zero unless the on-screen controls are used)
-const tin = { pitch: 0, roll: 0, fwd: 0, right: 0, tx: 0, ty: 0 };
+const tin = { pitch: 0, roll: 0, fwd: 0, right: 0, tx: 0, ty: 0, cf: 0, cy: 0 };
 const TOUCH_TILT = 30 * D2R;      // full stick deflection = this lean angle (auto-level on)
 const tUp = new THREE.Vector3(), tF = new THREE.Vector3(), tR = new THREE.Vector3();
 const up = new THREE.Vector3(), east = new THREE.Vector3(), north = new THREE.Vector3();
 const bUp = new THREE.Vector3(), bFwd = new THREE.Vector3(), bRight = new THREE.Vector3();
 const t1 = new THREE.Vector3(), t2 = new THREE.Vector3(), acc = new THREE.Vector3(), dq = new THREE.Quaternion(), qi = new THREE.Quaternion();
-let terrain, warpIdx = 0, crashInfo = null;
+let terrain, warpIdx = 0, crashInfo = null, cruiseIdx = 4;
+const m4 = new THREE.Matrix4();
 
 function bodyAxes() { bUp.set(0, 1, 0).applyQuaternion(veh.q); bFwd.set(0, 0, -1).applyQuaternion(veh.q); bRight.set(1, 0, 0).applyQuaternion(veh.q); }
 function spawn(lat, lon, agl, opt = {}) {
@@ -451,8 +482,49 @@ function spawn(lat, lon, agl, opt = {}) {
   const m = new THREE.Matrix4().makeBasis(east, up, t1.copy(north).negate());
   veh.q.setFromRotationMatrix(m); veh.w.set(0, 0, 0); veh.vel.set(0, 0, 0);
   veh.landed = false; veh.assist = !opt.orbit; veh.vsTarget = 0; veh.level = true; veh.throttle = 0;
-  if (opt.orbit) veh.vel.copy(east).multiplyScalar(Math.sqrt(GM / (R + h + GEAR + agl)));
+  if (opt.orbit) { veh.vel.copy(east).multiplyScalar(Math.sqrt(GM / (R + h + GEAR + agl))); setCruise(false, true); }
   if (!opt.orbit) warpIdx = 0;
+}
+function setCruise(on, keepVel) {
+  if (veh.cruise === on) return;
+  veh.cruise = on; document.body.classList.toggle('cruise', on);
+  if (on) { warpIdx = 0; veh.landed = false; cam.yaw = 0; }
+  else {                                            // back to lander physics: start from a hover at the same place
+    bodyAxes(); geo.frame(veh.pos, up, east, north);
+    cam.yaw += Math.atan2(bFwd.dot(east), bFwd.dot(north));
+    if (!keepVel) { veh.vel.set(0, 0, 0); veh.w.set(0, 0, 0); veh.assist = true; veh.level = true; veh.vsTarget = 0; }
+  }
+  if (typeof setStick === 'function') setStick(0, 0);
+}
+/* Fast (survey) flight: the vehicle is moved kinematically over the real terrain at the chosen speed.
+   No forces are integrated here - it is a viewing aid, labelled as such in the HUD. */
+function stepCruise(dt) {
+  geo.frame(veh.pos, up, east, north); bodyAxes();
+  const k = c => keys.has(c) ? 1 : 0;
+  const f = clamp(k('KeyW') + k('KeyI') - k('KeyS') - k('KeyK') + tin.cf, -1, 1);
+  const s = clamp(k('KeyD') + k('KeyL') - k('KeyA') - k('KeyJ'), -1, 1);
+  const yaw = clamp(k('KeyQ') - k('KeyE') + tin.cy, -1, 1), vz = k('KeyR') - k('KeyF');
+  tF.copy(bFwd).addScaledVector(up, -bFwd.dot(up)); if (tF.lengthSq() < 1e-9) tF.copy(north); tF.normalize();
+  if (yaw) tF.applyAxisAngle(up, yaw * CRUISE_YAW * dt);
+  tR.crossVectors(tF, up);
+  const v = CRUISE[cruiseIdx], rel = t1.copy(veh.pos).sub(geo.center), r0 = rel.length();
+  const ll0 = geo.fromWorld(veh.pos), agl0 = Math.max(0, r0 - R - terrain.height(ll0.lat, ll0.lon) - GEAR);
+  const climb = vz * Math.max(5, CRUISE_CLIMB * agl0);
+  veh.vel.copy(tF).multiplyScalar(f * v).addScaledVector(tR, s * v).addScaledVector(up, climb);
+  const hx = t2.copy(tF).multiplyScalar(f * v * dt).addScaledVector(tR, s * v * dt), dist = hx.length();
+  if (dist > 0) {                                   // great-circle motion: rotate about the Moon's centre
+    const ang = dist / r0; acc.crossVectors(up, hx).normalize();
+    rel.applyAxisAngle(acc, ang); tF.applyAxisAngle(acc, ang);
+  }
+  rel.setLength(clamp(r0 + climb * dt, R - 12000, R + CRUISE_MAX_ALT));
+  veh.pos.copy(geo.center).add(rel);
+  const ll = geo.fromWorld(veh.pos), rMin = R + terrain.height(ll.lat, ll.lon) + GEAR + CRUISE_MIN_AGL;   // stay above the real DEM
+  let r1 = ll.r; if (r1 < rMin) { r1 = rMin; rel.setLength(rMin); veh.pos.copy(geo.center).add(rel); }
+  geo.frame(veh.pos, up, east, north);
+  veh.vel.addScaledVector(up, (dt > 0 ? (r1 - r0) / dt : 0) - veh.vel.dot(up));   // report the vertical speed actually flown
+  tF.addScaledVector(up, -tF.dot(up)).normalize(); tR.crossVectors(tF, up);
+  veh.q.setFromRotationMatrix(m4.makeBasis(tR, up, t2.copy(tF).negate()));
+  veh.w.set(0, 0, 0); veh.throttle = 0; veh.landed = false;
 }
 function step(dt) {
   geo.frame(veh.pos, up, east, north); bodyAxes();
@@ -569,6 +641,13 @@ cv.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(e.deltaY
 
 const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
 
+ FAST FLIGHT   B  on/off (starts on). Moves the vehicle over the real terrain at a chosen
+                  speed; it is a viewing aid, not physics. Switch it off to fly and land the lander.
+               W/S forward/back   A/D left/right   Q/E turn   R/F up/down (faster the higher you are)
+               , .  top speed, ${fmSpd(CRUISE[0])} to ${fmSpd(CRUISE[CRUISE.length - 1])}
+ NAMES         N  IAU feature names on/off — click a name for type, position, diameter, origin
+
+ — lander physics (fast flight off) —
  ATTITUDE      W/S pitch   A/D roll   Q/E yaw        T  rate damping (SAS) on/off
                V  auto-level (keeps the vehicle upright) on/off
  MAIN ENGINE   H  hover assist on/off
@@ -581,7 +660,7 @@ const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
  DISPLAY       M  imagery → imagery × DEM relief → DEM relief only      O  mesh detail low/med/high
                [ ]  sun azimuth    - =  sun elevation   (relief modes only)
                P  show true data pixels (nearest-neighbour) on/off
- TIME          , .  time warp        G  toggle this help
+ TIME          , .  time warp (lander physics)        G  toggle this help
  START POINTS  1 orbit 100 km   2 hover 15 km   3 hover 1.5 km   4 hover 150 m   5 hover 20 m
 
  Every height and every texel comes from LRO LOLA / LROC products.
@@ -589,9 +668,13 @@ const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
  pixels are only magnified and the HUD says so.`;
 const HELP_TOUCH = `HOW TO FLY (touch)
 
-Left stick — with "Stick: tilt" the vehicle leans the way you push (up to 30°) and drifts that way; let go and it levels itself. There is no air to slow you down: to stop, push the other way. Switch to "Stick: thrusters" for small sideways corrections (RCS) without leaning — best for the last metres.
+The button above the stick switches between three ways to fly.
 
-▲ / ▼ — hold to climb or descend (hover assist sets a vertical speed). "Hold" keeps the current altitude.
+Fast flight (the default) — push the stick up to fly forward, down to go back, sideways to turn. − / + set the top speed, from ${fmSpd(CRUISE[0])} to ${fmSpd(CRUISE[CRUISE.length - 1])}. Hold ▲ / ▼ to go up or down — the higher you are, the faster it goes. This mode simply moves the vehicle over the real terrain; it is a viewing aid, not physics, and it cannot land.
+
+Lander — real physics, for landing. With "Lander: tilt" the vehicle leans the way you push (up to 30°) and drifts that way; let go and it levels itself. There is no air to slow you down: to stop, push the other way. "Lander: thrusters" gives small sideways corrections (RCS) without leaning — best for the last metres.
+
+In lander mode ▲ / ▼ set a vertical speed (hover assist). "Hold" keeps the current altitude.
 With hover assist off they are throttle up / down and "Hold" becomes "Cut".
 
 ↺ / ↻ — turn left / right.
@@ -600,7 +683,9 @@ Screen — drag with one finger to look around, pinch with two fingers to zoom.
 
 Camera — chase / onboard (inspection when landed) / straight down.
 Start — jump to a start point, from a 100 km orbit down to 20 m.
-☰ — hover assist, auto-level, display mode, time warp, full flight data.
+☰ — names on/off, hover assist, auto-level, display mode, time warp, full flight data.
+
+Names — the labels are the official IAU names. Tap one for its type, position, diameter and the origin of the name.
 
 Landing: touch down slower than ${LAND_VS} m/s vertical and ${LAND_HS} m/s horizontal, tilted less than ${Math.round(LAND_TILT * R2D)}°.
 
@@ -608,7 +693,7 @@ Every height and every texel comes from LRO LOLA / LROC products. Nothing is syn
 
 Tap here to close.`;
 $('help').textContent = HELP;
-let site = null, shadeMode = 0, pixelView = false, detailIdx = 1, touchUI = false, stickRcs = false;
+let site = null, shadeMode = 0, pixelView = false, detailIdx = 1, touchUI = false, stickRcs = false, namesOn = true;
 const DETAIL = [['LOW', 1.4], ['MED', 2.0], ['HIGH', 2.8]];
 addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -616,6 +701,8 @@ addEventListener('keydown', e => {
   if (e.repeat || !terrain) return;
   const P = (lat, lon, agl, o) => { spawn(lat, lon, agl, o); setCam(0); };
   switch (e.code) {
+    case 'KeyB': setCruise(!veh.cruise); toast(veh.cruise ? `Fast flight — top speed ${fmSpd(CRUISE[cruiseIdx])}` : 'Lander physics — hovering', 2500); break;
+    case 'KeyN': namesOn = !namesOn; break;
     case 'KeyH': veh.assist = !veh.assist; veh.vsTarget = 0; break;
     case 'KeyV': veh.level = !veh.level; break;
     case 'KeyT': veh.sas = !veh.sas; break;
@@ -626,9 +713,9 @@ addEventListener('keydown', e => {
     case 'KeyP': pixelView = !pixelView; terrain.forEachMat((m, t) => { t.map.magFilter = pixelView ? THREE.NearestFilter : THREE.LinearFilter; t.map.needsUpdate = true; }); break;
     case 'KeyO': detailIdx = (detailIdx + 1) % 3; LOD_K = DETAIL[detailIdx][1]; break;
     case 'KeyG': $('help').style.display = $('help').style.display === 'block' ? 'none' : 'block'; break;
-    case 'Comma': warpIdx = Math.max(0, warpIdx - 1); break;
-    case 'Period': warpIdx = Math.min(WARPS.length - 1, warpIdx + 1); break;
-    case 'Digit1': P(site.lat, site.lon - 6, 100000, { orbit: true }); cam.dist = 40; break;
+    case 'Comma': if (veh.cruise) cruiseIdx = Math.max(0, cruiseIdx - 1); else warpIdx = Math.max(0, warpIdx - 1); break;
+    case 'Period': if (veh.cruise) cruiseIdx = Math.min(CRUISE.length - 1, cruiseIdx + 1); else warpIdx = Math.min(WARPS.length - 1, warpIdx + 1); break;
+    case 'Digit1': P(site.lat, site.lon - 6, 100000, { orbit: true }); cam.dist = 40; toast('100 km orbit — lander physics (fast flight is off)', 3500); break;
     case 'Digit2': P(site.lat, site.lon, 15000); break;
     case 'Digit3': P(site.lat, site.lon, 1500); break;
     case 'Digit4': P(site.lat, site.lon, 150); break;
@@ -666,7 +753,9 @@ $('help').addEventListener('click', () => { $('help').style.display = 'none'; })
 function setStick(x, y) {                                // x right, y up, each -1..1
   $('knob').style.transform = `translate(${x * 38}px, ${-y * 38}px)`;
   tin.pitch = tin.roll = tin.fwd = tin.right = tin.tx = tin.ty = 0;
-  if (stickRcs) { tin.fwd = y; tin.right = x; }
+  tin.cf = tin.cy = 0;
+  if (veh.cruise) { tin.cf = y; tin.cy = -x; }           // fast flight: forward / back and turn
+  else if (stickRcs) { tin.fwd = y; tin.right = x; }
   else if (veh.level) { tin.tx = x; tin.ty = y; }        // lean angle, self-levelling
   else { tin.pitch = -0.6 * y; tin.roll = -0.6 * x; }    // auto-level off: raw attitude thrusters, as W/S A/D
 }
@@ -683,7 +772,11 @@ function setStick(x, y) {                                // x right, y up, each 
   st.addEventListener('pointerdown', e => { e.preventDefault(); if (sid !== null) return; sid = e.pointerId; try { st.setPointerCapture(sid); } catch (_) {} move(e); });
   st.addEventListener('pointermove', e => { if (e.pointerId === sid) move(e); });
   st.addEventListener('pointerup', end); st.addEventListener('pointercancel', end); st.addEventListener('lostpointercapture', end);
-  $('stickMode').addEventListener('click', () => { stickRcs = !stickRcs; setStick(sx, sy); updateTouchUI(); });
+  $('stickMode').addEventListener('click', () => {      // fast flight -> lander: tilt -> lander: thrusters -> ...
+    if (veh.cruise) { setCruise(false); stickRcs = false; } else if (!stickRcs) stickRcs = true; else { stickRcs = false; setCruise(true); }
+    setStick(sx, sy); updateTouchUI();
+    toast(veh.cruise ? `Fast flight — top speed ${fmSpd(CRUISE[cruiseIdx])}` : stickRcs ? 'Lander physics — stick fires the side thrusters' : 'Lander physics — stick tilts the vehicle', 2500);
+  });
   addEventListener('blur', () => { sid = null; sx = sy = 0; setStick(0, 0); });
 }
 function updateTouchUI() {
@@ -696,10 +789,16 @@ function updateTouchUI() {
   set('mPix', pixelView, `True data pixels: ${pixelView ? 'on' : 'off'}`);
   set('mDet', false, `Mesh detail: ${DETAIL[detailIdx][0].toLowerCase()}`);
   set('mData', $('tdata').classList.contains('open'));
-  $('mFull').style.display = veh.assist ? 'none' : '';
+  $('mFull').style.display = veh.assist || veh.cruise ? 'none' : '';
   for (const b of document.querySelectorAll('#tMenu .sun')) b.style.display = shadeMode ? '' : 'none';
   $('mSunLbl').style.display = shadeMode ? '' : 'none';
-  $('stickMode').textContent = stickRcs ? 'Stick: thrusters' : 'Stick: tilt';
+  $('stickMode').textContent = veh.cruise ? 'Fast flight' : stickRcs ? 'Lander: thrusters' : 'Lander: tilt';
+  $('stickMode').classList.toggle('on', veh.cruise);
+  $('tSpeedVal').textContent = fmSpd(CRUISE[cruiseIdx]);
+  set('mCruise', veh.cruise, `Fast flight: ${veh.cruise ? 'on' : 'off'}`);
+  set('mNames', namesOn, names.count ? `Names: ${namesOn ? 'on' : 'off'}` : 'Names: not loaded');
+  for (const id of ['mAssist', 'mLevel', 'mSas']) $(id).style.display = veh.cruise ? 'none' : '';
+  for (const b of document.querySelectorAll('#tMenu .warp')) b.style.display = veh.cruise ? 'none' : '';
   $('tHold').textContent = veh.assist ? 'Hold' : 'Cut';
 }
 if (new URLSearchParams(location.search).has('touch') || matchMedia('(hover: none) and (pointer: coarse)').matches) enableTouch();
@@ -718,8 +817,15 @@ function updateCamera() {
   geo.frame(veh.pos, up, east, north);
   lander.visible = camMode === 0;
   if (camMode === 0) {
-    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-    camera.position.copy(veh.pos).addScaledVector(north, -cam.dist * cp * Math.cos(cam.yaw)).addScaledVector(east, -cam.dist * cp * Math.sin(cam.yaw)).addScaledVector(up, cam.dist * sp);
+    let cp0 = Math.cos(cam.pitch), sp0 = Math.sin(cam.pitch);
+    let cy = cam.yaw;
+    if (veh.cruise) {                              // stay behind the vehicle; from high up tip the view down so the Moon stays in frame
+      bodyAxes(); cy += Math.atan2(bFwd.dot(east), bFwd.dot(north));
+      const dip = Math.acos(clamp(R / veh.pos.distanceTo(geo.center), 0, 1)), p = Math.min(1.5, Math.max(cam.pitch, dip + (touchUI ? 0.12 : -0.21) + 0.9 * Math.max(0, dip - 0.7)));
+      cp0 = Math.cos(p); sp0 = Math.sin(p);
+    }
+    const cp = cp0, sp = sp0;
+    camera.position.copy(veh.pos).addScaledVector(north, -cam.dist * cp * Math.cos(cy)).addScaledVector(east, -cam.dist * cp * Math.sin(cy)).addScaledVector(up, cam.dist * sp);
     camera.up.copy(up); camera.lookAt(veh.pos);
   } else if (camMode === 1) {
     const cp = Math.cos(cam.lookPitch);
@@ -744,6 +850,86 @@ function updateCamera() {
 }
 
 /* ======================================================================
+   Feature names: IAU / USGS Gazetteer of Planetary Nomenclature (assets/nomenclature.json).
+   A label sits on the catalogued centre point, at the DEM height there. Which names are shown
+   depends only on apparent size on screen; names, positions and diameters are never altered.
+   ====================================================================== */
+const names = {
+  count: 0, here: '', F: null, types: {}, pos: null, act: [], pool: [], nextSel: 0, nextHere: 0, src: null,
+  async load(url) {
+    try {
+      const r = await fetch(url, { cache: 'no-cache' }); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json(); this.F = j.features; this.types = j.feature_types || {}; this.src = j.source;
+      const n = this.F.length, P = this.pos = new Float64Array(n * 3), v = new THREE.Vector3();
+      for (let i = 0; i < n; i++) { const f = this.F[i]; geo.toWorld(f[1], f[2], terrain.height(f[1], f[2]), v); P[3 * i] = v.x; P[3 * i + 1] = v.y; P[3 * i + 2] = v.z; }
+      this.count = n;
+    } catch (err) { console.warn('feature names not available:', err.message); }
+  },
+  typeName(code) { return (this.types[code] || code).split(',')[0]; },
+  describe(i) {
+    const f = this.F[i], la = f[1], lo = f[2];
+    return `${f[0]}\n${this.typeName(f[4])}${f[3] > 0 ? ` · diameter ${f[3] >= 10 ? fm(f[3], 0) : fm(f[3], 2)} km` : ''}\n` +
+      `${fm(Math.abs(la), 2)}° ${la >= 0 ? 'N' : 'S'}, ${fm(Math.abs(lo), 2)}° ${lo >= 0 ? 'E' : 'W'}` + (f[5] ? `\n${f[5]}` : '') + `\nIAU / USGS Gazetteer`;
+  },
+  el(k) {
+    let e = this.pool[k];
+    if (!e) { e = this.pool[k] = document.createElement('div'); e.className = 'nm'; e.addEventListener('click', () => { if (e._i >= 0) toast(this.describe(e._i), 9000); }); $('names').appendChild(e); }
+    return e;
+  },
+  select() {                                          // choose what to label (a few times per second)
+    const P = this.pos, F = this.F, c = camera.position, gc = geo.center, v = t1;
+    const cx = c.x - gc.x, cy = c.y - gc.y, cz = c.z - gc.z, W = innerWidth, H = innerHeight;
+    const pxPerRad = H / (2 * Math.tan(camera.fov * D2R / 2)), max = touchUI ? 14 : 30, placed = [], act = [];
+    for (let i = 0; i < this.count && act.length < max; i++) {      // sorted by diameter, largest first
+      const x = P[3 * i], y = P[3 * i + 1], z = P[3 * i + 2];
+      if ((x - gc.x) * cx + (y - gc.y) * cy + (z - gc.z) * cz < R * R) continue;          // beyond the horizon
+      const d = Math.hypot(x - c.x, y - c.y, z - c.z), f = F[i];
+      const px = Math.max(f[3], 0.25) * 1000 / d * pxPerRad;                              // apparent diameter in pixels
+      if (px < (f[4] === 'SF' ? 70 : 34) || px > 2.2 * Math.max(W, H)) continue;          // too small / far larger than the screen
+      v.set(x, y, z).project(camera);
+      if (v.z > 1 || Math.abs(v.x) > 0.96 || Math.abs(v.y) > 0.94) continue;
+      const sx = (v.x + 1) * W / 2, sy = (1 - v.y) * H / 2, w = f[0].length * 6.4 + 16;
+      if (placed.some(q => sx < q[0] + q[2] && sx + w > q[0] && Math.abs(sy - q[1]) < 26)) continue;   // no overlapping labels
+      placed.push([sx, sy, w]); act.push(i);
+    }
+    this.act = act;
+    for (let k = 0; k < act.length; k++) {
+      const e = this.el(k), i = act[k], f = F[i];
+      if (e._i !== i) { e._i = i; e.classList.toggle('sf', f[4] === 'SF'); e.textContent = f[0];
+        const s = document.createElement('small'); s.textContent = this.typeName(f[4]) + (f[3] > 0 ? ` · ${f[3] >= 10 ? fm(f[3], 0) : fm(f[3], 1)} km` : ''); e.appendChild(s); }
+      e.style.display = '';
+    }
+    for (let k = act.length; k < this.pool.length; k++) { this.pool[k].style.display = 'none'; this.pool[k]._i = -1; }
+  },
+  where() {                                           // smallest catalogued feature whose circle contains the vehicle
+    let best = -1, bestD = Infinity, near = -1, nearKm = Infinity;
+    const la = veh.lat * D2R, lo = veh.lon * D2R, cl = Math.cos(la), sl = Math.sin(la), F = this.F;
+    for (let i = 0; i < this.count; i++) {
+      const f = F[i]; if (f[4] === 'SF' && f[3] > bestD) continue;
+      const a = f[1] * D2R, km = Math.acos(clamp(sl * Math.sin(a) + cl * Math.cos(a) * Math.cos(f[2] * D2R - lo), -1, 1)) * R / 1000;
+      if (f[3] > 0 && km < f[3] / 2 && f[3] < bestD) { best = i; bestD = f[3]; }
+      if (km < nearKm) { nearKm = km; near = i; }
+    }
+    this.here = best >= 0 ? `in ${F[best][0]}` : near >= 0 ? `${F[near][0]} ${fm(nearKm, nearKm < 10 ? 1 : 0)} km away` : '';
+  },
+  frame(now) {
+    if (!this.count) return;
+    if (!namesOn) { if (this.act.length) { this.act = []; for (const e of this.pool) { e.style.display = 'none'; e._i = -1; } } }
+    else {
+      if (now > this.nextSel) { this.nextSel = now + 220; this.select(); }
+      const P = this.pos, W = innerWidth, H = innerHeight, v = t1;
+      for (let k = 0; k < this.act.length; k++) {
+        const i = this.act[k]; v.set(P[3 * i], P[3 * i + 1], P[3 * i + 2]).project(camera);
+        const e = this.pool[k];
+        if (v.z > 1) e.style.display = 'none';
+        else e.style.transform = `translate(${((v.x + 1) * W / 2).toFixed(1)}px, ${((1 - v.y) * H / 2).toFixed(1)}px)`;
+      }
+    }
+    if (now > this.nextHere) { this.nextHere = now + 700; this.where(); }
+  },
+};
+
+/* ======================================================================
    HUD
    ====================================================================== */
 const fm = (x, d = 1) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -758,17 +944,18 @@ function updateHUD() {
   const pitch = Math.asin(clamp(bFwd.dot(up), -1, 1)) * R2D, roll = Math.atan2(-bRight.dot(up), bUp.dot(up)) * R2D;
   const lat = veh.lat, lon = veh.lon;
   const tlFull = `<h1>FLIGHT</h1>` +
-    row('ALT RADAR', fmAlt(veh.agl), veh.agl < 30 && !veh.landed ? 'warn' : 'v') +
+    row('ALT RADAR', fmAlt(veh.agl), veh.agl < 30 && !veh.landed && !veh.cruise ? 'warn' : 'v') +
     row('ALT DATUM', fmAlt(veh.r - R - GEAR)) +
     row('LAT', `${fm(Math.abs(lat), 5)}° ${lat >= 0 ? 'N' : 'S'}`) +
     row('LON', `${fm(Math.abs(lon), 5)}° ${lon >= 0 ? 'E' : 'W'}`) +
-    row('GROUND SPD', `${fm(gs, gs < 100 ? 2 : 0)} m/s`) +
+    row('GROUND SPD', `${fm(gs, gs < 100 ? 2 : 0)} m/s  (${fm(gs * 3.6, 0)} km/h)`) +
     row('VERT SPD', `${vs >= 0 ? '+' : ''}${fm(vs, 2)} m/s`, vs < -LAND_VS && veh.agl < 100 ? 'bad' : 'v') +
     row('HDG/PIT/ROL', `${fm(hdg, 0)}° / ${fm(pitch, 0)}° / ${fm(roll, 0)}°`) +
     row('THROTTLE', `${fm(veh.throttle * 100, 0)} %  (${fm(veh.throttle * A_MAX, 2)} m/s²)`) +
     row('GRAVITY', `${fm(GM / (veh.r * veh.r), 3)} m/s²`) +
     row('STATUS', veh.landed ? 'LANDED — LOCKED' : 'FLIGHT', veh.landed ? 'ok' : 'v') +
-    row('ASSIST', `${veh.assist ? `HOVER (VS tgt ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)})` : 'MANUAL'}${veh.level ? ' · LEVEL' : ''}${veh.sas ? ' · SAS' : ''}`) +
+    (veh.cruise ? row('MODE', `FAST FLIGHT (kinematic, not physics)`, 'warn') + row('TOP SPEED', `${fmSpd(CRUISE[cruiseIdx])}  (${fm(CRUISE[cruiseIdx], 0)} m/s)`)
+      : row('ASSIST', `${veh.assist ? `HOVER (VS tgt ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)})` : 'MANUAL'}${veh.level ? ' · LEVEL' : ''}${veh.sas ? ' · SAS' : ''}`)) +
     row('TIME WARP', `×${WARPS[warpIdx]}`, warpIdx ? 'warn' : 'v');
   // ---- data resolution under the camera
   const t = terrain.tierAt(cam.lat, cam.lon);
@@ -786,6 +973,7 @@ function updateHUD() {
     row('DISPLAY', ['imagery (as acquired)', 'imagery × DEM relief', 'DEM relief only'][shadeMode] + (pixelView ? ' · PIXELS' : '')) +
     (shadeMode ? row('SUN az/el', `${fm(sun.az, 0)}° / ${fm(sun.el, 0)}°`) : '') +
     row('SITE', sb) +
+    row('FEATURE', names.here || '—') +
     row('RENDER', `${fm(fps, 0)} fps · ${terrain.stats.chunks} chunks · ${fm(renderer.info.render.triangles / 1000, 0)}k tris drawn · detail ${DETAIL[detailIdx][0]}`);
   if (!touchUI) { $('tl').innerHTML = tlFull; $('tr').innerHTML = trFull; }
   else {
@@ -794,17 +982,18 @@ function updateHUD() {
     $('tl').innerHTML =
       cr('ALT', fmAlt(veh.agl), veh.agl < 30 && !veh.landed ? 'warn' : 'v') +
       cr('V/S', `${vs >= 0 ? '+' : ''}${fm(vs, 2)} m/s`, vs < -LAND_VS && veh.agl < 100 ? 'bad' : 'v') +
-      cr('SPEED', `${fm(gs, gs < 100 ? 2 : 0)} m/s`, gs > LAND_HS && veh.agl < 30 && !veh.landed ? 'warn' : 'v') +
+      cr('SPEED', gs >= 1000 ? `${fm(gs / 1000, 1)} km/s` : gs >= 20 ? `${fm(gs * 3.6, 0)} km/h` : `${fm(gs, 2)} m/s`, gs > LAND_HS && veh.agl < 30 && !veh.landed && !veh.cruise ? 'warn' : 'v') +
       cr('HDG', `${fm(hdg, 0)}°  tilt ${fm(tilt, 0)}°`, tilt > LAND_TILT * R2D && veh.agl < 30 ? 'warn' : 'v') +
       cr('ENGINE', `${fm(veh.throttle * 100, 0)} %`) +
-      cr('MODE', veh.landed ? 'LANDED' : veh.assist ? `hover ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)} m/s` : 'manual', veh.landed ? 'ok' : 'v') +
+      cr('MODE', veh.cruise ? 'fast flight' : veh.landed ? 'LANDED' : veh.assist ? `hover ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)} m/s` : 'manual', veh.landed ? 'ok' : 'v') +
       cr('SITE', sb) +
+      (names.here ? cr('AREA', names.here.length > 26 ? names.here.slice(0, 25) + '…' : names.here) : '') +
       cr('DATA', `${t.id} ${fmRes(t.imgMpp)}`, st[1]) +
       (warpIdx ? cr('WARP', `×${WARPS[warpIdx]}`, 'warn') : '');
     if ($('tdata').classList.contains('open')) $('tdata').innerHTML = tlFull + '\n' + trFull + '<span class="k">Tap to close</span>';
     updateTouchUI();
   }
-  $('bl').innerHTML = `<span class="k">G help · C camera · H hover assist · M display · 1–5 start points</span>`;
+  $('bl').innerHTML = `<span class="k">G help · B fast flight / lander · , . speed · N names · C camera · M display · 1–5 start points</span>`;
   const lim = mag >= LIMIT_MAG;
   $('limit').style.opacity = lim ? 1 : 0;
   if (lim) $('limitText').textContent = `REAL DATA RESOLUTION LIMIT REACHED\n1 data pixel (${fmRes(t.imgMpp)}, tier ${t.id}) = ${fm(mag, 0)} screen pixels\nNo finer measured detail exists here — pixels are magnified, nothing is invented.`;
@@ -842,21 +1031,23 @@ async function boot() {
   try { await terrain.load(man, base, renderer, say); } catch (err) { say('Failed to load assets: ' + err.message); throw err; }
   updateSun();
   spawn(man.lat, man.lon, 1500);
+  document.body.classList.toggle('cruise', veh.cruise);
+  names.load(root + 'nomenclature.json');
   $('load').style.display = 'none';
-  toast(touchUI ? `${man.name}\nLeft stick to fly, ▲▼ to climb or descend.\n☰ → How to fly` : `${man.name}\nPress G for controls`, touchUI ? 7000 : 5000);
-  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, setCam, keys, man, THREE, get camMode() { return camMode; } };
+  toast(touchUI ? `${man.name}\nFast flight: stick to fly and turn, − + for speed, ▲▼ for height.\n☰ → How to fly` : `${man.name}\nFast flight: W/S A/D move, Q/E turn, R/F up/down, , . speed\nB: lander physics   G: all controls`, 8000);
+  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, stepCruise, setCruise, setCam, keys, man, THREE, names, CRUISE, get cruiseIdx() { return cruiseIdx; }, get camMode() { return camMode; } };
   let last = performance.now(), hudT = 0;
   renderer.setAnimationLoop(now => {
     const real = Math.min(0.1, (now - last) / 1000); last = now; fps += (1 / Math.max(real, 1e-3) - fps) * 0.05;
     // held keys
-    if (keys.has('KeyR') || keys.has('KeyF')) { const s = (keys.has('KeyR') ? 1 : 0) - (keys.has('KeyF') ? 1 : 0);
+    if (!veh.cruise && (keys.has('KeyR') || keys.has('KeyF'))) { const s = (keys.has('KeyR') ? 1 : 0) - (keys.has('KeyF') ? 1 : 0);
       if (veh.assist) veh.vsTarget = clamp(veh.vsTarget + s * 6 * real, -60, 60); else veh.throttle = clamp(veh.throttle + s * 0.6 * real, 0, 1); }
     const sk = (a, b) => (keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0);
     const da = sk('BracketRight', 'BracketLeft'), de = sk('Equal', 'Minus');
     if (da || de) { sun.az = (sun.az + da * 40 * real + 360) % 360; sun.el = clamp(sun.el + de * 25 * real, 1, 90); updateSun(); }
     if (veh.agl < 500 && warpIdx > 0) { warpIdx = 0; toast('Time warp off below 500 m', 1500); }
-    const dt = real * WARPS[warpIdx], n = Math.min(200, Math.ceil(dt / 0.02));
-    for (let i = 0; i < n; i++) step(dt / n);
+    if (veh.cruise) { warpIdx = 0; stepCruise(real); }
+    else { const dt = real * WARPS[warpIdx], n = Math.min(200, Math.ceil(dt / 0.02)); for (let i = 0; i < n; i++) step(dt / n); }
     const ll = geo.fromWorld(veh.pos); veh.lat = ll.lat; veh.lon = ll.lon; veh.r = ll.r; veh.hTerr = terrain.height(ll.lat, ll.lon);
     veh.agl = Math.max(0, ll.r - R - veh.hTerr - GEAR);
     lander.position.copy(veh.pos); lander.quaternion.copy(veh.q);
@@ -864,6 +1055,7 @@ async function boot() {
     updateCamera();
     terrain.update(camera.position);
     renderer.render(scene, camera);
+    names.frame(now);
     if (now - hudT > 100) { hudT = now; updateHUD(); }
   });
 }

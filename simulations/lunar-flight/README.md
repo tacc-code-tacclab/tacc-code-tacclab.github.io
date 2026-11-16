@@ -30,6 +30,13 @@ file name). `--lat/--lon/--name` builds a custom site (global + wide + regional 
 | regional | 4 x 4 deg (~121 km) | LOLA GDR `LDEM_512` (59 m/px) | LROC WAC global mosaic (100 m/px) |
 | local | up to 2 x 2 km | LROC NAC DTM (2 m/px) | LROC NAC orthophoto (0.5 m/px) |
 
+Feature names (`assets/nomenclature.json`, step `names`): the IAU Working Group for Planetary System Nomenclature
+gazetteer as published by the USGS Astrogeology Science Center (Moon, feature centre points: name, type, centre
+latitude / longitude, diameter, origin of the name). Only records marked "Adopted by IAU" are kept; values are copied.
+In the viewer a label sits on the catalogued centre point; which labels are drawn depends on their apparent size on
+screen. `N` toggles them and a click / tap shows the catalogue entry. The HUD line FEATURE names the smallest
+catalogued feature whose circle (centre + diameter) contains the vehicle - a circle, not the feature's real outline.
+
 The `.IMG` products are uncompressed, so only the rows covering each window are fetched with HTTP Range
 requests. `assets/<site>/manifest.json` records every source URL, byte range and processing step.
 
@@ -50,7 +57,12 @@ requests. `assets/<site>/manifest.json` records every source URL, byte range and
 
 ## Simulator
 
-6-DOF rigid body under central gravity GM/r^2 (1.62 m/s^2 at the surface; a 100 km orbit is stable),
+**Fast flight** (default, `B` to switch): the vehicle is moved over the real terrain at a chosen top speed, from
+18 km/h to 100 km/s (`,` `.`), with `W/S A/D` move, `Q/E` turn and `R/F` up / down (the rate grows with height, up to
+3000 km). It follows the Moon's curvature and stays above the DEM. This mode is kinematic: no forces are integrated,
+the speeds are not achievable by the lander, and the HUD labels it "kinematic, not physics". It cannot land.
+
+**Lander physics** (`B`): 6-DOF rigid body under central gravity GM/r^2 (1.62 m/s^2 at the surface; a 100 km orbit is stable),
 main engine 0-10 m/s^2 along the body axis, RCS translation, attitude thrusters with optional rate damping
 and auto-level, hover assist (vertical-speed hold), time warp. Touchdown limits: 3 m/s vertical, 2 m/s
 horizontal, 25 deg tilt; on touchdown the position locks and the inspection camera (free look + zoom) opens.
