@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunar Flight &amp; Surface Exploration Simulator (LRO data)</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#cfe;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  .panel{position:fixed;background:rgba(4,10,14,.62);border:1px solid rgba(120,200,220,.28);padding:8px 10px;border-radius:3px;white-space:pre;pointer-events:none;text-shadow:0 0 2px #000}
+  #tl{top:10px;left:10px;min-width:250px} #tr{top:10px;right:10px;min-width:270px}
+  #bl{bottom:10px;left:10px} #br{bottom:10px;right:10px;padding:6px}
+  .k{color:#7fb6c4} .v{color:#eaffff;font-weight:600} .warn{color:#ffcf5a} .bad{color:#ff6a5a} .ok{color:#8dffa8}
+  h1{font-size:11px;letter-spacing:.14em;margin:0 0 4px;color:#9fe3f2;font-weight:600}
+  #limit{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;
+    box-shadow:inset 0 0 90px 10px rgba(255,170,40,.16)}
+  #limit div{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(40,22,0,.82);
+    border:1px solid #ffb53a;color:#ffd98a;padding:7px 14px;border-radius:3px;text-align:center;white-space:pre;max-width:92vw}
+  #msg{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(4,10,14,.85);border:1px solid #9fe3f2;
+    padding:10px 18px;border-radius:3px;font-size:14px;display:none;text-align:center;white-space:pre-wrap;max-width:80vw}
+  #help{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(4,10,14,.93);border:1px solid #9fe3f2;
+    padding:16px 22px;border-radius:4px;white-space:pre;display:none;max-height:90vh;overflow:auto}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;white-space:pre-wrap;
+    text-align:center;font-size:13px;padding:24px}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="limit"><div id="limitText"></div></div>
+<div class="panel" id="tl"></div>
+<div class="panel" id="tr"></div>
+<div class="panel" id="bl"></div>
+<div class="panel" id="br"><canvas id="vec" width="130" height="130"></canvas></div>
+<div id="msg"></div>
+<div id="help"></div>
+<div id="load">Loading lunar data…</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ======================================================================
+   Constants
+   ====================================================================== */
+const R = 1737400;              // m, LRO reference sphere
+const GM = 4.9028e12;           // m^3/s^2  -> g = 1.624 m/s^2 at the datum
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const A_MAX = 10.0;             // main engine max acceleration, m/s^2
+const RCS_ACC = 2.0;            // translation thrusters, m/s^2
+const ROT_ACC = 0.9;            // attitude thrusters, rad/s^2
+const GEAR = 1.5;               // vehicle centre -> foot pads, m
+const LAND_VS = 3.0, LAND_HS = 2.0, LAND_TILT = 25 * D2R;
+const GRID = 32;                // quads per chunk edge
+let LOD_K = 2.0;                // split a chunk when closer than LOD_K * chunk size (O key: detail)
+const BLEND = 0.04;             // border band where a tier is blended into its parent tier
+const HOLE_INSET = 0.005;
+const LIMIT_MAG = 4;            // data pixel spans >= this many screen pixels -> "resolution limit"
+const WARPS = [1, 2, 5, 10, 25, 50, 100];
+
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const wrap180 = d => ((d + 180) % 360 + 360) % 360 - 180;
+const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+
+/* ======================================================================
+   16-bit PNG decoder (canvas would truncate to 8 bits)
+   ====================================================================== */
+async function loadPNG16(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  const dv = new DataView(buf.buffer);
+  let p = 8, w = 0, h = 0, depth = 0, ctype = 0, inter = 0; const idat = [];
+  while (p < buf.length) {
+    const len = dv.getUint32(p), type = String.fromCharCode(buf[p + 4], buf[p + 5], buf[p + 6], buf[p + 7]);
+    if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); depth = buf[p + 16]; ctype = buf[p + 17]; inter = buf[p + 20]; }
+    else if (type === 'IDAT') idat.push(buf.subarray(p + 8, p + 8 + len));
+    else if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  if (depth !== 16 || ctype !== 0 || inter !== 0) throw new Error(`${url}: expected 16-bit greyscale non-interlaced PNG`);
+  const raw = new Uint8Array(await new Response(new Blob(idat).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  const stride = w * 2, out = new Uint16Array(w * h);
+  let pos = 0, prev = new Uint8Array(stride);
+  for (let y = 0; y < h; y++) {
+    const ft = raw[pos++], line = raw.subarray(pos, pos + stride); pos += stride;
+    if (ft === 1) for (let i = 2; i < stride; i++) line[i] += line[i - 2];
+    else if (ft === 2) for (let i = 0; i < stride; i++) line[i] += prev[i];
+    else if (ft === 3) for (let i = 0; i < stride; i++) line[i] += ((i >= 2 ? line[i - 2] : 0) + prev[i]) >> 1;
+    else if (ft === 4) for (let i = 0; i < stride; i++) {
+      const a = i >= 2 ? line[i - 2] : 0, b = prev[i], c = i >= 2 ? prev[i - 2] : 0;
+      const pa = Math.abs(b - c), pb = Math.abs(a - c), pc = Math.abs(a + b - 2 * c);
+      line[i] += (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+    }
+    const o = y * w;
+    for (let x = 0; x < w; x++) out[o + x] = (line[2 * x] << 8) | line[2 * x + 1];
+    prev = line;
+  }
+  return { width: w, height: h, data: out };
+}
+
+/* ======================================================================
+   Geodesy: world frame = East(x) / Up(y) / South(z) at the site, origin on
+   the datum sphere at the site. Keeps coordinates small where precision
+   matters (near the ground) - no jitter at metre scale.
+   ====================================================================== */
+const geo = {
+  init(lat0, lon0) {
+    const p = lat0 * D2R, l = lon0 * D2R;
+    this.e = [-Math.sin(l), Math.cos(l), 0];
+    this.n = [-Math.sin(p) * Math.cos(l), -Math.sin(p) * Math.sin(l), Math.cos(p)];
+    this.u = [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)];
+    this.center = new THREE.Vector3(0, -R, 0);
+    this.northAxis = new THREE.Vector3(this.e[2], this.u[2], -this.n[2]).normalize();
+  },
+  toWorld(lat, lon, h, out) {
+    const p = lat * D2R, l = lon * D2R, r = R + h, cp = Math.cos(p);
+    const X = r * cp * Math.cos(l), Y = r * cp * Math.sin(l), Z = r * Math.sin(p);
+    const { e, n, u } = this;
+    out.x = X * e[0] + Y * e[1] + Z * e[2];
+    out.y = X * u[0] + Y * u[1] + Z * u[2] - R;
+    out.z = -(X * n[0] + Y * n[1] + Z * n[2]);
+    return out;
+  },
+  fromWorld(v) {
+    const { e, n, u } = this, a = v.x, b = v.y + R, c = -v.z;
+    const X = a * e[0] + b * u[0] + c * n[0], Y = a * e[1] + b * u[1] + c * n[1], Z = a * e[2] + b * u[2] + c * n[2];
+    const r = Math.hypot(X, Y, Z);
+    return { lat: Math.asin(Z / r) * R2D, lon: Math.atan2(Y, X) * R2D, r };
+  },
+  frame(pos, up, east, north) {           // local East/North/Up unit vectors at a world position
+    up.copy(pos).sub(this.center).normalize();
+    east.crossVectors(this.northAxis, up);
+    if (east.lengthSq() < 1e-12) east.set(1, 0, 0);
+    east.normalize();
+    north.crossVectors(up, east);
+  }
+};
+
+/* ======================================================================
+   Terrain tiers (all real data; each tier is a lat/lon raster window)
+   ====================================================================== */
+const terrainVS = `
+  varying vec2 vUv; varying vec3 vW;
+  void main(){ vUv = uv; vW = (modelMatrix * vec4(position,1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
+const terrainFS = `
+  uniform sampler2D uMap, uNrm; uniform vec4 uHole; uniform float uHoleOn; uniform int uMode;
+  uniform vec3 uSun, uCenter, uNorth;
+  varying vec2 vUv; varying vec3 vW;
+  void main(){
+    if (uHoleOn > 0.5 && vUv.x > uHole.x && vUv.x < uHole.z && vUv.y > uHole.y && vUv.y < uHole.w) discard;
+    vec3 c = texture2D(uMap, vUv).rgb;
+    if (uMode > 0) {
+      vec3 n = texture2D(uNrm, vUv).xyz * 2.0 - 1.0;
+      vec3 up = normalize(vW - uCenter);
+      vec3 e = normalize(cross(uNorth, up));
+      vec3 N = normalize(e * n.x + cross(up, e) * n.y + up * n.z);
+      float l = max(dot(N, uSun), 0.0);
+      c = (uMode == 1 ? c * 1.7 : vec3(0.55)) * l;
+    }
+    gl_FragColor = vec4(c, 1.0);
+    #include <colorspace_fragment>
+  }`;
+
+let sharedIndex = null;
+function chunkIndex() {
+  if (sharedIndex) return sharedIndex;
+  const n = GRID + 1, idx = [];
+  for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++) {
+    const a = j * n + i, b = a + n, c = a + 1, d = b + 1;
+    idx.push(a, b, c, c, b, d);
+  }
+  const base = n * n;                                   // skirts: 4 edges x n vertices
+  const edge = k => [i => i, i => GRID * n + i, i => i * n, i => i * n + GRID][k];
+  for (let k = 0; k < 4; k++) for (let i = 0; i < GRID; i++) {
+    const a = edge(k)(i), b = edge(k)(i + 1), c = base + k * n + i, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  return sharedIndex = new THREE.BufferAttribute(new Uint16Array(idx), 1);
+}
+
+class Tier {
+  constructor(def, baseUrl, parent) {
+    Object.assign(this, { def, baseUrl, parent, id: def.id });
+    const b = def.bounds;
+    this.south = b.south; this.north = b.north; this.west = b.west; this.east = b.east;
+    this.lonC = (b.west + b.east) / 2; this.halfLon = (b.east - b.west) / 2;
+    this.isGlobal = this.halfLon >= 179.999;
+    this.demMpp = Math.max(def.dem.native_m_per_px, def.dem.grid_m_per_px);
+    this.imgMpp = Math.max(def.image.native_m_per_px, def.image.grid_m_per_px);
+    this.hole = null; this.roots = []; this.child = null;
+  }
+  async load(renderer) {
+    const d = this.def.dem, png = await loadPNG16(this.baseUrl + d.file);
+    this.W = png.width; this.H = png.height; this.hm = png.data; this.hMin = d.h_min; this.hScale = d.h_scale;
+    const tl = new THREE.TextureLoader(), aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const tex = async (f, srgb) => { const t = await tl.loadAsync(this.baseUrl + f); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      t.anisotropy = aniso; t.wrapS = this.isGlobal ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping; return t; };
+    [this.map, this.nrm] = await Promise.all([tex(this.def.image.file, true), tex(this.def.normal.file, false)]);
+    this.material = new THREE.ShaderMaterial({ vertexShader: terrainVS, fragmentShader: terrainFS, side: THREE.DoubleSide,
+      uniforms: { uMap: { value: this.map }, uNrm: { value: this.nrm }, uHole: { value: new THREE.Vector4() }, uHoleOn: { value: 0 },
+        uMode: { value: 0 }, uSun: { value: new THREE.Vector3(0, 1, 0) }, uCenter: { value: geo.center }, uNorth: { value: geo.northAxis } } });
+    this.maxDepth = Math.max(0, Math.ceil(Math.log2((this.isGlobal ? this.H : Math.max(this.W, this.H)) / GRID)));
+    const mk = (s, n, w, e) => new Node(this, s, n, w, e, 0);
+    this.roots = this.isGlobal ? [mk(-90, 90, -180, 0), mk(-90, 90, 0, 180)] : [mk(this.south, this.north, this.west, this.east)];
+  }
+  setChild(c) {                                           // finer tier nested inside this one
+    this.child = c;
+    const dx = (c.east - c.west) * HOLE_INSET, dy = (c.north - c.south) * HOLE_INSET;
+    const w = this.lonC + wrap180(c.west - this.lonC) + dx, e = this.lonC + wrap180(c.east - this.lonC) - dx;
+    this.hole = { south: c.south + dy, north: c.north - dy, west: w, east: e };
+    const u = x => (x - this.west) / (this.east - this.west), v = y => (y - this.south) / (this.north - this.south);
+    this.material.uniforms.uHole.value.set(u(w), v(this.hole.south), u(e), v(this.hole.north));
+    this.material.uniforms.uHoleOn.value = 1;
+  }
+  contains(lat, lon) { return lat >= this.south && lat <= this.north && Math.abs(wrap180(lon - this.lonC)) <= this.halfLon; }
+  raw(lat, lon) {                                         // bilinear sample of the real DEM, metres above datum
+    const W = this.W, H = this.H, hm = this.hm;
+    let x = (wrap180(lon - this.lonC) + this.halfLon) / (2 * this.halfLon) * W - 0.5;
+    let y = clamp((this.north - lat) / (this.north - this.south) * H - 0.5, 0, H - 1);
+    let x0, x1;
+    if (this.isGlobal) { const f = Math.floor(x); x0 = ((f % W) + W) % W; x1 = (x0 + 1) % W; x -= f; }
+    else { x = clamp(x, 0, W - 1); x0 = Math.min(Math.floor(x), W - 2); x1 = x0 + 1; x -= x0; }
+    const y0 = Math.min(Math.floor(y), H - 2), fy = y - y0;
+    const a = hm[y0 * W + x0], b = hm[y0 * W + x1], c = hm[(y0 + 1) * W + x0], d = hm[(y0 + 1) * W + x1];
+    return this.hMin + this.hScale * ((a * (1 - x) + b * x) * (1 - fy) + (c * (1 - x) + d * x) * fy);
+  }
+  height(lat, lon) {                                      // real DEM, cross-faded into the parent tier along the border
+    const h = this.raw(lat, lon);
+    if (!this.parent) return h;
+    const u = (wrap180(lon - this.lonC) + this.halfLon) / (2 * this.halfLon), v = (lat - this.south) / (this.north - this.south);
+    const t = Math.min(u, 1 - u, v, 1 - v) / BLEND;
+    if (t >= 1) return h;
+    const hp = this.parent.height(lat, lon);
+    return hp + (h - hp) * smooth(t);
+  }
+}
+
+const _v = new THREE.Vector3();
+class Node {
+  constructor(tier, s, n, w, e, depth) {
+    Object.assign(this, { tier, s, n, w, e, depth, mesh: null, children: null, lastUsed: 0 });
+    const lc = (s + n) / 2, oc = (w + e) / 2;
+    this.center = geo.toWorld(lc, oc, tier.height(lc, oc), new THREE.Vector3());
+    this.size = (n - s) * D2R * R;
+    const width = (e - w) * D2R * R * Math.cos(lc * D2R);
+    this.radius = 0.5 * Math.hypot(this.size, width);
+    const h = tier.hole;
+    this.inHole = !!h && s >= h.south && n <= h.north && w >= h.west && e <= h.east;
+  }
+  split() {
+    const { tier, s, n, w, e, depth } = this, lm = (s + n) / 2, om = (w + e) / 2;
+    this.children = [new Node(tier, lm, n, w, om, depth + 1), new Node(tier, lm, n, om, e, depth + 1),
+                     new Node(tier, s, lm, w, om, depth + 1), new Node(tier, s, lm, om, e, depth + 1)];
+  }
+  build(scene) {
+    const { tier, s, n, w, e } = this, N = GRID + 1, nv = N * N + 4 * N;
+    const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), c = this.center;
+    const skirt = Math.max(2, this.size / GRID * 1.5);
+    let maxR = 0;
+    const put = (k, lat, lon, drop) => {
+      geo.toWorld(lat, lon, tier.height(lat, lon) - drop, _v);
+      pos[3 * k] = _v.x - c.x; pos[3 * k + 1] = _v.y - c.y; pos[3 * k + 2] = _v.z - c.z;
+      uv[2 * k] = (lon - tier.west) / (tier.east - tier.west); uv[2 * k + 1] = (lat - tier.south) / (tier.north - tier.south);
+      maxR = Math.max(maxR, Math.hypot(_v.x - c.x, _v.y - c.y, _v.z - c.z));
+    };
+    const la = j => n - (n - s) * j / GRID, lo = i => w + (e - w) * i / GRID;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) put(j * N + i, la(j), lo(i), 0);
+    const base = N * N;
+    for (let i = 0; i < N; i++) {
+      put(base + i, la(0), lo(i), skirt); put(base + N + i, la(GRID), lo(i), skirt);
+      put(base + 2 * N + i, la(i), lo(0), skirt); put(base + 3 * N + i, la(i), lo(GRID), skirt);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setIndex(chunkIndex());
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), maxR);
+    this.mesh = new THREE.Mesh(g, tier.material);
+    this.mesh.position.copy(c); this.mesh.visible = false; this.mesh.matrixAutoUpdate = false; this.mesh.updateMatrix();
+    scene.add(this.mesh);
+  }
+  dispose(scene) { if (this.mesh) { scene.remove(this.mesh); this.mesh.geometry.dispose(); this.mesh = null; } }
+}
+
+class Terrain {
+  constructor(scene) { this.scene = scene; this.tiers = []; this.shown = []; this.queue = []; this.frame = 0; this.stats = { chunks: 0, tris: 0 }; }
+  async load(manifest, baseUrl, renderer, progress) {
+    let parent = null;
+    for (const def of manifest.tiers) {
+      progress(`Loading tier "${def.id}" (${def.dem.width}×${def.dem.height} DEM, ${def.image.width}×${def.image.height} image)…`);
+      const t = new Tier(def, baseUrl, parent);
+      await t.load(renderer);
+      if (parent) parent.setChild(t);
+      this.tiers.push(t); parent = t;
+    }
+    // hole rectangles are only known once the child exists: (re)create roots, then build them
+    for (const t of this.tiers) { t.roots = t.roots.map(r => new Node(t, r.s, r.n, r.w, r.e, 0)); t.roots.forEach(r => r.build(this.scene)); }
+  }
+  tierAt(lat, lon) { for (let i = this.tiers.length - 1; i >= 0; i--) if (this.tiers[i].contains(lat, lon)) return this.tiers[i]; return this.tiers[0]; }
+  height(lat, lon) { return this.tierAt(lat, lon).height(lat, lon); }
+  update(cam) {
+    this.frame++;
+    for (const m of this.shown) m.visible = false;
+    this.shown.length = 0; this.queue.length = 0;
+    const visit = node => {
+      if (node.inHole) return;
+      node.lastUsed = this.frame;
+      const dist = Math.max(0, node.center.distanceTo(cam) - node.radius);
+      if (node.depth < node.tier.maxDepth && dist < LOD_K * node.size) {
+        if (!node.children) node.split();
+        let ready = true;
+        for (const ch of node.children) if (!ch.inHole && !ch.mesh) { ready = false; this.queue.push([ch.center.distanceTo(cam), ch]); }
+        if (ready) { node.children.forEach(visit); return; }
+      }
+      if (!node.mesh) node.build(this.scene);
+      node.mesh.visible = true; this.shown.push(node.mesh);
+    };
+    for (const t of this.tiers) t.roots.forEach(visit);
+    this.queue.sort((a, b) => a[0] - b[0]);
+    for (let i = 0; i < Math.min(10, this.queue.length); i++) { const n = this.queue[i][1]; if (!n.mesh) { n.build(this.scene); n.lastUsed = this.frame; } }
+    if (this.frame % 180 === 0) this.gc();
+    this.stats.chunks = this.shown.length;
+  }
+  gc() {
+    const walk = node => {
+      if (!node.children) return;
+      for (const ch of node.children) { walk(ch); if (ch.mesh && this.frame - ch.lastUsed > 600) ch.dispose(this.scene); }
+      if (node.children.every(ch => !ch.mesh && !ch.children) && this.frame - node.lastUsed > 600) node.children = null;
+    };
+    for (const t of this.tiers) t.roots.forEach(walk);
+  }
+  ready(cam) { this.update(cam); return this.queue.length === 0; }
+  forEachMat(f) { this.tiers.forEach(t => f(t.material, t)); }
+}
+
+/* ======================================================================
+   Vehicle: rigid body, 6 DOF. Central gravity GM/r^2 (so orbits work),
+   main engine along body +Y, RCS translation, attitude thrusters.
+   The Moon's slow rotation is neglected (body-fixed frame treated as inertial).
+   ====================================================================== */
+const veh = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), q: new THREE.Quaternion(), w: new THREE.Vector3(),
+  throttle: 0, landed: false, assist: true, vsTarget: 0, level: true, sas: true, agl: 0, lat: 0, lon: 0, r: R, hTerr: 0 };
+const keys = new Set();
+const up = new THREE.Vector3(), east = new THREE.Vector3(), north = new THREE.Vector3();
+const bUp = new THREE.Vector3(), bFwd = new THREE.Vector3(), bRight = new THREE.Vector3();
+const t1 = new THREE.Vector3(), t2 = new THREE.Vector3(), acc = new THREE.Vector3(), dq = new THREE.Quaternion(), qi = new THREE.Quaternion();
+let terrain, warpIdx = 0, crashInfo = null;
+
+function bodyAxes() { bUp.set(0, 1, 0).applyQuaternion(veh.q); bFwd.set(0, 0, -1).applyQuaternion(veh.q); bRight.set(1, 0, 0).applyQuaternion(veh.q); }
+function spawn(lat, lon, agl, opt = {}) {
+  const h = terrain.height(lat, lon);
+  geo.toWorld(lat, lon, h + GEAR + agl, veh.pos);
+  geo.frame(veh.pos, up, east, north);
+  const m = new THREE.Matrix4().makeBasis(east, up, t1.copy(north).negate());
+  veh.q.setFromRotationMatrix(m); veh.w.set(0, 0, 0); veh.vel.set(0, 0, 0);
+  veh.landed = false; veh.assist = !opt.orbit; veh.vsTarget = 0; veh.level = true; veh.throttle = 0;
+  if (opt.orbit) veh.vel.copy(east).multiplyScalar(Math.sqrt(GM / (R + h + GEAR + agl)));
+  if (!opt.orbit) warpIdx = 0;
+}
+function step(dt) {
+  geo.frame(veh.pos, up, east, north); bodyAxes();
+  const r = veh.pos.distanceTo(geo.center), g = GM / (r * r);
+  const k = c => keys.has(c) ? 1 : 0;
+  const pitchIn = k('KeyS') - k('KeyW'), rollIn = k('KeyA') - k('KeyD'), yawIn = k('KeyQ') - k('KeyE');
+  const cosT = bUp.dot(up);
+  // --- throttle
+  if (veh.assist) {
+    const vs = veh.vel.dot(up);
+    veh.throttle = cosT > 0.2 ? clamp((g + 1.5 * (veh.vsTarget - vs)) / (A_MAX * cosT), 0, 1) : 0;
+    if (veh.landed && veh.vsTarget <= 0.05) veh.throttle = 0;
+  }
+  if (veh.landed) {
+    if (veh.throttle * A_MAX * cosT > g * 1.01) veh.landed = false; else { veh.vel.set(0, 0, 0); veh.w.set(0, 0, 0); return; }
+  }
+  // --- attitude (body rates)
+  const aa = t1.set(pitchIn, yawIn, rollIn).multiplyScalar(ROT_ACC);
+  if (veh.level && !pitchIn && !rollIn) {
+    t2.crossVectors(bUp, up).applyQuaternion(qi.copy(veh.q).invert());
+    aa.x += 3.0 * t2.x - 2.6 * veh.w.x; aa.z += 3.0 * t2.z - 2.6 * veh.w.z;
+  } else if (veh.sas) { if (!pitchIn) aa.x -= 2.0 * veh.w.x; if (!rollIn) aa.z -= 2.0 * veh.w.z; }
+  if (veh.sas && !yawIn) aa.y -= 2.0 * veh.w.y;
+  veh.w.addScaledVector(aa, dt);
+  const wl = veh.w.length();
+  if (wl > 1e-9) { dq.setFromAxisAngle(t2.copy(veh.w).divideScalar(wl), wl * dt); veh.q.multiply(dq).normalize(); }
+  // --- translation (semi-implicit Euler)
+  acc.copy(up).multiplyScalar(-g).addScaledVector(bUp, veh.throttle * A_MAX)
+     .addScaledVector(bFwd, (k('KeyI') - k('KeyK')) * RCS_ACC).addScaledVector(bRight, (k('KeyL') - k('KeyJ')) * RCS_ACC);
+  veh.vel.addScaledVector(acc, dt); veh.pos.addScaledVector(veh.vel, dt);
+  // --- ground contact against the real DEM
+  const ll = geo.fromWorld(veh.pos), hT = terrain.height(ll.lat, ll.lon);
+  if (ll.r - R - hT - GEAR <= 0) {
+    geo.frame(veh.pos, up, east, north);
+    const vn = veh.vel.dot(up), vh = t2.copy(veh.vel).addScaledVector(up, -vn).length(), tilt = Math.acos(clamp(bUp.dot(up), -1, 1));
+    geo.toWorld(ll.lat, ll.lon, hT + GEAR, veh.pos);
+    if (vn > -LAND_VS && vh < LAND_HS && tilt < LAND_TILT) {
+      veh.landed = true; veh.vel.set(0, 0, 0); veh.w.set(0, 0, 0); veh.vsTarget = 0; veh.throttle = 0;
+      toast('TOUCHDOWN — position locked.  C: inspection camera', 4000); if (camMode === 0) setCam(1);
+    } else {
+      crashInfo = `IMPACT: vertical ${vn.toFixed(1)} m/s, horizontal ${vh.toFixed(1)} m/s, tilt ${(tilt * R2D).toFixed(0)}°\n(limits ${LAND_VS} m/s, ${LAND_HS} m/s, ${LAND_TILT * R2D}°) — vehicle reset to 50 m`;
+      spawn(ll.lat, ll.lon, 50); toast(crashInfo, 6000);
+    }
+  }
+}
+
+/* ======================================================================
+   Scene, camera, input
+   ====================================================================== */
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'default' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1e7);
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.6); scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0xffffff, 0.5));
+const sun = { az: 90, el: 25, dir: new THREE.Vector3() };
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+function makeLander() {
+  const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xb89548, roughness: .55, metalness: .5 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: .6, metalness: .4 });
+  const add = (geom, mat, x, y, z) => { const m = new THREE.Mesh(geom, mat); m.position.set(x, y, z); g.add(m); return m; };
+  add(new THREE.CylinderGeometry(1.15, 1.3, 1.1, 8), gold, 0, 0.1, 0);
+  add(new THREE.CylinderGeometry(0.55, 0.9, 0.8, 8), grey, 0, 1.05, 0);
+  add(new THREE.CylinderGeometry(0.25, 0.55, 0.6, 12, 1, true), grey, 0, -0.75, 0);
+  add(new THREE.BoxGeometry(0.25, 0.25, 0.5), grey, 0, 1.0, -0.85);                       // forward marker (camera pod)
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + i * Math.PI / 2, c = Math.cos(a), s = Math.sin(a);
+    const leg = add(new THREE.CylinderGeometry(0.05, 0.05, 1.9, 6), grey, c * 1.55, -0.65, s * 1.55);
+    leg.lookAt(c * 2.1, -1.5, s * 2.1); leg.rotateX(Math.PI / 2);
+    add(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 10), gold, c * 2.1, -1.47, s * 2.1);
+  }
+  const plume = add(new THREE.ConeGeometry(0.35, 1, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xaad4ff, transparent: true, opacity: .55, depthWrite: false }), 0, -1.5, 0);
+  plume.rotation.x = Math.PI; g.userData.plume = plume;
+  return g;
+}
+const lander = makeLander(); scene.add(lander);
+
+let camMode = 0;                                   // 0 chase, 1 onboard / inspection, 2 nadir
+const CAMS = ['CHASE', 'ONBOARD', 'NADIR'];
+const cam = { yaw: 0, pitch: 18 * D2R, dist: 16, lookYaw: 0, lookPitch: -15 * D2R, agl: 0, lat: 0, lon: 0 };
+function setCam(m) { camMode = m; camera.fov = 60; camera.updateProjectionMatrix(); }
+let drag = null;
+const cv = $('gl');
+cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; });
+cv.addEventListener('pointerup', () => { drag = null; cv.style.cursor = 'grab'; });
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; drag = [e.clientX, e.clientY];
+  const s = 0.005 * (camMode === 0 ? 1 : camera.fov / 60);
+  if (camMode === 0) { cam.yaw -= dx * s; cam.pitch = clamp(cam.pitch + dy * s, -0.2, 1.55); }
+  else if (camMode === 1) { cam.lookYaw += dx * s; cam.lookPitch = clamp(cam.lookPitch - dy * s, -1.55, 1.55); }
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault(); const f = Math.exp(e.deltaY * 0.0012);
+  if (camMode === 0) cam.dist = clamp(cam.dist * f, 5, 20000);
+  else { camera.fov = clamp(camera.fov * f, 2, 75); camera.updateProjectionMatrix(); }
+}, { passive: false });
+
+const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
+
+ ATTITUDE      W/S pitch   A/D roll   Q/E yaw        T  rate damping (SAS) on/off
+               V  auto-level (keeps the vehicle upright) on/off
+ MAIN ENGINE   H  hover assist on/off
+                  assist ON : R/F raise/lower target vertical speed, X hold altitude
+                  assist OFF: R/F throttle up/down, Z full, X cut
+ TRANSLATION   I/K forward/back   J/L left/right   (RCS, body axes)
+ LANDING       touch down slower than ${LAND_VS} m/s vertical, ${LAND_HS} m/s horizontal
+ CAMERA        C cycle chase / onboard (inspection when landed) / nadir
+               drag = look around    wheel = distance (chase) or zoom (onboard, nadir)
+ DISPLAY       M  imagery → imagery × DEM relief → DEM relief only      O  mesh detail low/med/high
+               [ ]  sun azimuth    - =  sun elevation   (relief modes only)
+               P  show true data pixels (nearest-neighbour) on/off
+ TIME          , .  time warp        G  toggle this help
+ START POINTS  1 orbit 100 km   2 hover 15 km   3 hover 1.5 km   4 hover 150 m   5 hover 20 m
+
+ Every height and every texel comes from LRO LOLA / LROC products.
+ Nothing is synthesised: when you get closer than the data resolves,
+ pixels are only magnified and the HUD says so.`;
+$('help').textContent = HELP;
+let site = null, shadeMode = 0, pixelView = false, detailIdx = 1;
+const DETAIL = [['LOW', 1.4], ['MED', 2.0], ['HIGH', 2.8]];
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  keys.add(e.code);
+  if (e.repeat || !terrain) return;
+  const P = (lat, lon, agl, o) => { spawn(lat, lon, agl, o); setCam(0); };
+  switch (e.code) {
+    case 'KeyH': veh.assist = !veh.assist; veh.vsTarget = 0; break;
+    case 'KeyV': veh.level = !veh.level; break;
+    case 'KeyT': veh.sas = !veh.sas; break;
+    case 'KeyX': if (veh.assist) veh.vsTarget = 0; else veh.throttle = 0; break;
+    case 'KeyZ': if (!veh.assist) veh.throttle = 1; break;
+    case 'KeyC': setCam((camMode + 1) % 3); break;
+    case 'KeyM': shadeMode = (shadeMode + 1) % 3; terrain.forEachMat(m => m.uniforms.uMode.value = shadeMode); break;
+    case 'KeyP': pixelView = !pixelView; terrain.forEachMat((m, t) => { t.map.magFilter = pixelView ? THREE.NearestFilter : THREE.LinearFilter; t.map.needsUpdate = true; }); break;
+    case 'KeyO': detailIdx = (detailIdx + 1) % 3; LOD_K = DETAIL[detailIdx][1]; break;
+    case 'KeyG': $('help').style.display = $('help').style.display === 'block' ? 'none' : 'block'; break;
+    case 'Comma': warpIdx = Math.max(0, warpIdx - 1); break;
+    case 'Period': warpIdx = Math.min(WARPS.length - 1, warpIdx + 1); break;
+    case 'Digit1': P(site.lat, site.lon - 6, 100000, { orbit: true }); cam.dist = 40; break;
+    case 'Digit2': P(site.lat, site.lon, 15000); break;
+    case 'Digit3': P(site.lat, site.lon, 1500); break;
+    case 'Digit4': P(site.lat, site.lon, 150); break;
+    case 'Digit5': P(site.lat, site.lon, 20); break;
+  }
+});
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+let toastT = 0;
+function toast(s, ms = 3000) { const m = $('msg'); m.textContent = s; m.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => m.style.display = 'none', ms); }
+
+function updateSun() {
+  const a = sun.az * D2R, e = sun.el * D2R;                         // defined in the site's East/North/Up frame
+  sun.dir.set(Math.cos(e) * Math.sin(a), Math.sin(e), -Math.cos(e) * Math.cos(a)).normalize();
+  terrain.forEachMat(m => m.uniforms.uSun.value.copy(sun.dir));
+}
+const cUp = new THREE.Vector3(), cE = new THREE.Vector3(), cN = new THREE.Vector3(), tgt = new THREE.Vector3();
+function updateCamera() {
+  geo.frame(veh.pos, up, east, north);
+  lander.visible = camMode === 0;
+  if (camMode === 0) {
+    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    camera.position.copy(veh.pos).addScaledVector(north, -cam.dist * cp * Math.cos(cam.yaw)).addScaledVector(east, -cam.dist * cp * Math.sin(cam.yaw)).addScaledVector(up, cam.dist * sp);
+    camera.up.copy(up); camera.lookAt(veh.pos);
+  } else if (camMode === 1) {
+    const cp = Math.cos(cam.lookPitch);
+    bodyAxes();
+    const hdg = Math.atan2(bFwd.dot(east), bFwd.dot(north)) + cam.lookYaw;
+    camera.position.copy(veh.pos).addScaledVector(up, 1.0);
+    tgt.copy(camera.position).addScaledVector(north, cp * Math.cos(hdg)).addScaledVector(east, cp * Math.sin(hdg)).addScaledVector(up, Math.sin(cam.lookPitch));
+    camera.up.copy(up); camera.lookAt(tgt);
+  } else {
+    camera.position.copy(veh.pos).addScaledVector(up, -1.2);
+    camera.up.copy(north); camera.lookAt(tgt.copy(camera.position).addScaledVector(up, -1));
+  }
+  // keep the camera above the real terrain, then fit the depth range to the view
+  let ll = geo.fromWorld(camera.position), hT = terrain.height(ll.lat, ll.lon);
+  if (ll.r - R - hT < 0.3) { geo.frame(camera.position, cUp, cE, cN); camera.position.addScaledVector(cUp, 0.3 - (ll.r - R - hT)); if (camMode === 0) camera.lookAt(veh.pos); ll = geo.fromWorld(camera.position); }
+  cam.agl = Math.max(0.3, ll.r - R - hT); cam.lat = ll.lat; cam.lon = ll.lon;
+  const hAbs = Math.max(10, ll.r - R + 12000);                    // margin for terrain below the datum
+  camera.near = clamp(Math.min(cam.agl, camMode === 0 ? cam.dist : 1e9) * 0.2, 0.05, 20000);
+  camera.far = Math.sqrt(hAbs * (2 * R + hAbs)) * 1.15 + 3e4;
+  camera.updateProjectionMatrix();
+  sunLight.position.copy(veh.pos).addScaledVector(sun.dir, 100); sunLight.target.position.copy(veh.pos);
+}
+
+/* ======================================================================
+   HUD
+   ====================================================================== */
+const fm = (x, d = 1) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmAlt = m => Math.abs(m) >= 10000 ? fm(m / 1000, 2) + ' km' : fm(m, Math.abs(m) < 100 ? 2 : 1) + ' m';
+const fmRes = m => m >= 1000 ? fm(m / 1000, 2) + ' km/px' : m < 0.1 ? fm(m * 1000, 1) + ' mm/px' : fm(m, m < 10 ? 2 : 1) + ' m/px';
+const row = (k, v, cls = 'v') => `<span class="k">${k.padEnd(13)}</span><span class="${cls}">${v}</span>\n`;
+let fps = 60, limitShown = false;
+function updateHUD() {
+  bodyAxes(); geo.frame(veh.pos, up, east, north);
+  const vs = veh.vel.dot(up), vhv = t1.copy(veh.vel).addScaledVector(up, -vs), gs = vhv.length();
+  const hdg = (Math.atan2(bFwd.dot(east), bFwd.dot(north)) * R2D + 360) % 360;
+  const pitch = Math.asin(clamp(bFwd.dot(up), -1, 1)) * R2D, roll = Math.atan2(-bRight.dot(up), bUp.dot(up)) * R2D;
+  const lat = veh.lat, lon = veh.lon;
+  $('tl').innerHTML = `<h1>FLIGHT</h1>` +
+    row('ALT RADAR', fmAlt(veh.agl), veh.agl < 30 && !veh.landed ? 'warn' : 'v') +
+    row('ALT DATUM', fmAlt(veh.r - R - GEAR)) +
+    row('LAT', `${fm(Math.abs(lat), 5)}° ${lat >= 0 ? 'N' : 'S'}`) +
+    row('LON', `${fm(Math.abs(lon), 5)}° ${lon >= 0 ? 'E' : 'W'}`) +
+    row('GROUND SPD', `${fm(gs, gs < 100 ? 2 : 0)} m/s`) +
+    row('VERT SPD', `${vs >= 0 ? '+' : ''}${fm(vs, 2)} m/s`, vs < -LAND_VS && veh.agl < 100 ? 'bad' : 'v') +
+    row('HDG/PIT/ROL', `${fm(hdg, 0)}° / ${fm(pitch, 0)}° / ${fm(roll, 0)}°`) +
+    row('THROTTLE', `${fm(veh.throttle * 100, 0)} %  (${fm(veh.throttle * A_MAX, 2)} m/s²)`) +
+    row('GRAVITY', `${fm(GM / (veh.r * veh.r), 3)} m/s²`) +
+    row('STATUS', veh.landed ? 'LANDED — LOCKED' : 'FLIGHT', veh.landed ? 'ok' : 'v') +
+    row('ASSIST', `${veh.assist ? `HOVER (VS tgt ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)})` : 'MANUAL'}${veh.level ? ' · LEVEL' : ''}${veh.sas ? ' · SAS' : ''}`) +
+    row('TIME WARP', `×${WARPS[warpIdx]}`, warpIdx ? 'warn' : 'v');
+  // ---- data resolution under the camera
+  const t = terrain.tierAt(cam.lat, cam.lon);
+  const gsd = cam.agl * 2 * Math.tan(camera.fov * D2R / 2) / innerHeight;      // metres per screen pixel at nadir
+  const mag = t.imgMpp / gsd, limAlt = t.imgMpp * innerHeight / (LIMIT_MAG * 2 * Math.tan(camera.fov * D2R / 2));
+  const st = mag < 1 ? ['data finer than screen', 'ok'] : mag < LIMIT_MAG ? [`interpolated ×${fm(mag, 1)}`, 'warn'] : [`LIMIT REACHED ×${fm(mag, 0)}`, 'bad'];
+  const sb = site ? (() => { const d = geo.toWorld(site.lat, site.lon, 0, t2).sub(veh.pos); const de = d.dot(east), dn = d.dot(north);
+    return `${fmAlt(Math.hypot(de, dn))} @ ${fm((Math.atan2(de, dn) * R2D + 360) % 360, 0)}°`; })() : '';
+  $('tr').innerHTML = `<h1>REAL DATA IN VIEW</h1>` +
+    row('TIER', t.id.toUpperCase()) +
+    row('DEM', fmRes(t.demMpp)) + row('IMAGE', fmRes(t.imgMpp)) +
+    row('SCREEN GSD', fmRes(gsd)) + row('RESOLUTION', st[0], st[1]) +
+    row('LIMIT BELOW', `${fmAlt(limAlt)} (camera)`) +
+    row('CAMERA', `${camMode === 1 && veh.landed ? 'INSPECTION' : CAMS[camMode]}  fov ${fm(camera.fov, 0)}°`) +
+    row('DISPLAY', ['imagery (as acquired)', 'imagery × DEM relief', 'DEM relief only'][shadeMode] + (pixelView ? ' · PIXELS' : '')) +
+    (shadeMode ? row('SUN az/el', `${fm(sun.az, 0)}° / ${fm(sun.el, 0)}°`) : '') +
+    row('SITE', sb) +
+    row('RENDER', `${fm(fps, 0)} fps · ${terrain.stats.chunks} chunks · ${fm(renderer.info.render.triangles / 1000, 0)}k tris drawn · detail ${DETAIL[detailIdx][0]}`);
+  $('bl').innerHTML = `<span class="k">G help · C camera · H hover assist · M display · 1–5 start points</span>`;
+  const lim = mag >= LIMIT_MAG;
+  $('limit').style.opacity = lim ? 1 : 0;
+  if (lim) $('limitText').textContent = `REAL DATA RESOLUTION LIMIT REACHED\n1 data pixel (${fmRes(t.imgMpp)}, tier ${t.id}) = ${fm(mag, 0)} screen pixels\nNo finer measured detail exists here — pixels are magnified, nothing is invented.`;
+  if (lim && !limitShown) toast('Real data resolution limit reached', 2500);
+  limitShown = lim;
+  // ---- horizontal velocity vector (up = vehicle heading)
+  const c = $('vec').getContext('2d'); c.clearRect(0, 0, 130, 130);
+  c.strokeStyle = 'rgba(120,200,220,.5)'; c.lineWidth = 1; c.beginPath(); c.arc(65, 65, 56, 0, 7); c.moveTo(65, 9); c.lineTo(65, 121); c.moveTo(9, 65); c.lineTo(121, 65); c.stroke();
+  const f = vhv.dot(t2.copy(bFwd).addScaledVector(up, -bFwd.dot(up)).normalize()), rgt = vhv.dot(t2.crossVectors(t2, up).normalize());
+  const mg = Math.hypot(f, rgt), len = mg > 0 ? Math.min(56, 56 * Math.log10(1 + mg) / 2) / mg : 0;   // log scale, ring = 100 m/s
+  c.strokeStyle = '#8dffa8'; c.lineWidth = 2; c.beginPath(); c.moveTo(65, 65); c.lineTo(65 + rgt * len, 65 - f * len); c.stroke();
+  c.fillStyle = '#7fb6c4'; c.font = '9px monospace'; c.fillText('HORIZ VEL', 4, 10); c.fillText('fwd ↑', 98, 10);
+}
+
+/* ======================================================================
+   Boot + main loop
+   ====================================================================== */
+async function boot() {
+  const q = new URLSearchParams(location.search), root = 'assets/';
+  const say = s => $('load').textContent = s;
+  let idx, man, base;
+  try {
+    idx = await (await fetch(root + 'sites.json', { cache: 'no-cache' })).json();
+    const sid = q.get('site') || idx.default;
+    if (!idx.sites[sid]) throw new Error(`site "${sid}" not found in assets/sites.json`);
+    const murl = root + idx.sites[sid].manifest; base = murl.replace(/[^/]*$/, '');
+    man = await (await fetch(murl, { cache: 'no-cache' })).json();
+  } catch (err) {
+    say(`No processed lunar data found (${err.message}).\n\nGenerate the assets from the real NASA LRO products first:\n\n    python fetch_and_process.py --site apollo11\n\nthen serve this folder over HTTP, e.g.\n\n    python -m http.server 8000\n\nand open http://localhost:8000/`);
+    return;
+  }
+  site = man; geo.init(man.lat, man.lon);
+  if (man.sun) { sun.az = man.sun.azimuth_deg; sun.el = man.sun.elevation_deg; }
+  terrain = new Terrain(scene);
+  try { await terrain.load(man, base, renderer, say); } catch (err) { say('Failed to load assets: ' + err.message); throw err; }
+  updateSun();
+  spawn(man.lat, man.lon, 1500);
+  $('load').style.display = 'none';
+  toast(`${man.name}\nPress G for controls`, 5000);
+  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, setCam, keys, man, THREE, get camMode() { return camMode; } };
+  let last = performance.now(), hudT = 0;
+  renderer.setAnimationLoop(now => {
+    const real = Math.min(0.1, (now - last) / 1000); last = now; fps += (1 / Math.max(real, 1e-3) - fps) * 0.05;
+    // held keys
+    if (keys.has('KeyR') || keys.has('KeyF')) { const s = (keys.has('KeyR') ? 1 : 0) - (keys.has('KeyF') ? 1 : 0);
+      if (veh.assist) veh.vsTarget = clamp(veh.vsTarget + s * 6 * real, -60, 60); else veh.throttle = clamp(veh.throttle + s * 0.6 * real, 0, 1); }
+    const sk = (a, b) => (keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0);
+    const da = sk('BracketRight', 'BracketLeft'), de = sk('Equal', 'Minus');
+    if (da || de) { sun.az = (sun.az + da * 40 * real + 360) % 360; sun.el = clamp(sun.el + de * 25 * real, 1, 90); updateSun(); }
+    if (veh.agl < 500 && warpIdx > 0) { warpIdx = 0; toast('Time warp off below 500 m', 1500); }
+    const dt = real * WARPS[warpIdx], n = Math.min(200, Math.ceil(dt / 0.02));
+    for (let i = 0; i < n; i++) step(dt / n);
+    const ll = geo.fromWorld(veh.pos); veh.lat = ll.lat; veh.lon = ll.lon; veh.r = ll.r; veh.hTerr = terrain.height(ll.lat, ll.lon);
+    veh.agl = Math.max(0, ll.r - R - veh.hTerr - GEAR);
+    lander.position.copy(veh.pos); lander.quaternion.copy(veh.q);
+    const pl = lander.userData.plume; pl.visible = veh.throttle > 0.01; pl.scale.set(1, 0.4 + 2.6 * veh.throttle, 1); pl.position.y = -1.05 - 0.5 * pl.scale.y;
+    updateCamera();
+    terrain.update(camera.position);
+    renderer.render(scene, camera);
+    if (now - hudT > 100) { hudT = now; updateHUD(); }
+  });
+}
+boot();
+</script>
+</body>
+</html>
