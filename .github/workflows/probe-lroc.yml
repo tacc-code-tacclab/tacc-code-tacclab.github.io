@@ -8,13 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          B=https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0
-          for u in "$B/" "$B/LROLRC_2001/DATA/SDP/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO11/" "$B/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO_11/"; do
-            code=$(curl -sL -o /tmp/p.html -w '%{http_code} %{url_effective}' "$u")
-            names=$(grep -oE 'href="[^"?]+"' /tmp/p.html | sed 's/href="//;s/"$//' | grep -vE '^(/|\.\.|http)' | tr '\n' ' ' | cut -c1-3000)
-            echo "::warning::$code $u => $names"
+          S=https://pds.mcp.nasa.gov/data/store/img/lunar_reconnaissance_orbiter/pds4/lroc/lro-l-lroc-5-rdr/LROLRC_2001/DATA/SDP/NAC_DTM
+          O=https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_E300N0450_100M.IMG
+          r=$(curl -sIL "$O" | grep -iE '^(HTTP|location)' | tr '\r\n' '  '); echo "::warning::WAC redirect chain: $r"
+          for u in "$S/" "$S/APOLLO11/" "$S/APOLLO_11/" "$S/index.json" "$S/APOLLO11/index.json"; do
+            code=$(curl -sL -o /tmp/p -w '%{http_code} %{content_type}' "$u")
+            body=$(head -c 2500 /tmp/p | tr '\r\n' '  ')
+            echo "::warning::$code $u => $body"
           done
-          for u in "$B/LROLRC_2001/DATA/SDP/NAC_DTM/" "$B/"; do
-            curl -sL "$u" | grep -oiE 'href="[^"]*(apollo|a11|tranq)[^"]*"' | head -20 | tr '\n' ' ' | sed "s#^#::warning::match in $u => #"; echo
-          done
-# run 2
