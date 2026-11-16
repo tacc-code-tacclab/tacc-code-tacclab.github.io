@@ -32,7 +32,13 @@ jobs:
       - name: Offline pipeline self-test
         run: python tests/run_tests.py && rm -rf tests/_work
       - name: Download and process real LRO data (Apollo 11 site)
-        run: python fetch_and_process.py --site apollo11 --cache "$RUNNER_TEMP/lro-cache"
+        run: |
+          set -o pipefail
+          python -u fetch_and_process.py --site apollo11 --cache "$RUNNER_TEMP/lro-cache" 2>&1 | tee "$RUNNER_TEMP/build.log" || {
+            msg=$(tail -n 40 "$RUNNER_TEMP/build.log" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=LRO build failed::$msg"
+            exit 1
+          }
       - name: Check GitHub size limits
         run: |
           du -sh assets
