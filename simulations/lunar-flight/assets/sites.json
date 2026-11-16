@@ -1,0 +1,9 @@
+{
+ "default": "apollo11",
+ "sites": {
+  "apollo11": {
+   "name": "Apollo 11 - Tranquility Base (Mare Tranquillitatis)",
+   "manifest": "apollo11/manifest.json"
+  }
+ }
+}

@@ -1,0 +1,418 @@
+{
+ "schema": 1,
+ "site_id": "apollo11",
+ "name": "Apollo 11 - Tranquility Base (Mare Tranquillitatis)",
+ "lat": 0.67416,
+ "lon": 23.47314,
+ "radius_m": 1737400.0,
+ "generated_utc": "2026-11-16T19:36:18Z",
+ "generator": "fetch_and_process.py",
+ "data_policy": "All elevation and imagery values derive from LRO LOLA / LROC products. Operations: windowing, block-mean + bilinear resampling, linear stretch of non-8-bit imagery, DEM-derived normals. No synthetic detail.",
+ "sun": {
+  "azimuth_deg": 90.0,
+  "elevation_deg": 25.0,
+  "note": "only used by the optional DEM relief-shading mode"
+ },
+ "tiers": [
+  {
+   "id": "global",
+   "bounds": {
+    "south": -90.0,
+    "north": 90.0,
+    "west": -180.0,
+    "east": 180.0
+   },
+   "size_km": [
+    10916.406,
+    5458.203
+   ],
+   "dem": {
+    "file": "global_dem.png",
+    "width": 5760,
+    "height": 2880,
+    "h_min": -8981.5,
+    "h_scale": 0.3000991836423285,
+    "encoding": "uint16 PNG; h[m] = h_min + DN*h_scale, relative to 1737400 m sphere",
+    "native_m_per_px": 1895.2094015093426,
+    "grid_m_per_px": 1895.2094015093426,
+    "sources": [
+     {
+      "file": "LDEM_16.IMG",
+      "url": "https://imbrium.mit.edu/DATA/LOLA_GDR/CYLINDRICAL/IMG/LDEM_16.IMG",
+      "projection": "simple_cylindrical",
+      "native_m_per_px": 1895.2094,
+      "bytes_read": 33177600,
+      "byte_ranges": [
+       [
+        0,
+        33177600
+       ]
+      ],
+      "georef": "label bounds / MAP_RESOLUTION"
+     }
+    ]
+   },
+   "normal": {
+    "file": "global_nrm.webp",
+    "width": 2048,
+    "height": 1024,
+    "encoding": "RGB = (east, north, up)*0.5+0.5, derived from the DEM by central differences"
+   },
+   "image": {
+    "file": "global_img.webp",
+    "width": 4096,
+    "height": 2048,
+    "native_m_per_px": 2665.138220872513,
+    "grid_m_per_px": 2665.138220872513,
+    "sources": [
+     {
+      "file": "lroc_color_poles_4k.tif",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_4k.tif",
+      "note": "NASA SVS CGI Moon Kit (svs.gsfc.nasa.gov/4720): LROC WAC Hapke-normalised colour mosaic, map centred on 0 deg longitude"
+     }
+    ]
+   }
+  },
+  {
+   "id": "wide",
+   "bounds": {
+    "south": -7.328125,
+    "north": 8.671875,
+    "west": 15.46875,
+    "east": 31.46875
+   },
+   "size_km": [
+    485.14,
+    485.174
+   ],
+   "dem": {
+    "file": "wide_dem.png",
+    "width": 1024,
+    "height": 1024,
+    "h_min": -4286.0,
+    "h_scale": 0.10954451819638361,
+    "encoding": "uint16 PNG; h[m] = h_min + DN*h_scale, relative to 1737400 m sphere",
+    "native_m_per_px": 473.80235037733564,
+    "grid_m_per_px": 473.80235037733564,
+    "sources": [
+     {
+      "file": "LDEM_64.IMG",
+      "url": "https://imbrium.mit.edu/DATA/LOLA_GDR/CYLINDRICAL/IMG/LDEM_64.IMG",
+      "projection": "simple_cylindrical",
+      "native_m_per_px": 473.8024,
+      "bytes_read": 47370240,
+      "byte_ranges": [
+       [
+        239754240,
+        47370240
+       ]
+      ],
+      "georef": "label bounds / MAP_RESOLUTION"
+     }
+    ]
+   },
+   "normal": {
+    "file": "wide_nrm.webp",
+    "width": 1024,
+    "height": 1024,
+    "encoding": "RGB = (east, north, up)*0.5+0.5, derived from the DEM by central differences"
+   },
+   "image": {
+    "stretch": "linear, 0.0144452 -> 0, 0.084792 -> 255 (0.5-99.5 percentile)",
+    "nodata_fraction": 0.0,
+    "file": "wide_img.webp",
+    "width": 2048,
+    "height": 2048,
+    "native_m_per_px": 100.0,
+    "grid_m_per_px": 236.90117518866782,
+    "sources": [
+     {
+      "file": "WAC_GLOBAL_E300N0450_100M.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_E300N0450_100M.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 100.0,
+      "bytes_read": 287276020,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        1699028496,
+        50324604
+       ],
+       [
+        1749353100,
+        50324604
+       ],
+       [
+        1799677704,
+        50324604
+       ],
+       [
+        1850002308,
+        50324604
+       ],
+       [
+        1900326912,
+        50324604
+       ],
+       [
+        1950651516,
+        35587464
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.00 px)"
+     },
+     {
+      "file": "WAC_GLOBAL_E300S0450_100M.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_E300S0450_100M.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 100.0,
+      "bytes_read": 242737108,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        109164,
+        50324604
+       ],
+       [
+        50433768,
+        50324604
+       ],
+       [
+        100758372,
+        50324604
+       ],
+       [
+        151082976,
+        50324604
+       ],
+       [
+        201407580,
+        41373156
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.01 px)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "regional",
+   "bounds": {
+    "south": -1.326171875,
+    "north": 2.673828125,
+    "west": 21.47265625,
+    "east": 25.47265625
+   },
+   "size_km": [
+    121.285,
+    121.293
+   ],
+   "dem": {
+    "file": "regional_dem.png",
+    "width": 2048,
+    "height": 2048,
+    "h_min": -2720.0,
+    "h_scale": 0.03284504463263905,
+    "encoding": "uint16 PNG; h[m] = h_min + DN*h_scale, relative to 1737400 m sphere",
+    "native_m_per_px": 59.225293797166955,
+    "grid_m_per_px": 59.225293797166955,
+    "sources": [
+     {
+      "file": "LDEM_512_00N_45N_000_090.IMG",
+      "url": "https://imbrium.mit.edu/DATA/LOLA_GDR/CYLINDRICAL/IMG/LDEM_512_00N_45N_000_090.IMG",
+      "projection": "simple_cylindrical",
+      "native_m_per_px": 59.2253,
+      "bytes_read": 126351360,
+      "byte_ranges": [
+       [
+        1997015040,
+        50319360
+       ],
+       [
+        2047334400,
+        50319360
+       ],
+       [
+        2097653760,
+        25712640
+       ]
+      ],
+      "georef": "label bounds / MAP_RESOLUTION"
+     },
+     {
+      "file": "LDEM_512_45S_00S_000_090.IMG",
+      "url": "https://imbrium.mit.edu/DATA/LOLA_GDR/CYLINDRICAL/IMG/LDEM_512_45S_00S_000_090.IMG",
+      "projection": "simple_cylindrical",
+      "native_m_per_px": 59.2253,
+      "bytes_read": 62760960,
+      "byte_ranges": [
+       [
+        0,
+        50319360
+       ],
+       [
+        50319360,
+        12441600
+       ]
+      ],
+      "georef": "label bounds / MAP_RESOLUTION"
+     }
+    ]
+   },
+   "normal": {
+    "file": "regional_nrm.webp",
+    "width": 2048,
+    "height": 2048,
+    "encoding": "RGB = (east, north, up)*0.5+0.5, derived from the DEM by central differences"
+   },
+   "image": {
+    "stretch": "linear, 0.0152281 -> 0, 0.0503651 -> 255 (0.5-99.5 percentile)",
+    "nodata_fraction": 0.0,
+    "file": "regional_img.webp",
+    "width": 2048,
+    "height": 2048,
+    "native_m_per_px": 100.0,
+    "grid_m_per_px": 59.225293797166955,
+    "sources": [
+     {
+      "file": "WAC_GLOBAL_E300N0450_100M.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_E300N0450_100M.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 100.0,
+      "bytes_read": 88815868,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        1897488648,
+        50324604
+       ],
+       [
+        1947813252,
+        38425728
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.00 px)"
+     },
+     {
+      "file": "WAC_GLOBAL_E300S0450_100M.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/WAC_GLOBAL/WAC_GLOBAL_E300S0450_100M.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 100.0,
+      "bytes_read": 44167792,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        109164,
+        44102256
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.01 px)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "local",
+   "bounds": {
+    "south": 0.640364594558171,
+    "north": 0.7079033055302141,
+    "west": 23.439362993571336,
+    "east": 23.506911992583127
+   },
+   "size_km": [
+    2.048,
+    2.048
+   ],
+   "dem": {
+    "file": "local_dem.png",
+    "width": 1024,
+    "height": 1024,
+    "h_min": -1966.42431640625,
+    "h_scale": 0.0009341438347590982,
+    "encoding": "uint16 PNG; h[m] = h_min + DN*h_scale, relative to 1737400 m sphere",
+    "native_m_per_px": 2.0000000000006,
+    "grid_m_per_px": 2.0000000000005986,
+    "sources": [
+     {
+      "file": "NAC_DTM_APOLLO11_E008N0234.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO11/NAC_DTM_APOLLO11_E008N0234.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 2.0,
+      "bytes_read": 118095768,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        8444,
+        50326240
+       ],
+       [
+        50334684,
+        50326240
+       ],
+       [
+        100660924,
+        17377752
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.50 px)"
+     }
+    ]
+   },
+   "normal": {
+    "file": "local_nrm.webp",
+    "width": 1024,
+    "height": 1024,
+    "encoding": "RGB = (east, north, up)*0.5+0.5, derived from the DEM by central differences"
+   },
+   "image": {
+    "stretch": "linear, 65 -> 0, 177 -> 255 (0.5-99.5 percentile)",
+    "nodata_fraction": 0.0,
+    "file": "local_img.webp",
+    "width": 4096,
+    "height": 4096,
+    "native_m_per_px": 0.49999999999999,
+    "grid_m_per_px": 0.5000000000001497,
+    "sources": [
+     {
+      "file": "NAC_DTM_APOLLO11_M150361817_50CM.IMG",
+      "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO11/NAC_DTM_APOLLO11_M150361817_50CM.IMG",
+      "projection": "equirectangular",
+      "native_m_per_px": 0.5,
+      "bytes_read": 69273536,
+      "byte_ranges": [
+       [
+        0,
+        65536
+       ],
+       [
+        541122160,
+        50319280
+       ],
+       [
+        591441440,
+        18888720
+       ]
+      ],
+      "georef": "label offsets, origin at equator (bounds mismatch 0.00 px)"
+     }
+    ]
+   },
+   "notes": "window aligned to the NAC DTM pixel grid (DEM values are passed through unresampled)"
+  }
+ ]
+}
