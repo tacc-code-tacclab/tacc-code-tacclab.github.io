@@ -32,17 +32,29 @@ jobs:
       - name: Complete incomplete TLS chains of data hosts (verification stays on)
         run: |
           ca="$RUNNER_TEMP/ca.pem"; cp "$(python -m certifi)" "$ca"
+          ok() { echo | openssl s_client -connect "$1:443" -servername "$1" -CAfile "$ca" -verify_return_error >/dev/null 2>&1; }
           for h in $(python fetch_and_process.py --list-sources | sed -nE 's#^https://([^/]+)/.*#\1#p' | sort -u); do
-            if echo | openssl s_client -connect "$h:443" -servername "$h" -CAfile "$ca" -verify_return_error >/dev/null 2>&1; then
-              echo "$h: chain OK"; continue
+            if ok "$h"; then echo "$h: chain OK"; continue; fi
+            echo | openssl s_client -connect "$h:443" -servername "$h" 2>/dev/null | openssl x509 > "$RUNNER_TEMP/cur.pem"
+            for depth in 1 2 3 4; do
+              subj=$(openssl x509 -in "$RUNNER_TEMP/cur.pem" -noout -subject)
+              iss=$(openssl x509 -in "$RUNNER_TEMP/cur.pem" -noout -issuer)
+              url=$(openssl x509 -in "$RUNNER_TEMP/cur.pem" -noout -ext authorityInfoAccess 2>/dev/null | sed -n 's/.*CA Issuers - URI://p' | head -1)
+              echo "::warning::$h depth $depth | $subj | $iss | AIA=$url"
+              [ -n "$url" ] || break
+              curl -sfL "$url" -o "$RUNNER_TEMP/issuer.bin" || { echo "::warning::download failed $url"; break; }
+              if head -c 11 "$RUNNER_TEMP/issuer.bin" | grep -q -- '-----BEGIN'; then
+                openssl x509 -in "$RUNNER_TEMP/issuer.bin" > "$RUNNER_TEMP/cur.pem"
+              elif openssl x509 -inform DER -in "$RUNNER_TEMP/issuer.bin" > "$RUNNER_TEMP/cur.pem" 2>/dev/null; then :
+              else openssl pkcs7 -inform DER -in "$RUNNER_TEMP/issuer.bin" -print_certs | openssl x509 > "$RUNNER_TEMP/cur.pem"
+              fi
+              cat "$RUNNER_TEMP/cur.pem" >> "$ca"
+              if ok "$h"; then echo "$h: chain now verifies (depth $depth)"; break; fi
+            done
+            if ! ok "$h"; then
+              err=$(echo | openssl s_client -connect "$h:443" -servername "$h" -CAfile "$ca" 2>&1 | grep -E "verify error|Verify return" | tr '\n' ' ')
+              echo "::error::$h: TLS chain still does not verify: $err"; exit 1
             fi
-            echo | openssl s_client -connect "$h:443" -servername "$h" 2>/dev/null | openssl x509 > "$RUNNER_TEMP/leaf.pem"
-            url=$(openssl x509 -in "$RUNNER_TEMP/leaf.pem" -noout -ext authorityInfoAccess | sed -n 's/.*CA Issuers - URI://p' | head -1)
-            echo "$h: missing intermediate, fetching $url"
-            curl -sfL "$url" -o "$RUNNER_TEMP/issuer.crt"
-            openssl x509 -inform DER -in "$RUNNER_TEMP/issuer.crt" >> "$ca" 2>/dev/null || openssl x509 -in "$RUNNER_TEMP/issuer.crt" >> "$ca"
-            echo | openssl s_client -connect "$h:443" -servername "$h" -CAfile "$ca" -verify_return_error >/dev/null 2>&1 \
-              && echo "$h: chain now verifies" || { echo "::error::$h: TLS chain still does not verify"; exit 1; }
           done
           echo "REQUESTS_CA_BUNDLE=$ca" >> "$GITHUB_ENV"
       - name: Offline pipeline self-test
