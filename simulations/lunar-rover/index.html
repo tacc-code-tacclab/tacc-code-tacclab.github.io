@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Lunar Rover — predicted ground at Tranquility Base</title>
+<meta name="description" content="Drive a rover on the Moon near the Apollo 11 landing site. The ground combines measured LRO elevation, relief inferred from the real photographs, and a statistical prediction of what lies below their resolution.">
+<style>
+  :root{--ink:#d6f3f7;--dim:#7fb6c4;--line:rgba(120,200,220,.38);--glass:rgba(4,10,14,.66);--hot:#9fe3f2;
+        --meas:#c9d2d6;--infer:#48d6e8;--pred:#ff9a3c;--blue:#4aa8ff;--emer:#2fe08a}
+  html,body{margin:0;height:100%;background:#000;color:var(--ink);overflow:hidden;overscroll-behavior:none;
+    font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;-webkit-text-size-adjust:100%}
+  *{touch-action:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+  body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+  button{font:inherit;color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:6px;margin:0;padding:0 10px;
+    min-height:44px;min-width:44px;cursor:pointer;text-shadow:0 0 2px #000}
+  button:hover,button.on{border-color:var(--hot);background:rgba(40,120,140,.5);color:#fff}
+  button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+  button[disabled]{opacity:.38;cursor:default}
+  .glass{background:var(--glass);border:1px solid rgba(120,200,220,.28);border-radius:6px;text-shadow:0 0 2px #000}
+
+  /* score / status, top left */
+  #hud{position:fixed;left:calc(8px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));padding:8px 10px;min-width:176px;pointer-events:none}
+  #pts{font-size:20px;color:#fff;letter-spacing:.02em}
+  #pts small{font-size:11px;color:var(--dim);margin-left:6px}
+  #lvl{display:flex;align-items:center;gap:8px;margin:4px 0 6px}
+  #lvlBar{flex:1;height:6px;border-radius:3px;background:rgba(120,200,220,.18);overflow:hidden}
+  #lvlFill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--emer));transition:width .4s}
+  #stat{white-space:pre;color:var(--ink)}
+  #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
+
+  /* top right */
+  #top{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;gap:6px}
+  #top button{font-size:11px}
+
+  /* layer legend (shown with the layer view) */
+  #legend{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));padding:6px 10px;display:none;gap:12px;font-size:11px;white-space:nowrap}
+  #legend.open{display:flex}
+  #legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+  /* action buttons, bottom right */
+  #acts{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:grid;
+    grid-template-columns:repeat(3,64px);gap:8px;justify-items:stretch}
+  #acts button{height:56px;padding:0 4px;font-size:11px;line-height:1.15}
+  #acts button b{display:block;font-size:17px;font-weight:400}
+  #acts button kbd{display:block;font:inherit;font-size:9px;color:var(--dim)}
+  #acts .wide{grid-column:1 / -1}
+  body.touch #acts button kbd{display:none}
+  #acts button.locked{opacity:.4}
+  #acts button.cool{border-color:rgba(120,200,220,.15)}
+
+  /* virtual stick, bottom left (touch only) */
+  #stick{position:fixed;display:none;left:calc(16px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;
+    background:rgba(4,10,14,.45);border:1px solid rgba(120,200,220,.45)}
+  body.touch #stick{display:block}
+  #knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(60,150,170,.55);border:1px solid var(--hot);pointer-events:none}
+  #keys{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));padding:6px 10px;color:var(--dim);pointer-events:none;max-width:46vw}
+  body.touch #keys{display:none}
+
+  #msg{position:fixed;left:50%;top:24%;transform:translateX(-50%);padding:9px 14px;font-size:13px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;
+    white-space:pre-line;max-width:min(90vw,460px);border-color:var(--hot)}
+  #tag{position:fixed;left:0;top:0;padding:3px 7px;font-size:10px;pointer-events:none;display:none;white-space:nowrap;transform:translate(-50%,-140%)}
+
+  .sheet{position:fixed;display:none;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:min(94vw,560px);max-height:88vh;overflow:auto;
+    padding:16px 18px;background:rgba(4,10,14,.95);border:1px solid var(--hot);border-radius:6px;font-size:12px;line-height:1.5;touch-action:pan-y}
+  .sheet *{touch-action:pan-y}
+  .sheet.open{display:block}
+  .sheet h2{font-size:13px;letter-spacing:.1em;color:var(--hot);margin:0 0 8px;font-weight:600}
+  .sheet h3{font-size:12px;margin:14px 0 4px;color:#fff;font-weight:600}
+  .sheet p{margin:6px 0;color:var(--ink)} .sheet .dim{color:var(--dim)}
+  .sheet ul{margin:6px 0;padding-left:18px} .sheet li{margin:3px 0}
+  .sheet .tagm{color:var(--meas)} .sheet .tagi{color:var(--infer)} .sheet .tagp{color:var(--pred)}
+  .sheet .close{float:right;min-height:36px;margin:-6px -6px 6px 10px}
+  .sheet table{border-collapse:collapse;margin:6px 0;width:100%} .sheet td{padding:3px 8px 3px 0;vertical-align:top;border-top:1px solid rgba(120,200,220,.15)}
+
+  #load{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:13px;z-index:9;white-space:pre-line}
+
+  @media (max-width:560px){ #top{display:grid;grid-template-columns:repeat(2,auto)} #top button{padding:0 8px;min-height:38px} #hud{min-width:150px;font-size:11px} #pts{font-size:17px} #legend{top:calc(96px + env(safe-area-inset-top));font-size:10px;gap:8px} }
+  @media (orientation:landscape) and (max-height:460px){
+    #acts{grid-template-columns:repeat(4,58px);gap:6px} #acts button{height:46px} #stick{width:112px;height:112px}
+    #hud{font-size:10px;padding:6px 8px} #pts{font-size:15px} #msg{top:14%}
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="glass">
+  <div id="pts">0<small>points</small></div>
+  <div id="lvl"><span id="lvlTxt">Level 1</span><div id="lvlBar"><div id="lvlFill"></div></div></div>
+  <div id="stat"></div>
+</div>
+
+<div id="legend" class="glass">
+  <span><i style="background:var(--meas)"></i>measured</span>
+  <span><i style="background:var(--infer)"></i>inferred from the photo</span>
+  <span><i style="background:var(--pred)"></i>predicted</span>
+</div>
+
+<div id="top">
+  <button type="button" data-act="layers" title="Show which parts of the ground are measured, inferred or predicted ( V )">Layers</button>
+  <button type="button" data-act="info" title="How the ground is predicted ( I )">Science</button>
+  <button type="button" data-act="help" title="How to play ( G )">Help</button>
+  <button type="button" data-act="more" aria-label="More">&#9776;</button>
+</div>
+
+<div id="acts"></div>
+<div id="stick"><div id="knob"></div></div>
+<div id="keys" class="glass"></div>
+<div id="msg" class="glass"></div>
+<div id="tag" class="glass"></div>
+
+<div id="more" class="sheet" style="width:min(92vw,300px)">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>OPTIONS</h2>
+  <p><button type="button" data-act="cam">Camera: follow</button></p>
+  <p><button type="button" data-act="sound">Sound: on</button></p>
+  <p><button type="button" data-act="fullscreen">Full screen</button></p>
+  <p><button type="button" data-act="reset">Start again (erase points)</button></p>
+  <p><a href="../lunar-flight/" style="color:var(--hot)">Lunar Flight — the whole Moon, measured data only</a></p>
+</div>
+
+<div id="help" class="sheet">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>HOW TO PLAY</h2>
+  <div id="helpBody"></div>
+</div>
+
+<div id="info" class="sheet">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>WHAT IS REAL HERE, AND WHAT IS A PREDICTION</h2>
+  <div id="infoBody"></div>
+</div>
+
+<div id="load">Loading lunar data…</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+ "file": "apollo11_sfs.png",
+ "width": 2048,
+ "height": 2048,
+ "m_per_px": 1.0,
+ "bounds": {
+  "south": 0.640364594558171,
+  "north": 0.7079033055302141,
+  "west": 23.439362993571336,
+  "east": 23.506911992583127
+ },
+ "encoding": "uint8 PNG; dz[m] = h_min + DN*h_scale, add to the bicubically interpolated NAC DTM",
+ "h_min": -0.4116721680497343,
+ "h_scale": 0.0032288013180371317,
+ "rms_m": 0.0726,
+ "clip_m": 0.412,
+ "method": "linear photoclinometry in the Fourier domain; see tools/shape_from_shading.py",
+ "inputs": [
+  "NAC_DTM_APOLLO11_E008N0234.IMG",
+  "NAC_DTM_APOLLO11_M150361817_50CM.IMG"
+ ],
+ "parameters": {
+  "normalisation_m": 48.0,
+  "regularisation_m": 64.0,
+  "crossover_wavelength_m": 10.0,
+  "sun_azimuth_deg_fitted": 272.5,
+  "gain_K_fitted": 1.432
+ },
+ "validation_against_dtm": {
+  "slope_brightness_r": 0.7,
+  "band_m": [
+   8.0,
+   32.0
+  ],
+  "heights": {
+   "8-16 m": {
+    "r": 0.56,
+    "rms_sfs_cm": 6.0,
+    "rms_dtm_cm": 6.6
+   },
+   "12-24 m": {
+    "r": 0.64,
+    "rms_sfs_cm": 6.9,
+    "rms_dtm_cm": 10.8
+   },
+   "16-32 m": {
+    "r": 0.64,
+    "rms_sfs_cm": 7.3,
+    "rms_dtm_cm": 15.1
+   }
+  }
+ },
+ "caveat": "feature positions follow the photo; heights are estimates. Albedo contrasts (bright rocks, shadows) are read as slopes and structure perpendicular to the sun direction is weakly constrained."
+}
