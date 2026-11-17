@@ -1,0 +1,8 @@
+{
+ "file": "global_dem_half.png",
+ "width": 2880,
+ "height": 1440,
+ "h_min": -8981.5,
+ "h_scale": 0.3000991836423285,
+ "note": "2x2 block mean of ../lunar-flight/assets/apollo11/global_dem.png (LOLA/Kaguya global DEM); made to halve the download for phones"
+}

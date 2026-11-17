@@ -2,7 +2,7 @@
    (everything thrown flies on a clean parabola and nothing billows), traction limited by the low weight.
    The gems and the weapons are game elements, not science. */
 import * as THREE from 'three';
-import { Terrain, Clipmap, RULES, G_MOON, R_MOON, D2R, clamp, hash3, rng } from './terrain.js';
+import { Terrain, Clipmap, RULES, G_MOON, R_MOON, D2R, clamp, hash3, rng, wrap180 } from './terrain.js';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 const $ = id => document.getElementById(id);
@@ -41,7 +41,7 @@ function aimSun(focus, half) {
 { // the Earth: always in the same place in this sky, high in the west (the site is 23.5° from the sub-Earth point)
   const earth = new THREE.Mesh(new THREE.SphereGeometry(11600, 32, 16), new THREE.MeshLambertMaterial({ color: 0x4f86c6, emissive: 0x0a1626 }));
   const az = 268.4 * D2R, el = 66.5 * D2R; earth.position.set(Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)).multiplyScalar(700000);
-  earth.userData.sky = true; scene.add(earth);
+  earth.userData.sky = true; scene.add(earth); scene.userData.earth = earth;
 }
 
 /* ====================================================================== small helpers for the models */
@@ -122,7 +122,8 @@ function makeBase() {                                    // the station that sta
 const BASE = { x: -118, y: -48 };
 
 /* ====================================================================== game state */
-const LEVELS = [0, 40, 100, 200, 350, 550, 800];
+const LEVELS = [0, 60, 150, 300, 500, 800, 1200];        // total energy captured
+const LAUNCH = 2000;                                     // captured energy needed for the trip to the Earth
 const PERKS = [
   null,
   { name: 'Rover deployed', vmax: 2.5, mu: 0.55, blastD: 0.35, blast: 1, liftD: 0.30, push: 15 },
@@ -134,21 +135,23 @@ const PERKS = [
   { name: 'Hop thrusters', vmax: 9.0, mu: 1.1, blastD: 1.05, blast: 3, liftD: 0.6, push: 600, scoop: true, hop: true },
 ];
 const KEEP_OUT = 75;                                     // m around the Apollo 11 descent stage where tools are locked
-const G = { mode: 'lander', points: 0, level: 1, t: 0, shake: 0, overlay: false, cam: 0, soundOn: true, energy: 60, flat: false, names: true, det: 99, ore: 0 };
-try { const s = JSON.parse(localStorage.getItem('lunar-rover-v1') || 'null'); if (s && s.points > 0) { G.points = s.points | 0; if (s.energy > 0) G.energy = +s.energy; } } catch (_) {}
-function save() { try { localStorage.setItem('lunar-rover-v1', JSON.stringify({ points: G.points, energy: Math.round(G.energy) })); } catch (_) {} }
+const G = { mode: 'lander', points: 0, level: 1, t: 0, shake: 0, overlay: false, cam: 0, soundOn: true, energy: 60, flat: false, names: true, det: 99, stats: { rocks: 0, th: 0, il: 0, shot: 0 }, ready: false, area: '' };
+try { const s = JSON.parse(localStorage.getItem('lunar-rover-v1') || 'null'); if (s && s.points > 0) { G.points = s.points | 0; if (s.energy > 0) G.energy = +s.energy; if (s.stats) Object.assign(G.stats, s.stats); G.ready = G.points >= LAUNCH; } } catch (_) {}
+function save() { try { localStorage.setItem('lunar-rover-v1', JSON.stringify({ points: G.points, energy: Math.round(G.energy), stats: G.stats })); } catch (_) {} }
 /* energy: every function of the rover draws on it; thorium ore tops it up without limit, sunlight only trickles */
-const COST = { drive: 0.3, shot: 0.25, grab: 0.6, dig: 2, hop: 4, solar: 0.04, baseRate: 8, baseMax: 100, thorium: 40 };
+const COST = { drive: 0.3, shot: 0.25, grab: 0.6, dig: 2, hop: 4, solar: 0.04, baseRate: 8, baseMax: 100, thorium: 40, ilmenite: 10 };
 function need(e) { if (G.energy < e) { toast(G.flat ? 'Battery flat — solar power only.\nFind thorium ore, or go back to base.' : 'Not enough energy for that', 2200); return false; } G.energy -= e; return true; }
 const levelOf = p => { let l = 1; while (l < LEVELS.length && p >= LEVELS[l]) l++; return l; };
 G.level = levelOf(G.points);
 const perk = () => PERKS[G.level];
+/* ore becomes energy: it fills the battery and counts towards the levels (G.points = total energy captured) */
 function addPoints(n, why) {
-  G.points += n; save();
+  G.points += n; G.energy += n; save();
   const nl = levelOf(G.points);
-  if (nl > G.level) { G.level = nl; toast(`LEVEL ${nl}\n${perk().name}`, 5000); sfx.level(); rover.obj.userData.scoop.visible = !!perk().scoop; buildActs(); }
-  else if (why) toast(`+${n}  ${why}`, 1400);
-  hudScore();
+  if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\n(That journey is the next chapter of this game.)`, 12000); sfx.level(); }
+  else if (nl > G.level) { G.level = nl; toast(`LEVEL ${nl}\n${perk().name}`, 5000); sfx.level(); rover.obj.userData.scoop.visible = !!perk().scoop; buildActs(); }
+  else if (why) toast(`+${n} energy\n${why}`, 1800);
+  G.level = nl; hudScore();
 }
 let toastT = 0;
 function toast(t, ms = 2500) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => { m.style.opacity = 0; }, ms); }
@@ -196,7 +199,7 @@ const sfx = {
   ore(th) { if (th) { for (let i = 0; i < 14; i++) setTimeout(() => this.tick(0.2), i * 28); this.tone(660, 990, 0.3, 'sine', 0.14); } else this.tone(520, 780, 0.2, 'sine', 0.14); },
   level() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, f, 0.3, 'triangle', 0.2), i * 110)); },
   thud(v) { this.nz(0.14, 'lowpass', 260, 50, clamp(v * 0.2, 0.06, 0.6), this.brown); this.tone(60, 35, 0.12, 'sine', clamp(v * 0.12, 0.05, 0.4)); },
-  dig() { this.nz(0.5, 'bandpass', 500, 1400, 0.4); this.servo(0.5); }, hop() { this.nz(0.35, 'highpass', 1200, 2500, 0.3); this.tone(90, 50, 0.3, 'sine', 0.3); },
+  dig() { this.nz(0.5, 'bandpass', 500, 1400, 0.4); this.servo(0.5); }, toss() { this.tone(170, 340, 0.09, 'sawtooth', 0.1); this.nz(0.04, 'bandpass', 1200, 600, 0.12); }, hop() { this.nz(0.35, 'highpass', 1200, 2500, 0.3); this.tone(90, 50, 0.3, 'sine', 0.3); },
 };
 
 /* ====================================================================== world objects (filled in after loading) */
@@ -252,13 +255,13 @@ class Rocks {
   }
   cell(ci, cj) {
     const key = ci + ',' + cj; let c = this.cells.get(key); if (c) return c;
-    c = []; const r = rng(hash3(ci, cj, 4242)), K = RULES.rocks, x0 = ci * CELL, y0 = cj * CELL;
+    c = []; const r = rng(hash3(ci, cj, 4242)), K = RULES.rocks, x0 = ci * CELL - terrain.ax, y0 = cj * CELL - terrain.ay;      // cells are fixed to the Moon, not to the map
     const slope = terrain.slopeDeg(x0 + CELL / 2, y0 + CELL / 2, 3), mult = 1 + Math.min(5, (slope / 7) ** 2);   // assumption: fresher, steeper ground exposes more blocks
     const mean = CELL * CELL * K.k * Math.pow(K.minD, K.g) * mult;
     const n = Math.max(0, Math.round(mean + Math.sqrt(mean) * (r() + r() + r() - 1.5) * 2));
     for (let i = 0; i < n; i++) {
       const x = x0 + r() * CELL, y = y0 + r() * CELL, D = K.minD * Math.pow(1 - r(), 1 / K.g), u1 = r(), u2 = r(), u3 = r(), u4 = r(), u5 = r(), u6 = r();
-      if (D > K.maxD || x * x + y * y < 81) continue;      // nothing bigger than the photo could hide; keep the descent stage clear
+      if (D > K.maxD || (x - terrain.sx) ** 2 + (y - terrain.sy) ** 2 < 81) continue;      // nothing bigger than the photo could hide; keep the descent stage clear
       const a = D / 2, sx = a * (0.8 + 0.4 * u1), sy = a * (0.8 + 0.4 * u2), sz = a * (0.5 + 0.4 * u3), bury = 0.12 + 0.4 * u4;
       const gemU = u5 / (1 + 2.5 * D), gem = gemU < 0.04 ? 2 : gemU < 0.15 ? 1 : 0;      // 2 = thorium-bearing (energy), 1 = ilmenite (titanium ore)
       c.push({ id: key + ',' + i, x, y, z: 0, D, sx, sy, sz, bury, hr: 2 * sz * (1 - bury), yaw: u6 * 6.283, tilt: (u1 - 0.5) * 0.5, v: (u2 * 4) | 0, shade: 0.17 + 0.13 * u3, gem, mass: 3000 * 4.19 * sx * sy * sz, dyn: null, held: false, hp: 0 });
@@ -270,7 +273,7 @@ class Rocks {
   }
   rebuild(x, y) {
     this.cx = x; this.cy = y; this.active.length = 0; this.buckets.clear();
-    const c0 = Math.floor((x - ACTIVE_R) / CELL), c1 = Math.floor((x + ACTIVE_R) / CELL), d0 = Math.floor((y - ACTIVE_R) / CELL), d1 = Math.floor((y + ACTIVE_R) / CELL);
+    const gx = x + terrain.ax, gy = y + terrain.ay, c0 = Math.floor((gx - ACTIVE_R) / CELL), c1 = Math.floor((gx + ACTIVE_R) / CELL), d0 = Math.floor((gy - ACTIVE_R) / CELL), d1 = Math.floor((gy + ACTIVE_R) / CELL);
     const counts = [0, 0, 0, 0];
     for (let j = d0; j <= d1; j++) for (let i = c0; i <= c1; i++) for (const k of this.cell(i, j)) {
       if (this.removed.has(k.id) || counts[k.v] >= 420) continue;
@@ -278,6 +281,7 @@ class Rocks {
     }
     for (let v = 0; v < 4; v++) { this.meshes[v].count = counts[v]; this.meshes[v].instanceMatrix.needsUpdate = true; this.meshes[v].instanceColor.needsUpdate = true; }
   }
+  reset() { this.cells.clear(); this.active.length = 0; this.buckets.clear(); this.movers.clear(); for (const m of this.meshes) m.count = 0; this.debris.length = 0; this.dm.count = 0; for (const g of this.gems) scene.remove(g.m); this.gems.length = 0; this.cx = this.cy = 1e9; this.hidden = true; }
   bucket(k) { const key = Math.floor(k.x / BUCKET) + ',' + Math.floor(k.y / BUCKET); let b = this.buckets.get(key); if (!b) this.buckets.set(key, b = []); b.push(k); }
   place(k) {
     tmp.q.setFromEuler(new THREE.Euler(k.tilt, k.tilt * 0.7, k.yaw, 'ZYX')); tmp.m.compose(tmp.a.set(k.x, k.y, k.z), tmp.q, tmp.s.set(k.sx, k.sy, k.sz));
@@ -350,7 +354,7 @@ class Rocks {
         const dx = rover.pos.x - g.x, dy = rover.pos.y - g.y, d = Math.hypot(dx, dy);
         if (d < 2.2) { g.x += dx / d * dt * 5; g.y += dy / d * dt * 5; g.m.position.set(g.x, g.y, g.m.position.z + (rover.pos.z + 0.2 - g.m.position.z) * Math.min(1, dt * 4)); }
         if (d < 0.7) { scene.remove(g.m); this.gems.splice(i, 1); sfx.ore(g.type === 2);
-          if (g.type === 2) { G.energy += COST.thorium; G.ore++; addPoints(5, `thorium ore: +${COST.thorium} energy`); } else addPoints(10, 'ilmenite (titanium ore)'); }
+          if (g.type === 2) { G.stats.th++; addPoints(COST.thorium, 'thorium ore'); } else { G.stats.il++; addPoints(COST.ilmenite, 'ilmenite'); } }
       }
     }
   }
@@ -467,24 +471,25 @@ class Rover {
     const A = this.arm, k = A.rock, P = perk();
     if (A.phase === 'reach') {
       if (!k || k.dead) return this.armGo('stow', V(0, 0.28, 0.32));
-      sfx.grab(); sfx.servo(0.45); rocks.reveal(k); k.held = true; if (k.dyn) { k.dyn = null; } rocks.movers.add(k);
-      if (k.D <= 0.16) this.armGo('lift', V(0, -0.15, 0.45)); else { this.armGo('carry', V(0, 0.75, 0.55)); }
-    } else if (A.phase === 'lift') { rocks.remove(k); k.held = false; A.rock = null; addPoints(2, 'sample collected'); this.armGo('stow', V(0, 0.28, 0.32)); }
-    else if (A.phase === 'carry') { A.phase = 'hold'; toast('Holding the rock — press Grab again to put it down', 2500); }
-    else if (A.phase === 'drop') { k.held = false; k.bury = 0.05; k.dyn = { vx: this.vel.x, vy: this.vel.y, vz: 0 }; A.rock = null; this.armGo('stow', V(0, 0.28, 0.32)); }
-    else A.phase = 'idle';
+      sfx.grab(); sfx.servo(0.45); k.held = true; k.dyn = null; k.gemOut = true; rocks.movers.add(k);      // any ore is handled by the arm
+      this.armGo('lift', V(0.1, 0.5, 0.8));
+    } else if (A.phase === 'lift') {                      // held over the analyser on the deck
+      G.stats.rocks++; k.held = false; A.rock = null;
+      if (k.gem) { rocks.remove(k); sfx.ore(k.gem === 2); if (k.gem === 2) G.stats.th++; else G.stats.il++; addPoints(k.gem === 2 ? COST.thorium : COST.ilmenite, `Rock ${G.stats.rocks}: ${k.gem === 2 ? 'thorium ore' : 'ilmenite'}`); }
+      else { const r = tmp.b.set(1, 0, 0).applyQuaternion(this.q), side = Math.random() < 0.5 ? -1 : 1; k.bury = 0.05; k.dyn = { vx: this.vel.x + r.x * side * 2.4, vy: this.vel.y + r.y * side * 2.4, vz: 2.3 }; sfx.toss(); toast(`Rock ${G.stats.rocks}: no ore — thrown away`, 1300); }
+      this.armGo('stow', V(0, 0.28, 0.32));
+    } else A.phase = 'idle';
     void P;
   }
   grab() {
     const A = this.arm, P = perk();
-    if (A.phase === 'hold') { return this.armGo('drop', V(0.55, 0.95, -0.05)); }
     if (A.phase !== 'idle') return;
     const f = this.fwd.clone(); let best = null, bd = 1e9;
     rocks.near(this.pos.x + f.x * 0.9, this.pos.y + f.y * 0.9, 1.25, k => {
       const dx = k.x - this.pos.x, dy = k.y - this.pos.y, d = Math.hypot(dx, dy); if (d > 2.05 || dx * f.x + dy * f.y < 0.25 || k.D > P.liftD) return;
       if (d < bd) { bd = d; best = k; }
     });
-    if (!best) return toast(`No rock within reach\n(the arm lifts rocks up to ${fm(P.liftD * 100, 0)} cm)`, 2000);
+    if (!best) return toast(`No rock within reach.\nThe arm lifts rocks up to ${fm(P.liftD * 100, 0)} cm — shoot the bigger ones.`, 2200);
     if (!need(COST.grab)) return;
     A.rock = best; sfx.servo(0.45); this.armGo('reach');
   }
@@ -511,8 +516,7 @@ class Lander {
     this.thrust = clamp(Math.hypot(axW, ayW, az + G_MOON) / (G_MOON + 3.5), 0, 1.4);
     this.vel.x += axW * dt; this.vel.y += ayW * dt; this.vel.z += az * dt; this.pos.addScaledVector(this.vel, dt);
     this.tilt.lerp(tmp.b.set(axW, ayW, 0).multiplyScalar(1 / (G_MOON + 3)), Math.min(1, dt * 4));
-    const lim = 58000; if (Math.abs(this.pos.x) > lim || Math.abs(this.pos.y) > lim) { this.pos.x = clamp(this.pos.x, -lim, lim); this.pos.y = clamp(this.pos.y, -lim, lim); this.vel.x *= 0.5; this.vel.y *= 0.5; if (!this.edge || G.t - this.edge > 8) { this.edge = G.t; toast('Edge of the region covered so far\n(about 60 km from the landing site)', 3500); } }
-    if (this.pos.z > g + 20000) { this.pos.z = g + 20000; this.vel.z = Math.min(0, this.vel.z); }
+    if (this.pos.z > g + 100000) { this.pos.z = g + 100000; this.vel.z = Math.min(0, this.vel.z); }
     if (this.pos.z <= g) {                                 // touchdown
       const vh = Math.hypot(this.vel.x, this.vel.y), slope = terrain.slopeDeg(this.pos.x, this.pos.y, 2);
       this.pos.z = g;
@@ -531,10 +535,33 @@ class Lander {
   }
 }
 
+/* ====================================================================== the map follows the lander round the Moon */
+function placeStatics() {
+  const e = terrain.fromLatLon(terrain.site.lat, terrain.site.lon), far = Math.hypot(e[0], e[1]) > 4e5;
+  eagle.visible = base.visible = !far;
+  eagle.position.set(e[0], e[1], far ? 0 : terrain.height(e[0], e[1]) - 0.05);
+  const b = terrain.fromLatLon(BASE.ll[0], BASE.ll[1]); BASE.x = b[0]; BASE.y = b[1]; base.position.set(b[0], b[1], far ? 0 : terrain.height(b[0], b[1]));
+  // The Earth stands over the point 0°, 0° of the Moon: its height in the sky is 90° minus the distance from there, so
+  // it is overhead in the middle of the near side, on the horizon at the limb, and never seen from the far side.
+  const la = terrain.lat0 * D2R, lo = terrain.lon0 * D2R, el = Math.PI / 2 - Math.acos(clamp(Math.cos(la) * Math.cos(lo), -1, 1)), az = Math.atan2(-Math.sin(lo), -Math.sin(la) * Math.cos(lo)), E = scene.userData.earth;
+  E.visible = el > -0.03; E.position.set(Math.sin(az) * Math.cos(el), Math.cos(az) * Math.cos(el), Math.sin(el)).multiplyScalar(700000);
+}
+function setAnchorAt(lat, lon) {
+  if (!terrain.setAnchor(lat, lon)) return false;
+  for (const sh of shots) scene.remove(sh.m); shots.length = 0; particles.pos.fill(1e9); particles.life.fill(0);
+  clip.reset(); rocks.reset(); placeStatics(); labels.rebuild(); return true;
+}
+function reanchor() {                                    // keep the lander where it is on the Moon, move the map under it
+  const [lat, lon] = terrain.toLatLon(lander.pos.x, lander.pos.y), alt = lander.pos.z + terrain.drop(lander.pos.x, lander.pos.y);
+  if (!setAnchorAt(lat, lon)) return;
+  const p = terrain.fromLatLon(lat, lon); lander.pos.set(p[0], p[1], alt - terrain.drop(p[0], p[1]));
+}
+
 /* ====================================================================== tools: blaster, scoop, hop, flip */
 const shots = [];
 const shotGeo = new THREE.SphereGeometry(0.05, 8, 6), shotMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0 });
-function locked() { if (Math.hypot(rover.pos.x, rover.pos.y) < KEEP_OUT) { toast(`Tranquility Base is a heritage site:\ntools are locked within ${KEEP_OUT} m of the descent stage`, 3000); return true; } return false; }
+const dEagle = p => Math.hypot(p.x - eagle.position.x, p.y - eagle.position.y);
+function locked() { if (dEagle(rover.pos) < KEEP_OUT) { toast(`Tranquility Base is a heritage site:\ntools are locked within ${KEEP_OUT} m of the descent stage`, 3000); return true; } return false; }
 function fire() {
   if (rover.cool > 0 || locked() || !need(COST.shot)) return;
   const P = perk(), f = rover.fwd.clone(), o = rover.obj.userData.turret.getWorldPosition(V()).addScaledVector(f, 0.45), v0 = 34 + 6 * P.blast;
@@ -562,22 +589,22 @@ function stepShots(dt) {
     s.m.position.copy(s.p); s.life -= dt;
     if (hit) {
       hit.hp++;                                              // a rock takes more rounds the larger it is than what one round can break
-      if (hit.hp >= Math.ceil((hit.D / P.blastD) ** 2)) { rocks.explode(hit, s.power); addPoints(1); if (s.power >= 3) splash(hit.x, hit.y, 1.6, s.power); }
+      if (hit.hp >= Math.ceil((hit.D / P.blastD) ** 2)) { rocks.explode(hit, s.power); G.stats.shot++; if (s.power >= 3) splash(hit.x, hit.y, 1.6, s.power); }
       else { particles.burst(s.p.x, s.p.y, s.p.z, 10, 1, 4, 10, 80); for (let c = 0; c < 2; c++) { const a = Math.random() * 6.283, v = 1 + Math.random() * 3; rocks.fragment(s.p.x, s.p.y, s.p.z, Math.cos(a) * v, Math.sin(a) * v, 1 + Math.random() * 2, hit.D * 0.07, hit.shade); } sfx.chip(); }
     } else if (ground) {
       const r = [0, 0.16, 0.3, 0.55][s.power];
-      if (Math.hypot(s.p.x, s.p.y) > KEEP_OUT) terrain.addCrater(s.p.x, s.p.y, r, r * 0.42);
+      if (dEagle(s.p) > KEEP_OUT) terrain.addCrater(s.p.x, s.p.y, r, r * 0.42);
       particles.burst(s.p.x, s.p.y, clip.ground(s.p.x, s.p.y), 30 + 25 * s.power, 0.8, 3 + 2.5 * s.power, 30, 65); sfx.boom(0.2 * s.power); settle(s.p.x, s.p.y, r * 2.5);
       if (s.power >= 3) splash(s.p.x, s.p.y, 1.6, s.power);
     }
     if (hit || ground || s.life <= 0) { scene.remove(s.m); shots.splice(i, 1); }
   }
 }
-function splash(x, y, r, power) { const P = perk(), list = []; rocks.near(x, y, r, k => { if (Math.hypot(k.x - x, k.y - y) < r) list.push(k); }); for (const k of list) { rocks.explode(k, power); addPoints(1); } }
+function splash(x, y, r, power) { const P = perk(), list = []; rocks.near(x, y, r, k => { if (Math.hypot(k.x - x, k.y - y) < r) list.push(k); }); for (const k of list) { rocks.explode(k, power); G.stats.shot++; } }
 function settle(x, y, r) { rocks.near(x, y, r, k => { if (!k.dyn) { k.z = clip.ground(k.x, k.y) + k.sz * (1 - 2 * k.bury); rocks.place(k); } }); for (const g of rocks.gems) if (Math.hypot(g.x - x, g.y - y) < r) g.m.position.z = clip.ground(g.x, g.y) + 0.16; }
 const dugCells = new Set();
 function dig() {
-  if (!perk().scoop) return toast(`The scoop blade unlocks at level 4 (${LEVELS[3]} points)`, 2200);
+  if (!perk().scoop) return toast(`The scoop blade unlocks at level 4 (${LEVELS[3]} energy captured)`, 2200);
   if (rover.cool > 0 || locked()) return; if (rover.onGround < 2 || !need(COST.dig)) return;
   const f = rover.fwd, x = rover.pos.x + f.x * 1.35, y = rover.pos.y + f.y * 1.35;
   terrain.addCrater(x, y, 0.6, 0.24); settle(x, y, 1.6); rover.cool = 0.7;
@@ -585,7 +612,7 @@ function dig() {
   const ci = Math.floor(x), cj = Math.floor(y), key = ci + ',' + cj;
   if (!dugCells.has(key)) { dugCells.add(key); const u = (hash3(ci, cj, 777) & 0xFFFF) / 65536; if (u < 0.08) rocks.gem(x, y, 2); else if (u < 0.26) rocks.gem(x, y, 1); }
 }
-function hop() { if (!perk().hop) return toast(`Hop thrusters unlock at level 7 (${LEVELS[6]} points)`, 2200); if (rover.onGround >= 2 && rover.cool <= 0 && need(COST.hop)) { rover.vel.z += 3.4; rover.cool = 0.8; sfx.hop(); particles.burst(rover.pos.x, rover.pos.y, rover.pos.z - 0.4, 40, 2, 7, 3, 25); } }
+function hop() { if (!perk().hop) return toast(`Hop thrusters unlock at level 7 (${LEVELS[6]} energy captured)`, 2200); if (rover.onGround >= 2 && rover.cool <= 0 && need(COST.hop)) { rover.vel.z += 3.4; rover.cool = 0.8; sfx.hop(); particles.burst(rover.pos.x, rover.pos.y, rover.pos.z - 0.4, 40, 2, 7, 3, 25); } }
 function flip() { rover.q.setFromAxisAngle(Z, -rover.heading()); rover.pos.z = clip.ground(rover.pos.x, rover.pos.y) + 0.8; rover.vel.set(0, 0, 0); rover.w.set(0, 0, 0); }
 function deployOrBoard() {
   if (G.mode === 'lander') {
@@ -606,6 +633,7 @@ const ACT = { fire, grab: () => rover.grab(), dig, hop, flip, deploy: deployOrBo
   names() { G.names = !G.names; document.querySelector('#more [data-act=names]').textContent = 'Crater names: ' + (G.names ? 'on' : 'off'); },
   rescue() {                                            // never stranded: the base station brings both vehicles home
     if (rover.arm.rock) { rover.arm.rock.held = false; rover.arm.rock = null; rover.arm.phase = 'idle'; }
+    setAnchorAt(terrain.site.lat, terrain.site.lon); clip.update(BASE.x, BASE.y);
     lander.place(BASE.x + 11, BASE.y + 5); lander.yaw = 1.2; rover.place(BASE.x + 6.5, BASE.y - 1, 0.6); rover.obj.visible = true; G.mode = 'rover'; G.energy = Math.max(G.energy, 30); G.flat = false; camS.dist = 6.5; camS.off = 2.3; camS.userT = G.t;
     toast('Brought back to Tranquility Base.\nStay close to the station to recharge.', 4500); buildActs(); },
   layers() { G.overlay = !G.overlay; clip.setOverlay(G.overlay); rocks.rebuild(rocks.cx, rocks.cy); $('legend').classList.toggle('open', G.overlay); document.querySelector('[data-act=layers]').classList.toggle('on', G.overlay); if (G.overlay) toast('Shape of the ground:\ngrey = measured · cyan = inferred from the photo · orange = predicted', 4500); },
@@ -667,7 +695,7 @@ function buildActs() {
 function hudScore() {
   $('enTxt').textContent = fm(Math.max(0, G.energy), 0); $('enFill').style.width = clamp(G.energy, 0, 100) + '%'; $('enFill').classList.toggle('low', G.energy < 12); $('enOver').textContent = G.energy > 100 ? '+' + fm(G.energy - 100, 0) : '';
   $('pts').firstChild.textContent = G.points.toLocaleString('en-US');
-  const l = G.level, a = LEVELS[l - 1], b = LEVELS[l] ?? a; $('lvlTxt').textContent = 'Level ' + l; $('lvlFill').style.width = (l >= LEVELS.length ? 100 : clamp((G.points - a) / (b - a), 0, 1) * 100) + '%';
+  const l = G.level, a = LEVELS[l - 1], b = LEVELS[l] ?? LAUNCH; $('lvlTxt').textContent = G.ready ? 'Ready for Earth' : 'Level ' + l; $('lvlFill').style.width = clamp((G.points - a) / (b - a), 0, 1) * 100 + '%';
 }
 function hudStat(agl) {
   const row = (k, v, c = '') => `<span class="k">${k.padEnd(7)}</span><span class="${c}">${v}</span>\n`, s = [];
@@ -675,12 +703,15 @@ function hudStat(agl) {
   else {
     const up = rover.up(), tilt = Math.acos(clamp(up.z, -1, 1)) * R2D, sp = rover.vel.length();
     s.push(row('SPEED', fm(sp * 3.6, 1) + ' km/h'), row('TILT', fm(tilt, 0) + '°', tilt > 30 ? 'warn' : ''));
+    s.push(row('ROCKS', `${G.stats.rocks} · Th ${G.stats.th} · Il ${G.stats.il}`));
     const lv = G.det < 16 ? Math.round(clamp(1 - G.det / 16, 0, 1) * 8) : 0; s.push(row('THORIUM', '▮'.repeat(lv) + '▯'.repeat(8 - lv) + (G.det < 16 ? ' ' + fm(G.det, 0) + ' m' : ''), lv > 4 ? 'ok' : ''));
     if (rover.air > 0.25) s.push(row('AIR', fm(rover.air, 1) + ' s', 'ok')); else if (rover.lastAir && G.t - (rover.lastAirT || 0) < 3) s.push(row('JUMP', fm(rover.lastAir, 1) + ' s', 'ok'));
   }
-  const p = G.mode === 'lander' ? lander.pos : rover.pos, d = Math.hypot(p.x, p.y);
+  const p = G.mode === 'lander' ? lander.pos : rover.pos, d = dEagle(p);
   s.push(row('EAGLE', (d < 1000 ? fm(d, 0) + ' m' : fm(d / 1000, 1) + ' km') + (d < KEEP_OUT ? ' · keep-out' : ''), d < KEEP_OUT ? 'warn' : ''));
-  if (terrain.photoWeight(p.x, p.y) < 0.5) s.push(row('GROUND', 'no photo here: all predicted', 'warn'));
+  const ll = terrain.toLatLon(p.x, p.y); s.push(row('LAT LON', `${fm(Math.abs(ll[0]), 2)}°${ll[0] >= 0 ? 'N' : 'S'} ${fm(Math.abs(ll[1]), 2)}°${ll[1] >= 0 ? 'E' : 'W'}`));
+  if (G.area) s.push(row('AREA', G.area.length > 24 ? G.area.slice(0, 23) + '…' : G.area));
+  if (terrain.photoWeight(p.x, p.y) < 0.5) s.push(row('GROUND', terrain.regionWeight(p.x, p.y) > 0.5 ? 'predicted below 250 m' : terrain.wideWeight(p.x, p.y) > 0.5 ? 'predicted below 2 km' : 'predicted below 10 km', 'warn'));
   $('stat').innerHTML = s.join('');
 }
 function fillSheets() {
@@ -690,7 +721,7 @@ function fillSheets() {
   <p>Two things in the lunar soil matter for anyone who wants to stay on the Moon, and both are real:</p>
   <ul><li><b style="color:var(--blue)">Ilmenite</b>, an iron–titanium oxide. The basalts Apollo 11 brought back from this very spot are among the most titanium-rich rocks known on the Moon. Ilmenite is a candidate ore for oxygen, iron and titanium.</li>
   <li><b style="color:var(--emer)">Thorium and uranium</b>, concentrated in a rock type called KREEP. Orbiters mapped thorium across the Moon with gamma-ray spectrometers — the instrument your detector imitates. There is about one part of uranium for four of thorium.</li></ul>
-  <p>In the game, ilmenite earns the points that upgrade the rover, and thorium ore feeds its power cell. <span class="dim">That last part is fiction: real lunar thorium is a few parts per million of the rock, far too dilute to fuel anything without an industrial plant. Real rovers run on sunlight, which here only trickles in.</span></p>
+  <p>In the game the rover turns both into energy: ilmenite +${COST.ilmenite}, thorium ore +${COST.thorium}. Energy runs everything, and the total you have captured decides how fast and how strong the rover becomes. At ${LAUNCH} captured, you are ready for the journey to the Earth. <span class="dim">Ore as fuel is fiction: real lunar thorium is a few parts per million of the rock, far too dilute to fuel anything without an industrial plant. Real rovers run on sunlight, which here only trickles in.</span></p>
   <h3>The ground: what is real and what is a prediction</h3>
   <p>The LRO cameras see this site at 0.5 m per pixel and its elevation at 2 m per pixel. A rover is smaller than that, so the ground is built from three layers. Press <b>Layers</b> to see them in colour.</p>
   <p><b class="tagm">1 · Measured.</b> Elevation from the LROC NAC stereo model and the brightness of the real LROC photograph. Shapes larger than about 10 m are exactly these data.</p>
@@ -702,28 +733,31 @@ function fillSheets() {
     <tr><td>Roughness</td><td>${R.roughness.note}.</td></tr>
     <tr><td>Ores</td><td>About one rock in seven carries ilmenite and one in twenty-five thorium ore, more often the larger ones. These odds are invented for the game.</td></tr>
   </table>
-  <p class="dim">The constants in this table are quoted from the literature from memory and still need to be checked against the original papers. Away from the 2 km photo (the HUD says so) the ground is almost entirely predicted.</p>
+  <p class="dim">The constants in this table are quoted from the literature from memory and still need to be checked against the original papers.</p>
+  <h3>The rest of the Moon</h3>
+  <p>You can fly anywhere between 82° north and south. Away from the landing site the measured data get coarser — 59 m per pixel within 60 km, 474 m within 240 km, about 4 km for the rest of the globe — so more and more of what you see close up is predicted, and the HUD tells you below which size. Large predicted craters follow a rule of thumb: ${R.bigCraters.note}. Mare and highland are told apart by the brightness of the real global mosaic.</p>
+  <p class="dim">Simplifications: the Sun is at the same height everywhere, as if it were the same local time all over the Moon; ore odds are the same everywhere; the map is flat around the vehicle with the curvature added, which is why the poles are left out.</p>
   <h3>Physics that is real</h3>
   <ul><li>Gravity 1.62 m/s², a sixth of Earth's: jumps last six times longer and debris flies six times farther.</li>
   <li>No air: fragments, dust and bullets follow clean parabolas and stop where they land.</li>
   <li>No air also means no sound. What you hear is what the vehicle's own structure would carry: motors, the gun's action, impacts through the wheels.</li>
   <li>Grip depends on weight, and the rover weighs a sixth: it accelerates and brakes gently.</li>
-  <li>The Sun is where it was in the LRO photograph; the Earth hangs where it always is from this site.</li></ul>
+  <li>The Earth hangs over the middle of the near side: high in the sky at Tranquility Base, on the horizon near the limb, and never visible from the far side. Fly there and look.</li></ul>
   <h3>What is only a game</h3>
   <ul><li>Ore as glowing nuggets, thorium as fuel, the gun, unlimited propellant for the lander.</li>
-  <li><b>The lander's speed.</b> It grows with height so the map can be crossed in seconds; at altitude it reaches kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
+  <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
   <li>The Apollo 11 descent stage stands at its real position; its shape is illustrative. Tools are locked within ${KEEP_OUT} m of it, in the spirit of NASA's guidelines for protecting the Apollo sites.</li></ul>`;
   $('helpBody').innerHTML = `
-  <p>You start in the lander beside the base station at Tranquility Base. <b>Deploy</b> the rover, prospect, and <b>Board</b> again to fly anywhere within about 60 km.</p>
+  <p>You start in the lander beside the base station at Tranquility Base. <b>Deploy</b> the rover, prospect, and <b>Board</b> again to fly anywhere on the Moon.</p>
   <table>
     <tr><td><b>Energy</b></td><td>Everything the rover does uses it. Sunlight gives a trickle; the base station recharges to 100; thorium ore adds ${COST.thorium} each, with no upper limit. If it runs flat the rover only crawls — press <b>Back to base</b>.</td></tr>
     <tr><td><b>Detector</b></td><td>Ticks faster, and the THORIUM bar fills, as you approach a rock that holds thorium ore.</td></tr>
-    <tr><td><b>Grab</b></td><td>The arm lifts the nearest rock in front. Small ones are kept as samples (+2); bigger ones are held until you press Grab again. Lifting a rock frees any ore under it.</td></tr>
+    <tr><td><b>Grab</b></td><td>The arm lifts the nearest rock in front and analyses it. Ore is turned into energy, with its own sound; a plain rock is thrown away. The HUD counts rocks analysed, thorium (Th) and ilmenite (Il) finds.</td></tr>
     <tr><td><b>Gun</b></td><td>Aims at the nearest rock ahead. Any rock can be destroyed; big ones take several rounds. The ore drops out.</td></tr>
-    <tr><td><b>Ore</b></td><td><span style="color:var(--emer)">Thorium ore</span>: energy. <span style="color:var(--blue)">Ilmenite</span>: +10 points. Drive close to collect.</td></tr>
-    <tr><td><b>Levels</b></td><td>${PERKS.slice(2).map((p, i) => `L${i + 2} (${LEVELS[i + 1]}): ${p.name}`).join('<br>')}</td></tr>
+    <tr><td><b>Ore</b></td><td><span style="color:var(--emer)">Thorium ore</span> +${COST.thorium} energy, <span style="color:var(--blue)">ilmenite</span> +${COST.ilmenite}. Rocks too big for the arm must be shot; drive over what falls out.</td></tr>
+    <tr><td><b>Levels</b></td><td>By total energy captured:<br>${PERKS.slice(2).map((p, i) => `L${i + 2} (${LEVELS[i + 1]}): ${p.name}`).join('<br>')}<br>${LAUNCH}: ready for the Earth</td></tr>
     <tr><td><b>Drive</b></td><td>${touchUI ? 'Left stick' : 'Arrow keys or W A S D'}. Hit a rock at speed and the rover jumps — slowly, this is the Moon.</td></tr>
-    <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs, up to 20 km. Come down and slow down to land, on ground that is not too steep.</td></tr>
+    <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs, up to 100 km. Come down and slow down to land, on ground that is not too steep.</td></tr>
     <tr><td><b>Names</b></td><td>Official IAU names of craters and other features point the way, with distances. ${touchUI ? '☰ → Crater names' : 'N'} turns them off.</td></tr>
     <tr><td><b>View</b></td><td>Drag to look round, ${touchUI ? 'pinch' : 'scroll'} to zoom.</td></tr>
   </table>`;
@@ -731,16 +765,24 @@ function fillSheets() {
 
 /* ====================================================================== names of real features (IAU / USGS gazetteer, same file as Lunar Flight) */
 const labels = {
-  F: null, act: [], pool: [], next: 0,
+  all: null, F: null, act: [], pool: [], next: 0, nextArea: 0,
   async load() {
-    try {
-      const j = await (await fetch('../lunar-flight/assets/nomenclature.json')).json(), kx = D2R * R_MOON * Math.cos(terrain.lat0 * D2R), ky = D2R * R_MOON; this.F = [];
-      for (const f of j.features) { if (f[4] === 'SF') continue; const dl = ((f[2] - terrain.lon0 + 540) % 360) - 180, x = dl * kx, y = (f[1] - terrain.lat0) * ky; if (Math.hypot(x, y) < 4.5e5) this.F.push({ n: f[0], x, y, D: Math.max(f[3], 0.03) * 1000, t: (j.feature_types[f[4]] || '').split(',')[0] }); }
-    } catch (e) { console.warn('names not available', e.message); }
+    try { const j = await (await fetch('../lunar-flight/assets/nomenclature.json')).json(); this.all = j.features.filter(f => f[4] !== 'SF').map(f => ({ n: f[0], lat: f[1], lon: f[2], D: Math.max(f[3], 0.03) * 1000 })); this.rebuild(); }
+    catch (e) { console.warn('names not available', e.message); }
+  },
+  rebuild() {                                             // positions on the current map, for features within 450 km
+    if (!this.all) return; this.F = []; this.next = 0;
+    for (const f of this.all) { const p = terrain.fromLatLon(f.lat, f.lon); if (Math.hypot(p[0], p[1]) < 4.5e5 && Math.abs(f.lat - terrain.lat0) < 20) { f.x = p[0]; f.y = p[1]; this.F.push(f); } }
+  },
+  area(p) {                                               // smallest catalogued feature whose circle contains the vehicle
+    if (!this.F) return ''; let best = null, near = null, nd = 1e12;
+    for (const f of this.F) { const d = Math.hypot(f.x - p.x, f.y - p.y); if (d < f.D / 2 && (!best || f.D < best.D)) best = f; if (d < nd) { nd = d; near = f; } }
+    return best ? 'in ' + best.n : near ? `${near.n} ${fm(nd / 1000, 0)} km` : '';
   },
   frame() {
     const box = $('names'); if (!this.F || !G.names) { if (this.act.length) { this.act = []; for (const e of this.pool) e.style.display = 'none'; } return; }
     const eye = camera.position;
+    if (G.t > this.nextArea) { this.nextArea = G.t + 1; G.area = this.area(G.mode === 'lander' ? lander.pos : rover.pos); }
     if (G.t > this.next) {                                  // a few times per second: which names matter from here
       this.next = G.t + 0.5; const c = [];
       for (const f of this.F) { const d = Math.hypot(f.x - eye.x, f.y - eye.y), sc = f.D / Math.max(d, 400); if (d < 5000 || sc > 0.045) c.push([sc + (d < 5000 ? 1 : 0), f]); }
@@ -771,14 +813,15 @@ const labels = {
     clip.uniforms.uGain.value.set(1.0, 1.0);
     particles = new Particles(touchUI ? 900 : 1800); rocks = new Rocks(); rover = new Rover(); lander = new Lander();
     eagle = makeEagle(); scene.add(eagle); base = makeBase(); scene.add(base);
-    const sx = BASE.x + 15, sy = BASE.y + 7; clip.update(sx, sy); base.position.set(BASE.x, BASE.y, clip.ground(BASE.x, BASE.y)); base.rotation.z = 0.5; eagle.position.set(0, 0, terrain.height(0, 0) - 0.05);
+    BASE.ll = terrain.toLatLon(BASE.x, BASE.y);
+    const sx = BASE.x + 15, sy = BASE.y + 7; clip.update(sx, sy); placeStatics(); base.rotation.z = 0.5; 
     lander.place(sx, sy); lander.yaw = 68 * D2R; rocks.rebuild(sx, sy); labels.load();
     camS.yaw = lander.yaw; buildActs(); hudScore(); fillSheets();
     load.style.display = 'none';
     toast('Tranquility Base, 130 m from where Apollo 11 landed.\nDeploy the rover and prospect for ore — or lift off and fly anywhere.', 7000);
   } catch (err) { console.error(err); load.textContent = 'Could not start: ' + err.message; return; }
 
-  let last = performance.now(), hudT = 0, slow = 0, quality = 0, detT = 0, saveT = 0;
+  let last = performance.now(), hudT = 0, slow = 0, quality = 0, detT = 0, saveT = 0, anchorT = 0, poleT = 0;
   /* one step of the game (no drawing) */
   function tick(dt) {
     G.t += dt;
@@ -802,7 +845,13 @@ const labels = {
       }
       if (Math.abs(rover.pos.x) > 58000 || Math.abs(rover.pos.y) > 58000) { rover.pos.x = clamp(rover.pos.x, -58000, 58000); rover.pos.y = clamp(rover.pos.y, -58000, 58000); rover.vel.multiplyScalar(0.5); }
       rover.sync(dt); focus = rover.pos;
-    } else { agl = lander.step(dt, ax, ay, kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0)); focus = lander.pos; }
+    } else {
+      agl = lander.step(dt, ax, ay, kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0)); focus = lander.pos;
+      const dA = Math.hypot(lander.pos.x, lander.pos.y);
+      if (G.t > anchorT && (lander.landed ? dA > 12000 : dA > clamp(agl, 20000, 150000))) { anchorT = G.t + 1; reanchor(); }
+      const lat = terrain.lat0 + lander.pos.y / terrain.ky;      // the polar regions are not covered by this flat-map method
+      if (Math.abs(lat) > 82) { lander.pos.y = (82 * Math.sign(lat) - terrain.lat0) * terrain.ky; lander.vel.y = 0; if (G.t > poleT) { poleT = G.t + 10; toast('The polar regions are not covered yet (beyond 82°)', 3500); } }
+    }
     const lowSlow = G.mode === 'rover' || (agl < 40 && lander.vel.length() < 20);
     lander.sync(); stepShots(dt); particles.step(dt); rocks.step(dt, focus.x, focus.y, lowSlow);
     // detector: distance to the nearest thorium ore, still in its rock or lying free
@@ -843,10 +892,10 @@ const labels = {
     if (!G.paused) tick(Math.min(0.05, real));
     adapt(real);
     const tag = $('tag'), de = camera.position.distanceTo(eagle.position);       // label on the descent stage
-    if (de < 150) { const p = tmp.b.set(0, 0, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
+    if (de < 150) { const p = tmp.b.set(eagle.position.x, eagle.position.y, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
     labels.frame();
     renderer.render(scene, camera);
   }
-  window.__game = { labels, base, sfx, need, COST, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
+  window.__game = { labels, base, sfx, need, COST, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
   requestAnimationFrame(frame);
 })();

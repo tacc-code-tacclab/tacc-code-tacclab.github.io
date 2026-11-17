@@ -1,22 +1,44 @@
 # Lunar Rover - prospecting on predicted ground at Tranquility Base
 
-A browser game that starts beside a base station 130 m from the Apollo 11 landing site. A lander flies anywhere
-within about 60 km and up to 20 km high, and lands; a rover drives out, lifts and moves rocks with its arm, destroys
-them with a gun, digs, and collects two ores.
+A browser game that starts beside a base station 130 m from the Apollo 11 landing site. A lander flies anywhere on
+the Moon between 82 deg north and south, up to 100 km high, and lands; a rover drives out, lifts rocks with its arm
+and analyses them, destroys the big ones with a gun, digs, and turns two ores into energy.
 
 ## The story, and how much of it is real
 
 * **Ilmenite** (FeTiO3) is real and is the reason this site is interesting: the Apollo 11 basalts are among the most
-  titanium-rich lunar samples, and ilmenite is a candidate ore for oxygen, iron and titanium. In the game it gives
-  the points that upgrade the rover.
+  titanium-rich lunar samples, and ilmenite is a candidate ore for oxygen, iron and titanium.
 * **Thorium and uranium** are real and concentrate in KREEP-rich material; orbiters mapped thorium with gamma-ray
-  spectrometers, which the rover's ticking detector imitates. In the game thorium ore feeds the rover's power cell
-  with no upper limit. That is fiction: lunar thorium is a few parts per million of the rock.
-* Energy: every rover function draws on it; sunlight gives a trickle (real rovers are solar); the base station
-  recharges to 100; with a flat battery the rover only crawls and can be brought back to base.
-* Ore odds (one rock in seven ilmenite, one in twenty-five thorium, more in larger rocks) are invented, and are the
-  same everywhere for now. Making them follow the real orbital maps of titanium and thorium is planned.
-* The lander's speed grows with height and reaches kilometres per second: purely theoretical, marked as such on screen.
+  spectrometers, which the rover's ticking detector imitates.
+* In the game the rover turns both into energy (ilmenite +10, thorium ore +40). That is fiction: lunar thorium is a
+  few parts per million of the rock, and neither mineral is a fuel.
+* The arm lifts every rock it can reach and analyses it: ore becomes energy, a plain rock is thrown away. Rocks too
+  big for the arm are shot, and the ore that falls out is collected by driving over it.
+* Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
+  100; with a flat battery the rover only crawls and can be brought back to base.
+* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 2000 the game announces that the
+  vehicle is ready for the Earth; that journey is not built yet.
+* Ore odds (one rock in seven ilmenite, one in twenty-five thorium, more in larger rocks) are invented and the same
+  everywhere. Making them follow the real orbital maps of titanium and thorium is planned.
+* The lander's speed grows with height and reaches tens of kilometres per second: purely theoretical, marked as such.
+
+## The whole Moon
+
+The world is a flat map (x east, y north) around an anchor point, with the curvature added as a parabola. When the
+lander flies away the anchor follows it, so any place between 82 deg N and S can be reached; the poles are left out
+because this method breaks down there. Measured data by distance from the Apollo 11 site: NAC DTM 2 m/px and photo
+0.5 m/px (2 km), 59 m/px (120 km), 474 m/px (485 km), then the global LOLA/Kaguya DEM, here at 3.8 km/px
+(`data/global_dem_half.png`, a 2x2 block mean of the Lunar Flight file) with the 2.7 km/px LROC WAC mosaic.
+
+Craters are predicted only in the size range the local data cannot show: up to 3 m in the photo, 150 m in the 59 m
+DEM, 1.5 km in the 474 m DEM, 8 km on the global DEM. Above 150 m the equilibrium law no longer holds, so a rule of
+thumb thins them out: on mare by (D/150 m)^-1.2, on highland to 0.6 of equilibrium; mare and highland are told
+apart by the brightness of the real mosaic. This is an order-of-magnitude rule, not a fitted production function.
+Predicted features are tied to Moon-fixed coordinates; they can shift by tens of metres when the map's latitude
+band changes, which only happens in flight.
+
+Simplifications: the Sun stands at the same height everywhere (as if it were the same local time all over the Moon);
+the Earth is placed correctly for each location (overhead at the centre of the near side, absent from the far side).
 
 The scientific point is the ground. The LRO cameras resolve this site at 0.5 m per pixel (image) and 2 m per pixel
 (elevation); a rover is smaller than that. The ground is therefore built from three layers that the page keeps apart
@@ -94,5 +116,5 @@ Not yet tested on a real phone or a real GPU, so performance there is unknown; t
 frames take too long. The sounds have not been listened to by a person yet. Points and energy are kept in the
 browser's local storage.
 
-Not done yet: flying round the whole Moon and on to the Earth. The world is a tangent plane around the site with
-the curvature added as a parabola, which holds for the 120 km region used here but not for a globe.
+Not done yet: the journey to the Earth, the lunar poles, and ore distributions that follow the real maps.
+At top speed the map is rebuilt about once a second, which shows as a short stutter.

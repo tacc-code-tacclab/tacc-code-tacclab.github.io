@@ -14,6 +14,8 @@ import * as THREE from 'three';
 
 export const R_MOON = 1737400, G_MOON = 1.62, D2R = Math.PI / 180;
 export const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const wrap180 = d => ((d + 180) % 360 + 360) % 360 - 180;
+export { wrap180 };
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 /* ---- the rules behind the predicted layer. Values are quoted from the literature from memory and
@@ -22,6 +24,9 @@ export const RULES = {
   craterEquilibrium: { a: Math.pow(10, -1.1), b: -2, note: 'N(>D) = 10^-1.1 D^-2 per m² (D in m): equilibrium population of small mare craters (Trask 1966)' },
   craterMaxD: 3.0,       // m, inside the 0.5 m photo: larger craters are visible in it, so they must come from the data, not from prediction
   craterMaxDfar: 150,    // m, outside the photo, where the elevation data only resolve craters above ~250 m; equilibrium holds up to ~150 m on mare of this age
+  craterMaxDwide: 1500,  // m, where only the 474 m/px elevation exists
+  craterMaxDglobal: 8192, // m, where only the global elevation (3.8 km/px here) exists
+  bigCraters: { eq: 150, slope: -1.2, highland: 0.6, note: 'above 150 m craters are no longer in equilibrium: on mare their number falls off as (D/150 m)^-1.2 relative to the equilibrium law (production slope about -3.2); on bright highland 0.6 of equilibrium is kept' },
   craterMinD: 0.25,      // m. Smaller ones are below the mesh resolution
   craterDepth: { fresh: 0.2, min: 0.03, note: 'depth/diameter 0.2 when fresh, most small craters are degraded and shallower' },
   craterRim: 0.04,       // rim height / diameter for a fresh crater
@@ -110,11 +115,9 @@ export class Terrain {
     const A = '../lunar-flight/assets/apollo11/';
     const man = this.man = await (await fetch(A + 'manifest.json', { cache: 'no-cache' })).json();
     const tier = id => man.tiers.find(t => t.id === id);
-    const L = tier('local'), Rg = tier('regional'), Wd = tier('wide');
-    this.lat0 = man.lat; this.lon0 = man.lon;
-    const mPerDegLat = D2R * R_MOON, mPerDegLon = mPerDegLat * Math.cos(man.lat * D2R);
-    const rect = b => ({ x0: (b.west - man.lon) * mPerDegLon, x1: (b.east - man.lon) * mPerDegLon, y0: (b.south - man.lat) * mPerDegLat, y1: (b.north - man.lat) * mPerDegLat });
-    this.loc = rect(L.bounds); this.reg = rect(Rg.bounds); this.wid = rect(Wd.bounds);
+    const L = tier('local'), Rg = tier('regional'), Wd = tier('wide'), Gl = tier('global');
+    this.site = { lat: man.lat, lon: man.lon }; this.bounds = { loc: L.bounds, reg: Rg.bounds, wid: Wd.bounds };
+    this.dug = []; this.dugGrid = new Map(); this.setAnchor(man.lat, man.lon);
     onStep('measured elevation (NAC DTM, 2 m)');
     this.dem = await png16(A + L.dem.file); this.demMin = L.dem.h_min; this.demScale = L.dem.h_scale;
     onStep('regional elevation');
@@ -128,9 +131,13 @@ export class Terrain {
     this.texLocal = await loadTex(A + L.image.file, aniso);
     this.texRegional = await loadTex(A + Rg.image.file, aniso);
     this.texWide = await loadTex(A + Wd.image.file, aniso);
-    this.dug = [];                                        // craters made during play: {x, y, r, depth, rim}
-    this.dugGrid = new Map();
-    this.h0 = 0; this.regOff = 0; this.wOff = 0;
+    onStep('the whole Moon');
+    this.texGlobal = await loadTex(A + Gl.image.file, aniso); this.texGlobal.wrapS = THREE.RepeatWrapping;
+    { const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(this.texGlobal.image, 0, 0, 1024, 512);
+      const px = g.getImageData(0, 0, 1024, 512).data, d = new Uint8Array(1024 * 512); for (let i = 0; i < d.length; i++) d[i] = (px[4 * i] * 0.3 + px[4 * i + 1] * 0.59 + px[4 * i + 2] * 0.11) | 0; this.lum = { w: 1024, h: 512, d }; }
+    const gm = await (await fetch('data/global_dem_half.json', { cache: 'no-cache' })).json();
+    this.gdem = await png16('data/' + gm.file); this.gMin = gm.h_min; this.gScale = gm.h_scale;
+    this.h0 = 0; this.regOff = 0; this.wOff = 0; this.gOff = 0;
     { // the regional DEM is another data set: remove its mean offset to the NAC DTM over the 2 km tile, so the join is smooth
       let sum = 0, n = 0; const l = this.loc;
       for (let j = 1; j < 16; j++) for (let i = 1; i < 16; i++) { const x = l.x0 + (l.x1 - l.x0) * i / 16, y = l.y0 + (l.y1 - l.y0) * j / 16; sum += this.localH(x, y) - this.regionalH(x, y); n++; }
@@ -138,11 +145,40 @@ export class Terrain {
       sum = 0; n = 0; const g = this.reg;
       for (let j = 1; j < 16; j++) for (let i = 1; i < 16; i++) { const x = g.x0 + (g.x1 - g.x0) * i / 16, y = g.y0 + (g.y1 - g.y0) * j / 16; sum += this.regionalH(x, y) - this.wideH(x, y); n++; }
       this.wOff = sum / n;
+      sum = 0; n = 0; const w = this.wid;
+      for (let j = 2; j < 15; j++) for (let i = 2; i < 15; i++) { const x = w.x0 + (w.x1 - w.x0) * i / 16, y = w.y0 + (w.y1 - w.y0) * j / 16; sum += this.wideH(x, y) - this.globalH(x, y); n++; }
+      this.gOff = sum / n;
     }
     this.h0 = this.measured(0, 0);                        // heights are relative to the ground at the landing site
     return this;
   }
 
+  /* The world is a flat map (x east, y north, metres) around an anchor point on the Moon. Flying far away moves the anchor.
+     Predicted features are tied to Moon-fixed coordinates (x + ax, y + ay), so they stay put when the anchor moves
+     within the same latitude band. */
+  setAnchor(lat, lon) {
+    const s = this.site, near = Math.hypot((lat - s.lat) * D2R * R_MOON, wrap180(lon - s.lon) * D2R * R_MOON * Math.cos(s.lat * D2R)) < 40000;
+    if (near) { lat = s.lat; lon = s.lon; } else lat = clamp(Math.round(lat * 2) / 2, -84, 84);     // home region keeps the exact site frame; elsewhere latitude snaps to half degrees
+    if (lat === this.lat0 && wrap180(lon) === this.lon0) return false;
+    this.lat0 = lat; this.lon0 = wrap180(lon); this.kx = D2R * R_MOON * Math.cos(lat * D2R); this.ky = D2R * R_MOON; this.ax = this.kx * this.lon0; this.ay = this.ky * lat;
+    const rect = b => { const x0 = wrap180(b.west - this.lon0) * this.kx; return { x0, x1: x0 + (b.east - b.west) * this.kx, y0: (b.south - lat) * this.ky, y1: (b.north - lat) * this.ky }; };
+    this.loc = rect(this.bounds.loc); this.reg = rect(this.bounds.reg); this.wid = rect(this.bounds.wid);
+    const p = this.fromLatLon(s.lat, s.lon); this.sx = p[0]; this.sy = p[1];                          // where the Apollo 11 site is on this map
+    this.dug.length = 0; this.dugGrid.clear();
+    return true;
+  }
+  toLatLon(x, y) { return [this.lat0 + y / this.ky, wrap180(this.lon0 + x / this.kx)]; }
+  fromLatLon(lat, lon) { return [wrap180(lon - this.lon0) * this.kx, (lat - this.lat0) * this.ky]; }
+  globalH(x, y) {
+    const r = this.gdem, lat = this.lat0 + y / this.ky, lon = this.lon0 + x / this.kx;
+    let fx = ((lon + 180) / 360 % 1 + 1) % 1 * r.w - 0.5; const fy = clamp((90 - lat) / 180 * r.h - 0.5, 0, r.h - 1.001);
+    if (fx < 0) fx += r.w; const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, xa = x0 % r.w, xb = (x0 + 1) % r.w, o = y0 * r.w, d = r.d;
+    return this.gMin + this.gScale * ((d[o + xa] * (1 - tx) + d[o + xb] * tx) * (1 - ty) + (d[o + r.w + xa] * (1 - tx) + d[o + r.w + xb] * tx) * ty) + this.gOff;
+  }
+  /* 1 on dark mare, 0 on bright highland, from the brightness of the real global mosaic */
+  mareness(X, Y) { const l = this.lum, lat = Y / this.ky, lon = X / this.kx, c = ((Math.floor((lon + 180) / 360 * l.w) % l.w) + l.w) % l.w, r = clamp(Math.floor((90 - lat) / 180 * l.h), 0, l.h - 1); return 1 - smooth(95, 135, l.d[r * l.w + c]); }
+  regionWeight(x, y) { const g = this.reg; return smooth(0, 4000, Math.min(x - g.x0, g.x1 - x, y - g.y0, g.y1 - y)); }
+  wideWeight(x, y) { const g = this.wid; return smooth(0, 20000, Math.min(x - g.x0, g.x1 - x, y - g.y0, g.y1 - y)); }
   /* MEASURED: metres relative to the landing site */
   localH(x, y) { const l = this.loc; return this.demMin + this.demScale * cubic(this.dem, (x - l.x0) / (l.x1 - l.x0) * this.dem.w - 0.5, (l.y1 - y) / (l.y1 - l.y0) * this.dem.h - 0.5); }
   regionalH(x, y) { const r = this.reg; return this.rMin + this.rScale * bilin(this.rdem, (x - r.x0) / (r.x1 - r.x0) * this.rdem.w - 0.5, (r.y1 - y) / (r.y1 - r.y0) * this.rdem.h - 0.5) + this.regOff; }
@@ -151,17 +187,16 @@ export class Terrain {
   measured(x, y) {
     const wl = this.photoWeight(x, y);
     if (wl >= 1) return this.localH(x, y) - this.h0;
-    const g = this.reg, eg = Math.min(x - g.x0, g.x1 - x, y - g.y0, g.y1 - y);
-    let far;
-    if (eg >= 4000) far = this.regionalH(x, y); else if (eg <= 0) far = this.wideH(x, y);
-    else { const w = smooth(0, 4000, eg); far = this.wideH(x, y) * (1 - w) + this.regionalH(x, y) * w; }
+    const wr = this.regionWeight(x, y); let far;
+    if (wr >= 1) far = this.regionalH(x, y);
+    else { const ww = this.wideWeight(x, y), out = ww >= 1 ? this.wideH(x, y) : ww <= 0 ? this.globalH(x, y) : this.globalH(x, y) * (1 - ww) + this.wideH(x, y) * ww; far = wr <= 0 ? out : out * (1 - wr) + this.regionalH(x, y) * wr; }
     return (wl > 0 ? far * (1 - wl) + this.localH(x, y) * wl : far) - this.h0;
   }
   /* INFERRED from shading (zero outside the tile and at the descent stage, which is not terrain) */
   inferred(x, y) {
     const l = this.loc;
     if (x <= l.x0 || x >= l.x1 || y <= l.y0 || y >= l.y1) return 0;
-    const d2 = x * x + y * y; if (d2 < 36) return 0;
+    const d2 = (x - this.sx) ** 2 + (y - this.sy) ** 2; if (d2 < 36) return 0;
     const v = this.sfsMeta.h_min + this.sfsMeta.h_scale * cubic(this.sfs, (x - l.x0) / (l.x1 - l.x0) * this.sfs.w - 0.5, (l.y1 - y) / (l.y1 - l.y0) * this.sfs.h - 0.5);
     return d2 < 196 ? v * smooth(36, 196, d2) : v;
   }
@@ -169,10 +204,12 @@ export class Terrain {
   /* c = spacing of the mesh that asks: craters smaller than that are left out (they would only alias) */
   predicted(x, y, c = 0.25) {
     let z = 0;
-    const E = RULES.craterEquilibrium, wFar = 1 - this.photoWeight(x, y), maxD = wFar > 0 ? RULES.craterMaxDfar : RULES.craterMaxD;
+    const E = RULES.craterEquilibrium, B = RULES.bigCraters, wFar = 1 - this.photoWeight(x, y), wNoReg = wFar > 0 ? 1 - this.regionWeight(x, y) : 0, wNoWide = wNoReg > 0 ? 1 - this.wideWeight(x, y) : 0;
+    const maxD = wNoWide > 0 ? RULES.craterMaxDglobal : wNoReg > 0 ? RULES.craterMaxDwide : wFar > 0 ? RULES.craterMaxDfar : RULES.craterMaxD;
+    const X = x + this.ax, Y = y + this.ay;                // Moon-fixed map coordinates
     for (let k = 0, D0 = RULES.craterMinD; D0 < maxD; k++, D0 *= 2) {
       if (D0 < c) continue;
-      const cell = 4 * D0, cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+      const cell = 4 * D0, cx = Math.floor(X / cell), cy = Math.floor(Y / cell);
       const mean = cell * cell * E.a * (Math.pow(D0, E.b) - Math.pow(2 * D0, E.b));       // craters per cell in this size octave (≈ 0.95)
       const p0 = Math.exp(-mean);
       for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) {
@@ -181,17 +218,19 @@ export class Terrain {
         if (!n) continue;
         const rnd = rng(h ^ 0xA5A5A5A5);
         for (let q = 0; q < n; q++) {
-          const px = (i + rnd()) * cell, py = (j + rnd()) * cell, Dm = D0 / Math.sqrt(1 - 0.75 * rnd()), age = rnd();
-          const wgt = Dm > RULES.craterMaxD ? wFar : 1;      // inside the photo, craters this large come from the data
-          if (wgt <= 0 || Dm > RULES.craterMaxDfar) continue;
-          const rad = Dm / 2, dx = x - px, dy = y - py, r2 = (dx * dx + dy * dy) / (rad * rad);
+          const px = (i + rnd()) * cell, py = (j + rnd()) * cell, Dm = D0 / Math.sqrt(1 - 0.75 * rnd()), age = rnd(), keep = rnd();
+          // each size range is only predicted where the data cannot show it
+          const wgt = Dm > RULES.craterMaxDwide ? wNoWide : Dm > RULES.craterMaxDfar ? wNoReg : Dm > RULES.craterMaxD ? wFar : 1;
+          if (wgt <= 0 || Dm > maxD) continue;
+          if (Dm > B.eq) { const m = this.mareness(px, py); if (keep > m * Math.pow(Dm / B.eq, B.slope) + (1 - m) * B.highland) continue; }      // fewer large craters, far fewer on young mare
+          const rad = Dm / 2, dx = X - px, dy = Y - py, r2 = (dx * dx + dy * dy) / (rad * rad);
           if (r2 >= 6.25) continue;
           const dd = RULES.craterDepth.min + (RULES.craterDepth.fresh - RULES.craterDepth.min) * age * age;      // most are degraded
           z += wgt * rad * craterZ(Math.sqrt(r2), 2 * dd, 2 * RULES.craterRim * dd / RULES.craterDepth.fresh);
         }
       }
     }
-    return c <= 1 ? z + this.rough(x, y) : z;
+    return c <= 1 ? z + this.rough(X, Y) : z;
   }
   rough(x, y) {                                           // value noise, 3 octaves, ~1.5 cm rms
     let z = 0, amp = 0.022, f = 1 / 1.6;
@@ -219,7 +258,7 @@ export class Terrain {
   drop(x, y) { return (x * x + y * y) / (2 * R_MOON); }    // the Moon curves away: 29 cm at 1 km, 180 m at 25 km
   /* full height for a mesh of spacing c (0.25 = everything). Parts are left in this.partS / partP */
   height(x, y, c = 0.25) {
-    const d = this.measured(x, y), s = c <= 4 ? this.inferred(x, y) : 0, p = c <= 64 ? this.predicted(x, y, c) : 0, m = this.dug.length ? this.made(x, y) : 0;
+    const d = this.measured(x, y), s = c <= 4 ? this.inferred(x, y) : 0, p = c <= 4096 ? this.predicted(x, y, c) : 0, m = this.dug.length ? this.made(x, y) : 0;
     this.partS = s; this.partP = p;
     return d + s + p + m - this.drop(x, y);
   }
@@ -257,7 +296,8 @@ export class Clipmap {
     const grain = new THREE.CanvasTexture(g); grain.wrapS = grain.wrapT = THREE.RepeatWrapping; grain.generateMipmaps = true; grain.minFilter = THREE.LinearMipmapLinearFilter;
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, vertexColors: true });
     const u = this.uniforms = {
-      tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tWide: { value: t.texWide }, tGrain: { value: grain },
+      tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tWide: { value: t.texWide }, tGlobal: { value: t.texGlobal }, tGrain: { value: grain },
+      uA: { value: new THREE.Vector4(t.lon0, t.lat0, t.kx, t.ky) },
       uWid: { value: new THREE.Vector4(t.wid.x0, t.wid.y0, t.wid.x1 - t.wid.x0, t.wid.y1 - t.wid.y0) },
       uLoc: { value: new THREE.Vector4(t.loc.x0, t.loc.y0, t.loc.x1 - t.loc.x0, t.loc.y1 - t.loc.y0) },
       uReg: { value: new THREE.Vector4(t.reg.x0, t.reg.y0, t.reg.x1 - t.reg.x0, t.reg.y1 - t.reg.y0) },
@@ -267,13 +307,16 @@ export class Clipmap {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vW;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvW = position.xy;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-        varying vec2 vW; uniform sampler2D tLocal, tRegional, tWide, tGrain; uniform vec4 uLoc, uReg, uWid; uniform vec2 uGain; uniform float uFlat;`)
+        varying vec2 vW; uniform sampler2D tLocal, tRegional, tWide, tGlobal, tGrain; uniform vec4 uLoc, uReg, uWid, uA; uniform vec2 uGain; uniform float uFlat;`)
         .replace('#include <map_fragment>', `
         vec2 ul = (vW - uLoc.xy) / uLoc.zw, ur = (vW - uReg.xy) / uReg.zw;
         float wl = smoothstep(0.0, 0.04, min(min(ul.x, 1.0 - ul.x), min(ul.y, 1.0 - ul.y)));
         vec2 uw = (vW - uWid.xy) / uWid.zw;
         float wr = smoothstep(0.0, 0.03, min(min(ur.x, 1.0 - ur.x), min(ur.y, 1.0 - ur.y)));
-        vec3 farc = mix(texture2D(tWide, clamp(uw, 0.0, 1.0)).rgb, texture2D(tRegional, clamp(ur, 0.0, 1.0)).rgb, wr) * uGain.y;
+        float ww = smoothstep(0.0, 0.04, min(min(uw.x, 1.0 - uw.x), min(uw.y, 1.0 - uw.y)));
+        vec2 ug = vec2((uA.x + vW.x / uA.z + 180.0) / 360.0, (uA.y + vW.y / uA.w + 90.0) / 180.0);            // the whole Moon, by longitude and latitude
+        vec3 glob = texture2D(tGlobal, vec2(fract(ug.x), clamp(ug.y, 0.0, 1.0))).rgb;
+        vec3 farc = mix(mix(glob, texture2D(tWide, clamp(uw, 0.0, 1.0)).rgb, ww), texture2D(tRegional, clamp(ur, 0.0, 1.0)).rgb, wr) * uGain.y;
         vec3 photo = mix(farc, texture2D(tLocal, clamp(ul, 0.0, 1.0)).rgb * uGain.x, wl);
         float dist = length(vViewPosition);
         // The photo's light and dark are mostly shading. Close up the relief is modelled, so the photo is used faintly and the
@@ -285,6 +328,13 @@ export class Clipmap {
         diffuseColor.rgb *= mix(alb, vec3(0.3), uFlat);`);
     };
     return mat;
+  }
+  /* the anchor moved: every cached height is in the old frame */
+  reset() {
+    const t = this.t, u = this.uniforms;
+    for (const l of this.levels) { l.ox = l.oy = NaN; l.h.fill(NaN); l.hole = ''; l.dirty = true; }
+    u.uLoc.value.set(t.loc.x0, t.loc.y0, t.loc.x1 - t.loc.x0, t.loc.y1 - t.loc.y0); u.uReg.value.set(t.reg.x0, t.reg.y0, t.reg.x1 - t.reg.x0, t.reg.y1 - t.reg.y0);
+    u.uWid.value.set(t.wid.x0, t.wid.y0, t.wid.x1 - t.wid.x0, t.wid.y1 - t.wid.y0); u.uA.value.set(t.lon0, t.lat0, t.kx, t.ky);
   }
   setOverlay(on) { this.overlay = on; this.uniforms.uFlat.value = on ? 1 : 0; for (const l of this.levels) l.dirty = true; }
   invalidate(x, y, r) {                                   // heights changed inside a circle: forget cached cells there
