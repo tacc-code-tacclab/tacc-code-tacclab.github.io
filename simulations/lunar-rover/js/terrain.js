@@ -20,7 +20,8 @@ const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t
         should be checked against the sources before being cited. ---- */
 export const RULES = {
   craterEquilibrium: { a: Math.pow(10, -1.1), b: -2, note: 'N(>D) = 10^-1.1 D^-2 per m² (D in m): equilibrium population of small mare craters (Trask 1966)' },
-  craterMaxD: 3.0,       // m. Larger craters are visible in the 0.5 m photo, so they must come from the data, not from prediction
+  craterMaxD: 3.0,       // m, inside the 0.5 m photo: larger craters are visible in it, so they must come from the data, not from prediction
+  craterMaxDfar: 150,    // m, outside the photo, where the elevation data only resolve craters above ~250 m; equilibrium holds up to ~150 m on mare of this age
   craterMinD: 0.25,      // m. Smaller ones are below the mesh resolution
   craterDepth: { fresh: 0.2, min: 0.03, note: 'depth/diameter 0.2 when fresh, most small craters are degraded and shallower' },
   craterRim: 0.04,       // rim height / diameter for a fresh crater
@@ -109,15 +110,16 @@ export class Terrain {
     const A = '../lunar-flight/assets/apollo11/';
     const man = this.man = await (await fetch(A + 'manifest.json', { cache: 'no-cache' })).json();
     const tier = id => man.tiers.find(t => t.id === id);
-    const L = tier('local'), Rg = tier('regional');
+    const L = tier('local'), Rg = tier('regional'), Wd = tier('wide');
     this.lat0 = man.lat; this.lon0 = man.lon;
     const mPerDegLat = D2R * R_MOON, mPerDegLon = mPerDegLat * Math.cos(man.lat * D2R);
     const rect = b => ({ x0: (b.west - man.lon) * mPerDegLon, x1: (b.east - man.lon) * mPerDegLon, y0: (b.south - man.lat) * mPerDegLat, y1: (b.north - man.lat) * mPerDegLat });
-    this.loc = rect(L.bounds); this.reg = rect(Rg.bounds);
+    this.loc = rect(L.bounds); this.reg = rect(Rg.bounds); this.wid = rect(Wd.bounds);
     onStep('measured elevation (NAC DTM, 2 m)');
     this.dem = await png16(A + L.dem.file); this.demMin = L.dem.h_min; this.demScale = L.dem.h_scale;
     onStep('regional elevation');
     this.rdem = await png16(A + Rg.dem.file); this.rMin = Rg.dem.h_min; this.rScale = Rg.dem.h_scale;
+    this.wdem = await png16(A + Wd.dem.file); this.wMin = Wd.dem.h_min; this.wScale = Wd.dem.h_scale;
     onStep('relief inferred from shading');
     this.sfsMeta = await (await fetch('data/apollo11_sfs.json', { cache: 'no-cache' })).json();
     this.sfs = await png8('data/apollo11_sfs.png');
@@ -125,13 +127,17 @@ export class Terrain {
     const aniso = 8;
     this.texLocal = await loadTex(A + L.image.file, aniso);
     this.texRegional = await loadTex(A + Rg.image.file, aniso);
+    this.texWide = await loadTex(A + Wd.image.file, aniso);
     this.dug = [];                                        // craters made during play: {x, y, r, depth, rim}
     this.dugGrid = new Map();
-    this.h0 = 0; this.regOff = 0;
+    this.h0 = 0; this.regOff = 0; this.wOff = 0;
     { // the regional DEM is another data set: remove its mean offset to the NAC DTM over the 2 km tile, so the join is smooth
       let sum = 0, n = 0; const l = this.loc;
       for (let j = 1; j < 16; j++) for (let i = 1; i < 16; i++) { const x = l.x0 + (l.x1 - l.x0) * i / 16, y = l.y0 + (l.y1 - l.y0) * j / 16; sum += this.localH(x, y) - this.regionalH(x, y); n++; }
       this.regOff = sum / n;
+      sum = 0; n = 0; const g = this.reg;
+      for (let j = 1; j < 16; j++) for (let i = 1; i < 16; i++) { const x = g.x0 + (g.x1 - g.x0) * i / 16, y = g.y0 + (g.y1 - g.y0) * j / 16; sum += this.regionalH(x, y) - this.wideH(x, y); n++; }
+      this.wOff = sum / n;
     }
     this.h0 = this.measured(0, 0);                        // heights are relative to the ground at the landing site
     return this;
@@ -140,12 +146,16 @@ export class Terrain {
   /* MEASURED: metres relative to the landing site */
   localH(x, y) { const l = this.loc; return this.demMin + this.demScale * cubic(this.dem, (x - l.x0) / (l.x1 - l.x0) * this.dem.w - 0.5, (l.y1 - y) / (l.y1 - l.y0) * this.dem.h - 0.5); }
   regionalH(x, y) { const r = this.reg; return this.rMin + this.rScale * bilin(this.rdem, (x - r.x0) / (r.x1 - r.x0) * this.rdem.w - 0.5, (r.y1 - y) / (r.y1 - r.y0) * this.rdem.h - 0.5) + this.regOff; }
+  wideH(x, y) { const r = this.wid; return this.wMin + this.wScale * bilin(this.wdem, (x - r.x0) / (r.x1 - r.x0) * this.wdem.w - 0.5, (r.y1 - y) / (r.y1 - r.y0) * this.wdem.h - 0.5) + this.wOff; }
+  photoWeight(x, y) { const l = this.loc; return smooth(0, 64, Math.min(x - l.x0, l.x1 - x, y - l.y0, l.y1 - y)); }      // 1 inside the 0.5 m photo
   measured(x, y) {
-    const l = this.loc, e = Math.min(x - l.x0, l.x1 - x, y - l.y0, l.y1 - y);          // distance inside the 2 km tile
-    if (e >= 64) return this.localH(x, y) - this.h0;
-    if (e <= 0) return this.regionalH(x, y) - this.h0;
-    const w = smooth(0, 64, e);
-    return this.regionalH(x, y) * (1 - w) + this.localH(x, y) * w - this.h0;
+    const wl = this.photoWeight(x, y);
+    if (wl >= 1) return this.localH(x, y) - this.h0;
+    const g = this.reg, eg = Math.min(x - g.x0, g.x1 - x, y - g.y0, g.y1 - y);
+    let far;
+    if (eg >= 4000) far = this.regionalH(x, y); else if (eg <= 0) far = this.wideH(x, y);
+    else { const w = smooth(0, 4000, eg); far = this.wideH(x, y) * (1 - w) + this.regionalH(x, y) * w; }
+    return (wl > 0 ? far * (1 - wl) + this.localH(x, y) * wl : far) - this.h0;
   }
   /* INFERRED from shading (zero outside the tile and at the descent stage, which is not terrain) */
   inferred(x, y) {
@@ -156,30 +166,32 @@ export class Terrain {
     return d2 < 196 ? v * smooth(36, 196, d2) : v;
   }
   /* PREDICTED: small craters in equilibrium + fine roughness */
-  predicted(x, y) {
+  /* c = spacing of the mesh that asks: craters smaller than that are left out (they would only alias) */
+  predicted(x, y, c = 0.25) {
     let z = 0;
-    const E = RULES.craterEquilibrium;
-    for (let k = 0, D0 = RULES.craterMinD; D0 < RULES.craterMaxD; k++, D0 *= 2) {
+    const E = RULES.craterEquilibrium, wFar = 1 - this.photoWeight(x, y), maxD = wFar > 0 ? RULES.craterMaxDfar : RULES.craterMaxD;
+    for (let k = 0, D0 = RULES.craterMinD; D0 < maxD; k++, D0 *= 2) {
+      if (D0 < c) continue;
       const cell = 4 * D0, cx = Math.floor(x / cell), cy = Math.floor(y / cell);
       const mean = cell * cell * E.a * (Math.pow(D0, E.b) - Math.pow(2 * D0, E.b));       // craters per cell in this size octave (≈ 0.95)
       const p0 = Math.exp(-mean);
       for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) {
         const h = hash3(i, j, k), u = (h & 0xFFFF) / 65536;
-        // Poisson count from one uniform number
-        let n = 0, p = p0, c = p; while (u > c && n < 4) { n++; p *= mean / n; c += p; }
+        let n = 0, p = p0, cc = p; while (u > cc && n < 4) { n++; p *= mean / n; cc += p; }      // Poisson count from one uniform number
         if (!n) continue;
         const rnd = rng(h ^ 0xA5A5A5A5);
         for (let q = 0; q < n; q++) {
           const px = (i + rnd()) * cell, py = (j + rnd()) * cell, Dm = D0 / Math.sqrt(1 - 0.75 * rnd()), age = rnd();
-          if (Dm > RULES.craterMaxD) continue;
+          const wgt = Dm > RULES.craterMaxD ? wFar : 1;      // inside the photo, craters this large come from the data
+          if (wgt <= 0 || Dm > RULES.craterMaxDfar) continue;
           const rad = Dm / 2, dx = x - px, dy = y - py, r2 = (dx * dx + dy * dy) / (rad * rad);
           if (r2 >= 6.25) continue;
           const dd = RULES.craterDepth.min + (RULES.craterDepth.fresh - RULES.craterDepth.min) * age * age;      // most are degraded
-          z += rad * craterZ(Math.sqrt(r2), 2 * dd, 2 * RULES.craterRim * dd / RULES.craterDepth.fresh);
+          z += wgt * rad * craterZ(Math.sqrt(r2), 2 * dd, 2 * RULES.craterRim * dd / RULES.craterDepth.fresh);
         }
       }
     }
-    return z + this.rough(x, y);
+    return c <= 1 ? z + this.rough(x, y) : z;
   }
   rough(x, y) {                                           // value noise, 3 octaves, ~1.5 cm rms
     let z = 0, amp = 0.022, f = 1 / 1.6;
@@ -205,9 +217,9 @@ export class Terrain {
     return z;
   }
   drop(x, y) { return (x * x + y * y) / (2 * R_MOON); }    // the Moon curves away: 29 cm at 1 km, 180 m at 25 km
-  /* full height; detail: 2 = everything, 1 = measured + inferred, 0 = measured only. Parts are left in this.part */
-  height(x, y, detail = 2) {
-    const d = this.measured(x, y), s = detail > 0 ? this.inferred(x, y) : 0, p = detail > 1 ? this.predicted(x, y) : 0, m = this.dug.length ? this.made(x, y) : 0;
+  /* full height for a mesh of spacing c (0.25 = everything). Parts are left in this.partS / partP */
+  height(x, y, c = 0.25) {
+    const d = this.measured(x, y), s = c <= 4 ? this.inferred(x, y) : 0, p = c <= 64 ? this.predicted(x, y, c) : 0, m = this.dug.length ? this.made(x, y) : 0;
     this.partS = s; this.partP = p;
     return d + s + p + m - this.drop(x, y);
   }
@@ -224,7 +236,8 @@ export class Clipmap {
     this.t = terrain; terrain.clip = this; this.group = new THREE.Group(); scene.add(this.group);
     this.overlay = false;
     this.mat = this.makeMaterial();
-    const cells = [0.25, 1, 4, 16, 64, 256, 1024];
+    const cells = [0.25, 1, 4, 16, 64, 256, 1024, 4096, 16384];
+    this.first = 0;
     this.levels = cells.map((c, i) => {
       const geo = new THREE.BufferGeometry(), nv = (N + 1) * (N + 1);
       geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -233,7 +246,7 @@ export class Clipmap {
       geo.setIndex(new THREE.BufferAttribute(new Uint16Array(N * N * 6), 1).setUsage(THREE.DynamicDrawUsage));
       const mesh = new THREE.Mesh(geo, this.mat); mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.castShadow = i < 2 && opts.terrainShadows !== false;
       this.group.add(mesh);
-      return { i, c, detail: c <= 1 ? 2 : c <= 4 ? 1 : 0, geo, mesh, ox: NaN, oy: NaN, h: new Float32Array(M * M).fill(NaN), s: new Float32Array(M * M), p: new Float32Array(M * M), hole: '', dirty: true };
+      return { i, c, geo, mesh, ox: NaN, oy: NaN, h: new Float32Array(M * M).fill(NaN), s: new Float32Array(M * M), p: new Float32Array(M * M), hole: '', dirty: true };
     });
   }
   makeMaterial() {
@@ -244,7 +257,8 @@ export class Clipmap {
     const grain = new THREE.CanvasTexture(g); grain.wrapS = grain.wrapT = THREE.RepeatWrapping; grain.generateMipmaps = true; grain.minFilter = THREE.LinearMipmapLinearFilter;
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, vertexColors: true });
     const u = this.uniforms = {
-      tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tGrain: { value: grain },
+      tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tWide: { value: t.texWide }, tGrain: { value: grain },
+      uWid: { value: new THREE.Vector4(t.wid.x0, t.wid.y0, t.wid.x1 - t.wid.x0, t.wid.y1 - t.wid.y0) },
       uLoc: { value: new THREE.Vector4(t.loc.x0, t.loc.y0, t.loc.x1 - t.loc.x0, t.loc.y1 - t.loc.y0) },
       uReg: { value: new THREE.Vector4(t.reg.x0, t.reg.y0, t.reg.x1 - t.reg.x0, t.reg.y1 - t.reg.y0) },
       uGain: { value: new THREE.Vector2(1.0, 1.0) }, uFlat: { value: 0 },
@@ -253,11 +267,14 @@ export class Clipmap {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vW;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvW = position.xy;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-        varying vec2 vW; uniform sampler2D tLocal, tRegional, tGrain; uniform vec4 uLoc, uReg; uniform vec2 uGain; uniform float uFlat;`)
+        varying vec2 vW; uniform sampler2D tLocal, tRegional, tWide, tGrain; uniform vec4 uLoc, uReg, uWid; uniform vec2 uGain; uniform float uFlat;`)
         .replace('#include <map_fragment>', `
         vec2 ul = (vW - uLoc.xy) / uLoc.zw, ur = (vW - uReg.xy) / uReg.zw;
         float wl = smoothstep(0.0, 0.04, min(min(ul.x, 1.0 - ul.x), min(ul.y, 1.0 - ul.y)));
-        vec3 photo = mix(texture2D(tRegional, clamp(ur, 0.0, 1.0)).rgb * uGain.y, texture2D(tLocal, clamp(ul, 0.0, 1.0)).rgb * uGain.x, wl);
+        vec2 uw = (vW - uWid.xy) / uWid.zw;
+        float wr = smoothstep(0.0, 0.03, min(min(ur.x, 1.0 - ur.x), min(ur.y, 1.0 - ur.y)));
+        vec3 farc = mix(texture2D(tWide, clamp(uw, 0.0, 1.0)).rgb, texture2D(tRegional, clamp(ur, 0.0, 1.0)).rgb, wr) * uGain.y;
+        vec3 photo = mix(farc, texture2D(tLocal, clamp(ul, 0.0, 1.0)).rgb * uGain.x, wl);
         float dist = length(vViewPosition);
         // The photo's light and dark are mostly shading. Close up the relief is modelled, so the photo is used faintly and the
         // geometry does the shading; far away, where the mesh is coarse, the photo carries the detail.
@@ -272,7 +289,7 @@ export class Clipmap {
   setOverlay(on) { this.overlay = on; this.uniforms.uFlat.value = on ? 1 : 0; for (const l of this.levels) l.dirty = true; }
   invalidate(x, y, r) {                                   // heights changed inside a circle: forget cached cells there
     for (const l of this.levels) {
-      if (isNaN(l.ox)) continue;
+      if (isNaN(l.ox) || l.i < this.first) continue;
       const i0 = Math.max(0, Math.floor((x - r - l.ox) / l.c)), i1 = Math.min(M - 1, Math.ceil((x + r - l.ox) / l.c) + 2), j0 = Math.max(0, Math.floor((y - r - l.oy) / l.c)), j1 = Math.min(M - 1, Math.ceil((y + r - l.oy) / l.c) + 2);
       if (i0 > i1 || j0 > j1) continue;
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) l.h[j * M + i] = NaN;
@@ -284,31 +301,32 @@ export class Clipmap {
     const t = this.t, h = l.h, c = l.c;
     for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
       const k = j * M + i; if (h[k] === h[k]) continue;
-      h[k] = t.height(l.ox + (i - 1) * c, l.oy + (j - 1) * c, l.detail); l.s[k] = t.partS; l.p[k] = t.partP;
+      h[k] = t.height(l.ox + (i - 1) * c, l.oy + (j - 1) * c, c); l.s[k] = t.partS; l.p[k] = t.partP;
     }
   }
-  update(cx, cy) {
-    const Ls = this.levels;
-    for (let q = Ls.length - 1; q >= 0; q--) {            // coarse to fine
+  /* minCell: finest spacing worth drawing (from high up the fine levels are switched off) */
+  update(cx, cy, minCell = 0) {
+    const Ls = this.levels; let first = 0; while (first < Ls.length - 3 && Ls[first].c < minCell) first++;
+    if (first !== this.first) { this.first = first; for (const l of Ls) { l.mesh.visible = l.i >= first; l.hole = ''; } Ls[first].dirty = true; }
+    for (let q = Ls.length - 1; q >= first; q--) {        // coarse to fine
       const l = Ls[q], snap = 4 * l.c, ox = Math.round(cx / snap) * snap - N / 2 * l.c, oy = Math.round(cy / snap) * snap - N / 2 * l.c;
       if (ox !== l.ox || oy !== l.oy) {
         const nh = new Float32Array(M * M).fill(NaN), ns = new Float32Array(M * M), np = new Float32Array(M * M);
         if (!isNaN(l.ox)) {
           const di = Math.round((ox - l.ox) / l.c), dj = Math.round((oy - l.oy) / l.c);
-          for (let j = 0; j < M; j++) { const sj = j + dj; if (sj < 0 || sj >= M) continue;
+          if (Math.abs(di) < M && Math.abs(dj) < M) for (let j = 0; j < M; j++) { const sj = j + dj; if (sj < 0 || sj >= M) continue;
             for (let i = 0; i < M; i++) { const si = i + di; if (si < 0 || si >= M) continue; const a = j * M + i, b = sj * M + si; nh[a] = l.h[b]; ns[a] = l.s[b]; np[a] = l.p[b]; } }
         }
         l.h = nh; l.s = ns; l.p = np; l.ox = ox; l.oy = oy; l.dirty = true;
-        if (q + 1 < Ls.length) Ls[q + 1].holeDirty = true;
-        if (q > 0) Ls[q - 1].dirty = true;                // its edge is tied to this level
+        if (q + 1 < Ls.length) Ls[q + 1].hole = '';
       }
-      if (l.dirty) { this.fill(l); this.write(l, q + 1 < Ls.length ? Ls[q + 1] : null); l.dirty = false; if (q > 0) Ls[q - 1].dirty = true; }
+      if (l.dirty) { this.fill(l); this.write(l, q + 1 < Ls.length ? Ls[q + 1] : null); l.dirty = false; if (q > first) Ls[q - 1].dirty = true; }
     }
-    for (let q = 1; q < Ls.length; q++) {                 // cut the finer level's footprint out of each coarser one
+    for (let q = first + 1; q < Ls.length; q++) {         // cut the finer level's footprint out of each coarser one
       const l = Ls[q], f = Ls[q - 1], hx = Math.round((f.ox - l.ox) / l.c), hy = Math.round((f.oy - l.oy) / l.c), key = hx + ',' + hy;
       if (key !== l.hole) { l.hole = key; this.index(l, hx, hy, N / 4); }
     }
-    if (Ls[0].hole !== 'full') { Ls[0].hole = 'full'; this.index(Ls[0], -1, -1, 0); }
+    if (Ls[first].hole !== 'full') { Ls[first].hole = 'full'; this.index(Ls[first], -1, -1, 0); }
   }
   index(l, hx, hy, hn) {
     const ix = l.geo.index.array; let n = 0;
@@ -342,6 +360,7 @@ export class Clipmap {
   /* ground height as drawn (bilinear on the finest grid that contains the point) — used by the physics */
   ground(x, y) {
     for (const l of this.levels) {
+      if (l.i < this.first) continue;
       const fx = (x - l.ox) / l.c + 1, fy = (y - l.oy) / l.c + 1;
       if (!(fx >= 1 && fy >= 1 && fx < N + 1 && fy < N + 1)) continue;
       const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, o = iy * M + ix, H = l.h;
@@ -349,7 +368,7 @@ export class Clipmap {
       if (a !== a || b !== b || cc !== cc || d !== d) break;
       return (a * (1 - tx) + b * tx) * (1 - ty) + (cc * (1 - tx) + d * tx) * ty;
     }
-    return this.t.height(x, y, 2);
+    return this.t.height(x, y, 0.25);
   }
   normal(x, y, out, e = 0.15) {
     const gx = (this.ground(x + e, y) - this.ground(x - e, y)) / (2 * e), gy = (this.ground(x, y + e) - this.ground(x, y - e)) / (2 * e);

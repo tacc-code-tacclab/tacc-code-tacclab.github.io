@@ -1,7 +1,22 @@
-# Lunar Rover - predicted ground at Tranquility Base
+# Lunar Rover - prospecting on predicted ground at Tranquility Base
 
-A browser game on the 2 x 2 km around the Apollo 11 landing site. A lander flies and lands, a rover drives out, lifts
-and moves rocks with its arm, blows them apart, digs, and collects gems that unlock better equipment.
+A browser game that starts beside a base station 130 m from the Apollo 11 landing site. A lander flies anywhere
+within about 60 km and up to 20 km high, and lands; a rover drives out, lifts and moves rocks with its arm, destroys
+them with a gun, digs, and collects two ores.
+
+## The story, and how much of it is real
+
+* **Ilmenite** (FeTiO3) is real and is the reason this site is interesting: the Apollo 11 basalts are among the most
+  titanium-rich lunar samples, and ilmenite is a candidate ore for oxygen, iron and titanium. In the game it gives
+  the points that upgrade the rover.
+* **Thorium and uranium** are real and concentrate in KREEP-rich material; orbiters mapped thorium with gamma-ray
+  spectrometers, which the rover's ticking detector imitates. In the game thorium ore feeds the rover's power cell
+  with no upper limit. That is fiction: lunar thorium is a few parts per million of the rock.
+* Energy: every rover function draws on it; sunlight gives a trickle (real rovers are solar); the base station
+  recharges to 100; with a flat battery the rover only crawls and can be brought back to base.
+* Ore odds (one rock in seven ilmenite, one in twenty-five thorium, more in larger rocks) are invented, and are the
+  same everywhere for now. Making them follow the real orbital maps of titanium and thorium is planned.
+* The lander's speed grows with height and reaches kilometres per second: purely theoretical, marked as such on screen.
 
 The scientific point is the ground. The LRO cameras resolve this site at 0.5 m per pixel (image) and 2 m per pixel
 (elevation); a rover is smaller than that. The ground is therefore built from three layers that the page keeps apart
@@ -11,7 +26,7 @@ and can show in colour (button **Layers**):
 |---|---|---|---|
 | measured | LROC NAC DTM (2 m/px), LROC NAC orthophoto (0.5 m/px); regional DEM beyond the tile | > ~10 m | real data, unchanged |
 | inferred | shape from shading of the real photo, `tools/shape_from_shading.py` | 2-10 m | real positions, estimated heights |
-| predicted | statistical generation, `js/terrain.js` (`RULES`) | < 3 m craters, 8 cm - 1 m rocks, cm roughness | invented features, published statistics |
+| predicted | statistical generation, `js/terrain.js` (`RULES`) | < 3 m craters, 8 cm - 1 m rocks, cm roughness; outside the 2 km photo also craters up to 150 m | invented features, published statistics |
 
 The measured data are the files produced by `../lunar-flight/fetch_and_process.py` (this page reads
 `../lunar-flight/assets/apollo11/`); nothing is downloaded again.
@@ -39,7 +54,7 @@ brightness and shadow are not terrain.
 
 | What | Rule used | Note |
 |---|---|---|
-| craters 0.25-3 m | cumulative density N(>D) = 10^-1.1 D^-2 per m2 (equilibrium population, Trask 1966); depth/diameter 0.03-0.2, mostly degraded; rim 0.04 D when fresh | craters above 3 m are left to the photo: they would be visible in it |
+| craters 0.25-3 m (to 150 m outside the photo) | cumulative density N(>D) = 10^-1.1 D^-2 per m2 (equilibrium population, Trask 1966); depth/diameter 0.03-0.2, mostly degraded; rim 0.04 D when fresh | inside the photo, craters above 3 m are left to it: they would be visible. Outside it the elevation data (59 m/px) resolve only craters above about 250 m, so the same law is used up to 150 m, roughly where equilibrium ends on mare of this age |
 | rocks 8 cm - 1 m | N(>D) = 1.4e-3 D^-2.11 per m2 (Surveyor I mare site, Shoemaker & Morris 1970) | rocks of 1 m or more would be visible in the photo, so none are generated; density is raised on steeper ground - an assumption of this page, not a published law |
 | roughness | value noise, about 1.5 cm rms below 2 m | order of magnitude only |
 
@@ -60,16 +75,24 @@ The fill light is set so that slopes brighten by about the measured factor K rat
 Simplified: the lander is a point mass with hover control and unlimited propellant; rocks are spheres for collisions;
 wheels sample the ground along the vertical.
 
-Game only: the gems (there are no diamonds under lunar rocks), the blaster, levels and upgrades. The Apollo 11
+Sound: there is none on the Moon; the page synthesises what the vehicle's structure would carry (motors, the gun's
+action, impacts, regolith under the wheels) plus the detector's ticks.
+
+Game only: ore as glowing nuggets, thorium as fuel, the gun, levels and upgrades, the lander's speed. The Apollo 11
 descent stage stands at its real coordinates but its 3-D shape is illustrative; tools are locked within 75 m of it.
 
 ## Controls
 
-Keyboard: arrows or WASD drive / fly, Space blaster, E grab, Q dig, H hop, T upright, Enter deploy / board,
-R / F (PgUp / PgDn) lander up / down, V layers, I science notes, G help, C camera, M sound. Touch: stick and buttons.
+Keyboard: arrows or WASD drive / fly, Space gun, E grab, Q dig, H hop, T upright, Enter deploy / board,
+R / F (PgUp / PgDn) lander up / down, N feature names, B back to base (flat battery), V layers, I science notes,
+G help, C camera, M sound. Touch: stick and buttons.
 
 ## Status
 
 Tested in a headless desktop browser and an emulated phone (game logic stepped directly; rendering by software).
 Not yet tested on a real phone or a real GPU, so performance there is unknown; the page lowers its own quality if
-frames take too long. Points are kept in the browser's local storage.
+frames take too long. The sounds have not been listened to by a person yet. Points and energy are kept in the
+browser's local storage.
+
+Not done yet: flying round the whole Moon and on to the Earth. The world is a tangent plane around the site with
+the curvature added as a parabola, which holds for the 120 km region used here but not for a globe.

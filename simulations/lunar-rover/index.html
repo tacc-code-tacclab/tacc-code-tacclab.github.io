@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<title>Lunar Rover — predicted ground at Tranquility Base</title>
+<title>Lunar Rover — prospecting on predicted ground at Tranquility Base</title>
 <meta name="description" content="Drive a rover on the Moon near the Apollo 11 landing site. The ground combines measured LRO elevation, relief inferred from the real photographs, and a statistical prediction of what lies below their resolution.">
 <style>
   :root{--ink:#d6f3f7;--dim:#7fb6c4;--line:rgba(120,200,220,.38);--glass:rgba(4,10,14,.66);--hot:#9fe3f2;
@@ -31,6 +31,14 @@
   #lvl{display:flex;align-items:center;gap:8px;margin:4px 0 6px}
   #lvlBar{flex:1;height:6px;border-radius:3px;background:rgba(120,200,220,.18);overflow:hidden}
   #lvlFill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--emer));transition:width .4s}
+  #en{display:flex;align-items:center;gap:6px;margin:0 0 6px;color:#ffd060}
+  #enBar{flex:1;height:8px;border-radius:4px;background:rgba(255,208,96,.16);overflow:hidden}
+  #enFill{height:100%;width:0;background:linear-gradient(90deg,#ffb030,#ffe680);transition:width .25s} #enFill.low{background:#ff5a3c}
+  #en b{color:#fff;font-weight:400;min-width:24px;text-align:right} #en small{color:var(--emer)}
+  #names{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+  .nm{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;color:#eaffff;padding:0 4px 2px 9px;text-shadow:0 0 3px #000,0 0 2px #000,0 1px 1px #000;will-change:transform}
+  .nm::before{content:"";position:absolute;left:-3px;top:-3px;width:5px;height:5px;border:1px solid var(--hot);border-radius:50%;background:rgba(4,10,14,.5)}
+  body.touch .nm{font-size:10px}
   #stat{white-space:pre;color:var(--ink)}
   #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
 
@@ -93,8 +101,10 @@
 <div id="hud" class="glass">
   <div id="pts">0<small>points</small></div>
   <div id="lvl"><span id="lvlTxt">Level 1</span><div id="lvlBar"><div id="lvlFill"></div></div></div>
+  <div id="en" title="Energy"><span>&#9889;</span><div id="enBar"><div id="enFill"></div></div><b id="enTxt">0</b><small id="enOver"></small></div>
   <div id="stat"></div>
 </div>
+<div id="names"></div>
 
 <div id="legend" class="glass">
   <span><i style="background:var(--meas)"></i>measured</span>
@@ -118,6 +128,7 @@
 <div id="more" class="sheet" style="width:min(92vw,300px)">
   <button type="button" class="close" data-close>Close</button>
   <h2>OPTIONS</h2>
+  <p><button type="button" data-act="names">Crater names: on</button></p>
   <p><button type="button" data-act="cam">Camera: follow</button></p>
   <p><button type="button" data-act="sound">Sound: on</button></p>
   <p><button type="button" data-act="fullscreen">Full screen</button></p>
