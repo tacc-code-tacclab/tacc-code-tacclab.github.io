@@ -1,0 +1,10 @@
+{
+  "name": "Lunar Flight - real LRO data",
+  "short_name": "Lunar Flight",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}

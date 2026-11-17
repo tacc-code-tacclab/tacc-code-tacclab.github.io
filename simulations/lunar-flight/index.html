@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lunar Flight">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Lunar Flight &amp; Surface Exploration Simulator (LRO data)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#cfe;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -104,6 +110,7 @@
   <div><b id="spdVal"></b><small id="spdLbl"></small></div>
   <button type="button" data-tap="Period" aria-label="Faster" title="Faster ( . )">+</button>
   <button type="button" id="sndBtn" aria-label="Sound" title="Sound on / off ( U )">&#9834;</button>
+  <button type="button" id="fsBtn" aria-label="Full screen" title="Full screen on / off">&#9974;</button>
 </div>
 <div class="panel" id="br"><canvas id="vec" width="130" height="130"></canvas></div>
 <div id="touch">
@@ -124,6 +131,8 @@
     <button type="button" id="mCruise" data-tap="KeyB" data-keep>Fast flight</button>
     <button type="button" id="mNames" data-tap="KeyN" data-keep>Names</button>
     <button type="button" class="wide" id="mSound" data-tap="KeyU" data-keep>Sound</button>
+    <button type="button" id="mFs">Full screen</button>
+    <button type="button" id="mRot">Rotate screen</button>
     <button type="button" id="mAssist" data-tap="KeyH" data-keep>Hover assist</button>
     <button type="button" id="mLevel" data-tap="KeyV" data-keep>Auto-level</button>
     <button type="button" id="mSas" data-tap="KeyT" data-keep>Rate damping</button>
@@ -703,11 +712,11 @@ With hover assist off they are throttle up / down and "Hold" becomes "Cut".
 
 ↺ / ↻ — turn left / right.
 
-Screen — drag with one finger to look around, pinch with two fingers to zoom.
+Screen — drag with one finger to look around, pinch with two fingers to zoom. The page works upright and sideways: just turn the phone.
 
 Camera — chase / onboard (inspection when landed) / straight down.
 Start — jump to a start point, from a 100 km orbit down to 20 m, or straight to the far side.
-☰ — names on/off, hover assist, auto-level, display mode, time warp, full flight data.
+☰ — full screen, rotate screen, sound, names on/off, hover assist, auto-level, display mode, time warp, full flight data.
 
 Names — the labels are the official IAU names. Tap one for its type, position, diameter and the origin of the name.
 
@@ -754,6 +763,28 @@ addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 addEventListener('keydown', () => sound.kick(), true); addEventListener('pointerdown', () => sound.kick(), true);
 document.addEventListener('visibilitychange', () => sound.pause(document.hidden));
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const ROT_HINT = 'Turn the phone sideways: the page follows it.\nIf it does not, switch off the rotation lock in the phone settings.';
+async function goFullscreen() {
+  const d = document.documentElement, req = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (!req) return false;
+  try { await req.call(d, { navigationUI: 'hide' }); return true; } catch (_) { return false; }
+}
+async function toggleFullscreen() {
+  if (fsEl()) { try { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (_) {} return; }
+  if (!(await goFullscreen())) toast(/iPhone|iPod/.test(navigator.userAgent)
+    ? 'On iPhone, Safari has no full-screen button for web pages.\nTap Share, then "Add to Home Screen": opened from there, it fills the screen.'
+    : 'Full screen is not available in this browser', 8000);
+}
+async function rotateScreen() {                       // only Android browsers can turn the screen from a page
+  const o = screen.orientation;
+  if (!o || !o.lock) { toast(ROT_HINT, 7000); return; }
+  try { if (!fsEl()) await goFullscreen(); await o.lock(o.type.startsWith('landscape') ? 'portrait' : 'landscape'); }
+  catch (_) { toast(ROT_HINT, 7000); }
+}
+$('fsBtn').addEventListener('click', e => { toggleFullscreen(); e.currentTarget.blur(); });
+$('mFs').addEventListener('click', () => { closeSheets(); toggleFullscreen(); });
+$('mRot').addEventListener('click', () => { closeSheets(); rotateScreen(); });
 $('sndBtn').addEventListener('click', e => { press('KeyU', true); press('KeyU', false); e.currentTarget.blur(); });
 
 /* ---- touch controls: they press the same "keys" as the keyboard, plus an analogue stick ---- */
@@ -827,6 +858,7 @@ function updateTouchUI() {
   $('stickMode').classList.toggle('on', veh.cruise);
   $('tSpeedVal').textContent = fmSpd(topSpd());
   set('mCruise', veh.cruise, `Fast flight: ${veh.cruise ? 'on' : 'off'}`);
+  set('mFs', fsEl(), `Full screen: ${fsEl() ? 'on' : 'off'}`);
   set('mSound', sound.on, `Sound: ${sound.on ? 'on' : 'off'}`);
   set('mNames', namesOn, names.count ? `Names: ${namesOn ? 'on' : 'off'}` : 'Names: not loaded');
   for (const id of ['mAssist', 'mLevel', 'mSas']) $(id).style.display = veh.cruise ? 'none' : '';
@@ -1042,7 +1074,8 @@ const fm = (x, d = 1) => x.toLocaleString('en-US', { minimumFractionDigits: d, m
 const fmAlt = m => Math.abs(m) >= 10000 ? fm(m / 1000, 2) + ' km' : fm(m, Math.abs(m) < 100 ? 2 : 1) + ' m';
 const fmRes = m => m >= 1000 ? fm(m / 1000, 2) + ' km/px' : m < 0.1 ? fm(m * 1000, 1) + ' mm/px' : fm(m, m < 10 ? 2 : 1) + ' m/px';
 const row = (k, v, cls = 'v') => `<span class="k">${k.padEnd(13)}</span><span class="${cls}">${v}</span>\n`;
-let fps = 60, limitShown = false;
+let fps = 60, limitShown = false, limitUntil = 0, limitNext = 0;
+const LIMIT_SHOW_MS = 5000, LIMIT_QUIET_MS = 45000;   // banner: shown 5 s when the limit is reached, then not again for a while
 function updateHUD() {
   bodyAxes(); geo.frame(veh.pos, up, east, north);
   const vs = veh.vel.dot(up), vhv = t1.copy(veh.vel).addScaledVector(up, -vs), gs = vhv.length();
@@ -1085,7 +1118,7 @@ function updateHUD() {
     $('tl').innerHTML = tlFull; $('tr').innerHTML = trFull;
     $('spdVal').textContent = veh.cruise ? fmSpd(topSpd()) : `time ×${WARPS[warpIdx]}`;
     $('spdLbl').textContent = veh.cruise ? `top speed · level ${cruiseIdx + 1} of ${CRUISE.length} · climb = faster` : 'lander physics  ·  B: fast flight';
-    $('sndBtn').classList.toggle('on', sound.on);
+    $('sndBtn').classList.toggle('on', sound.on); $('fsBtn').classList.toggle('on', !!fsEl());
   }
   else {
     const cr = (k, v, cls = 'v') => `<span class="k">${k.padEnd(7)}</span><span class="${cls}">${v}</span>\n`;
@@ -1099,16 +1132,17 @@ function updateHUD() {
       cr('MODE', veh.cruise ? 'fast flight' : veh.landed ? 'LANDED' : veh.assist ? `hover ${veh.vsTarget >= 0 ? '+' : ''}${fm(veh.vsTarget, 1)} m/s` : 'manual', veh.landed ? 'ok' : 'v') +
       cr('SITE', sb) +
       (names.here ? cr('AREA', names.here.length > 26 ? names.here.slice(0, 25) + '…' : names.here) : '') +
-      cr('DATA', `${t.id} ${fmRes(t.imgMpp)}`, st[1]) +
+      cr('DATA', `${t.id} ${fmRes(t.imgMpp)}${mag >= LIMIT_MAG ? ' · limit' : ''}`, st[1]) +
       (warpIdx ? cr('WARP', `×${WARPS[warpIdx]}`, 'warn') : '');
     if ($('tdata').classList.contains('open')) $('tdata').innerHTML = tlFull + '\n' + trFull + '<span class="k">Tap to close</span>';
     updateTouchUI();
   }
   $('bl').innerHTML = `<span class="k">↑↓ fly · ←→ turn · PgUp/PgDn height · , . speed · B lander · N names · C camera · G help</span>`;
   const lim = mag >= LIMIT_MAG;
-  $('limit').style.opacity = lim ? 1 : 0;
+  const nowMs = performance.now();
+  if (lim && !limitShown && nowMs > limitNext) { limitUntil = nowMs + LIMIT_SHOW_MS; limitNext = nowMs + LIMIT_QUIET_MS; }
+  $('limit').style.opacity = lim && nowMs < limitUntil ? 1 : 0;      // afterwards the HUD keeps saying it (RESOLUTION / DATA line)
   if (lim) $('limitText').textContent = `REAL DATA RESOLUTION LIMIT REACHED\n1 data pixel (${fmRes(t.imgMpp)}, tier ${t.id}) = ${fm(mag, 0)} screen pixels\nNo finer measured detail exists here — pixels are magnified, nothing is invented.`;
-  if (lim && !limitShown) toast('Real data resolution limit reached', 2500);
   limitShown = lim;
   // ---- horizontal velocity vector (up = vehicle heading)
   const c = $('vec').getContext('2d'); c.clearRect(0, 0, 130, 130);
