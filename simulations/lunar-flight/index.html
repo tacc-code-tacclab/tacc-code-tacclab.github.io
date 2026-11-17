@@ -34,7 +34,8 @@
   .sheet,.sheet *,#help{touch-action:pan-y}
   /* ---- touch controls (phones / tablets); hidden with mouse + keyboard ---- */
   #touch{display:none}
-  body.touch{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  body.touch, body.touch *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  body.touch input, input{-webkit-user-select:text !important;user-select:text !important;touch-action:manipulation}
   body.touch #touch{display:block}
   body.touch #bl, body.touch #tr{display:none}
   body.touch .panel{font-size:10px;padding:6px 8px}
@@ -84,6 +85,36 @@
   #tSpeed div small{display:block;color:#7fb6c4;font-size:9px}
   #tright #tSpeed button{width:auto;height:44px;font-size:18px}
   body.cruise #tHold{visibility:hidden}
+  /* ---- short landscape screens (a phone held sideways): keep the controls off the read-outs ---- */
+  @media (orientation: landscape) and (max-height: 460px) {
+    body.touch .panel{font-size:9px;line-height:1.3}
+    #stickWrap{width:auto;display:flex;flex-direction:row-reverse;align-items:flex-end;gap:8px}
+    #stickMode{width:92px;margin-bottom:0 !important;min-height:40px !important}
+    body.touch #br{top:calc(8px + env(safe-area-inset-top));right:calc(206px + env(safe-area-inset-right))}
+    body.touch #br canvas{width:52px;height:52px}
+    #tright button{width:52px;height:50px}
+    #tright #tSpeed button{height:40px}
+  }
+  @media (orientation: landscape) and (max-height: 330px) {
+    #stick{width:108px;height:108px} #tright button{height:44px} #tright #tSpeed button{height:36px}
+  }
+  /* ---- "go to a place" ---- */
+  #goto{position:fixed;display:none;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:6;
+    width:min(94vw,440px);max-height:calc(100vh - 20px);overflow:auto;box-sizing:border-box;touch-action:pan-y;
+    background:rgba(4,10,14,.95);border:1px solid #9fe3f2;border-radius:6px;padding:12px;color:#cfe;font-size:12px}
+  #goto.open{display:block}
+  #goto *{touch-action:pan-y}
+  #goto label{display:block;color:#9fe3f2;letter-spacing:.08em;margin-bottom:6px}
+  #goto .rowf{display:flex;gap:6px}
+  #goto input{flex:1;min-width:0;font:inherit;font-size:16px;color:#eaffff;background:#02080b;border:1px solid rgba(120,200,220,.5);border-radius:4px;padding:8px}
+  #goto input:focus{outline:2px solid #9fe3f2;outline-offset:1px}
+  #goto button{font:inherit;color:#cfe;background:rgba(20,50,60,.7);border:1px solid rgba(120,200,220,.45);border-radius:4px;padding:8px 10px;min-height:40px;cursor:pointer}
+  #goto button:hover, #goto button:focus-visible{border-color:#9fe3f2;color:#eaffff}
+  #gotoRes{display:grid;gap:4px;margin:8px 0}
+  #gotoRes button{text-align:left} #gotoRes small{color:#7fb6c4}
+  #gotoErr{color:#ffb060;min-height:1.2em;margin:6px 0 0}
+  #goto p{margin:8px 0 0;color:#7fb6c4;font-size:11px;line-height:1.45;white-space:normal}
+  #goto .foot{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
   /* ---- speed + sound bar (mouse / keyboard) ---- */
   #spd{position:fixed;left:10px;bottom:48px;display:flex;gap:6px;align-items:stretch}
   body.touch #spd{display:none}
@@ -116,6 +147,7 @@
   <button type="button" data-tap="Period" aria-label="Faster" title="Faster ( . )">+</button>
   <button type="button" id="sndBtn" aria-label="Sound" title="Sound on / off ( U )">&#9834;</button>
   <button type="button" id="fsBtn" aria-label="Full screen" title="Full screen on / off">&#9974;</button>
+  <button type="button" id="gotoBtn" title="Go to a name or to coordinates ( Y )" style="font-size:12px;padding:0 10px">Go to&hellip;</button>
 </div>
 <div class="panel" id="br"><canvas id="vec" width="130" height="130"></canvas></div>
 <div id="touch">
@@ -125,6 +157,7 @@
     <button type="button" id="tMenuBtn" aria-label="Menu">&#9776;</button>
   </div>
   <div class="sheet" id="tStart">
+    <button type="button" class="wide on" id="tGoto">Go to a name or coordinates&hellip;</button>
     <button type="button" class="wide" data-tap="Digit1">Orbit, 100 km</button>
     <button type="button" data-tap="Digit2">Hover at 15 km</button>
     <button type="button" data-tap="Digit3">Hover at 1.5 km</button>
@@ -163,7 +196,7 @@
   <div id="tright">
     <div class="lcol">
       <div id="tSpeed">
-        <div><span id="tSpeedVal"></span><small>top speed &middot; climb = faster</small></div>
+        <div><span id="tSpeedVal"></span><small>higher = faster</small></div>
         <button type="button" data-tap="Comma" aria-label="Slower">&minus;</button>
         <button type="button" data-tap="Period" aria-label="Faster">+</button>
       </div>
@@ -179,6 +212,22 @@
     </div>
   </div>
 </div>
+<form id="goto" autocomplete="off">
+  <label for="gotoIn">GO TO A PLACE</label>
+  <div class="rowf">
+    <input id="gotoIn" type="text" enterkeyhint="go" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Tycho   or   0.674 N 23.473 E">
+    <button type="submit">Go</button>
+  </div>
+  <div id="gotoErr" role="status"></div>
+  <div id="gotoRes"></div>
+  <p>A name from the IAU catalogue (crater, mare, rille, landing site…), or coordinates: latitude then longitude,
+     in degrees. All of these work: <b>43.31 S 11.36 W</b> &middot; <b>-43.31, -11.36</b> &middot; <b>0°40'27" N 23°28'23" E</b>.
+     North and east are positive; longitude can also be 0–360° east.</p>
+  <div class="foot">
+    <button type="button" id="gotoSite">Apollo 11 landing site</button>
+    <button type="button" id="gotoClose">Close</button>
+  </div>
+</form>
 <div id="msg"></div>
 <div id="help"></div>
 <div id="load">Loading lunar data…</div>
@@ -698,6 +747,7 @@ const HELP = `LUNAR FLIGHT & SURFACE EXPLORATION SIMULATOR — controls
                [ ]  sun azimuth    - =  sun elevation   (relief modes only)
                P  show true data pixels (nearest-neighbour) on/off
  TIME          , .  time warp (lander physics)        G  toggle this help
+ GO TO         Y  type a name (Tycho, Mare Crisium, Statio Tranquillitatis…) or coordinates and jump there
  START POINTS  1 orbit 100 km   2 hover 15 km   3 hover 1.5 km   4 hover 150 m   5 hover 20 m   6 far side, 200 km up
  SOUND         U  engine sound and background music on/off (both are generated in the browser)
 
@@ -720,7 +770,7 @@ With hover assist off they are throttle up / down and "Hold" becomes "Cut".
 Screen — drag with one finger to look around, pinch with two fingers to zoom. The page works upright and sideways: just turn the phone.
 
 Camera — chase / onboard (inspection when landed) / straight down.
-Start — jump to a start point, from a 100 km orbit down to 20 m, or straight to the far side.
+Start — "Go to" takes a name (Tycho, Mare Crisium…) or coordinates and jumps there; below it are the start points at the Apollo 11 site, from a 100 km orbit down to 20 m, and the far side.
 ☰ — full screen, rotate screen, sound, names on/off, hover assist, auto-level, display mode, time warp, full flight data.
 
 Names — the labels are the official IAU names. Tap one for its type, position, diameter and the origin of the name.
@@ -735,6 +785,7 @@ let site = null, shadeMode = 0, pixelView = false, detailIdx = 1, touchUI = fals
 const DETAIL = [['LOW', 1.4], ['MED', 2.0], ['HIGH', 2.8]];
 addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target && e.target.tagName === 'INPUT') return;          // typing in the go-to box, not flying
   if (/^(Arrow|Page)/.test(e.code)) e.preventDefault();          // arrows / PgUp / PgDn fly the vehicle, not the page
   keys.add(e.code);
   if (e.repeat || !terrain) return;
@@ -760,11 +811,13 @@ addEventListener('keydown', e => {
     case 'Digit4': P(site.lat, site.lon, 150); break;
     case 'Digit5': P(site.lat, site.lon, 20); break;
     case 'Digit6': P(-site.lat, wrap180(site.lon + 180), 200000); setCruise(true); toast('Far side — the point opposite the landing site, 200 km up', 3500); break;
+    case 'KeyY': e.preventDefault(); openGoto(); break;
     case 'KeyU': sound.toggle(); toast(sound.on ? 'Sound on' : 'Sound off', 1200); break;
     case 'Minus': case 'Equal': if (veh.cruise && !shadeMode) cruiseIdx = clamp(cruiseIdx + (e.code === 'Equal' ? 1 : -1), 0, CRUISE.length - 1); break;
   }
 });
 addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('keydown', e => { if (e.code === 'Escape' && $('goto').classList.contains('open')) closeGoto(); });
 addEventListener('blur', () => keys.clear());
 addEventListener('keydown', () => sound.kick(), true); addEventListener('pointerdown', () => sound.kick(), true);
 document.addEventListener('visibilitychange', () => sound.pause(document.hidden));
@@ -1082,6 +1135,71 @@ const names = {
 };
 
 /* ======================================================================
+   Go to: a catalogue name or lunar coordinates (planetocentric latitude, east-positive longitude,
+   the system of the LRO products and of the IAU gazetteer).
+   ====================================================================== */
+function parseLatLon(str) {
+  let s = str.trim().toUpperCase();
+  if (/^[+-]?\d+,\d+\s*[NSEW]?[\s;]+[+-]?\d+,\d+\s*[NSEW]?$/.test(s)) s = s.replace(/,/g, '.');     // decimal commas: 0,674 N 23,473 E
+  s = s.replace(/[,;]/g, ' ').replace(/[°º]/g, ' D ').replace(/[′'’]/g, ' M ').replace(/[″"”]/g, ' Q ');
+  const re = /([+-]?\d+(?:\.\d+)?)\s*(?:D\s*(?:(\d+(?:\.\d+)?)\s*M\s*(?:(\d+(?:\.\d+)?)\s*Q\s*)?)?)?\s*([NSEW])?/g;
+  const c = []; let m, rest = s;
+  while ((m = re.exec(s)) && c.length < 3) {
+    const neg = m[1].startsWith('-'), v = Math.abs(+m[1]) + (m[2] ? +m[2] / 60 : 0) + (m[3] ? +m[3] / 3600 : 0);
+    c.push({ v: neg ? -v : v, h: m[4] || '' }); rest = rest.replace(m[0], ' ');
+  }
+  if (c.length !== 2 || /[A-Z0-9]/.test(rest)) return null;          // exactly two numbers and nothing else
+  let [a, b] = c;
+  if ('EW'.includes(a.h || 'x') && 'NS'.includes(b.h || 'x')) [a, b] = [b, a];      // "23.47 E 0.67 N"
+  if ((a.h && !'NS'.includes(a.h)) || (b.h && !'EW'.includes(b.h))) return null;
+  const lat = a.h === 'S' ? -Math.abs(a.v) : a.v, lon = b.h === 'W' ? -Math.abs(b.v) : b.v;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 360) return null;
+  return { lat, lon: wrap180(lon) };
+}
+const plain = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function findNames(q, max = 6) {
+  const F = names.F; if (!F || !q) return [];
+  if (!names.key) names.key = F.map(f => plain(f[0]));
+  const a = [], b = [], K = names.key;
+  for (let i = 0; i < F.length; i++) {                     // largest first; exact, then "starts with", then "contains"
+    const k = K[i]; if (k === q) a.unshift(i); else if (k.startsWith(q) || k.includes(' ' + q)) a.push(i); else if (q.length > 2 && k.includes(q)) b.push(i);
+    if (a.length > 40) break;
+  }
+  const main = a.filter(i => F[i][4] !== 'SF' || K[i] === q), sat = a.filter(i => F[i][4] === 'SF' && K[i] !== q);
+  return [...main, ...sat, ...b].slice(0, max);
+}
+function goTo(lat, lon, agl, text) {
+  crashInfo = null; spawn(lat, lon, agl); setCam(0); setCruise(true); closeGoto(); closeSheets();
+  toast(`${text}\n${fm(Math.abs(lat), 3)}° ${lat >= 0 ? 'N' : 'S'}, ${fm(Math.abs(lon), 3)}° ${lon >= 0 ? 'E' : 'W'} — ${fmAlt(agl)} up`, 6000);
+}
+function goFeature(i) { const f = names.F[i]; goTo(f[1], f[2], clamp(f[3] * 1000 * 1.1, 600, 1.5e6), names.describe(i).split('\n').slice(0, 2).join(' — ')); }
+function openGoto() { closeSheets(); $('goto').classList.add('open'); $('gotoErr').textContent = ''; const i = $('gotoIn'); i.focus(); i.select(); keys.clear(); showMatches(); }
+function closeGoto() { $('goto').classList.remove('open'); $('gotoIn').blur(); }
+function showMatches() {
+  const box = $('gotoRes'); box.textContent = '';
+  const q = $('gotoIn').value; if (parseLatLon(q)) return;
+  for (const i of findNames(plain(q))) {
+    const f = names.F[i], b = document.createElement('button'); b.type = 'button'; b.textContent = f[0] + '  ';
+    const sm = document.createElement('small'); sm.textContent = `${names.typeName(f[4])}${f[3] > 0 ? ` · ${f[3] >= 10 ? fm(f[3], 0) : fm(f[3], 1)} km` : ''} · ${fm(Math.abs(f[1]), 1)}° ${f[1] >= 0 ? 'N' : 'S'} ${fm(Math.abs(f[2]), 1)}° ${f[2] >= 0 ? 'E' : 'W'}`;
+    b.appendChild(sm); b.addEventListener('click', () => goFeature(i)); box.appendChild(b);
+  }
+}
+$('gotoIn').addEventListener('input', () => { $('gotoErr').textContent = ''; showMatches(); });
+$('goto').addEventListener('submit', e => {
+  e.preventDefault(); if (!terrain) return;
+  const q = $('gotoIn').value, ll = parseLatLon(q);
+  if (ll) return goTo(ll.lat, ll.lon, 5000, 'Coordinates');
+  if (/^\s*apollo\s*11\s*$/i.test(q)) return $('gotoSite').click();
+  const hit = findNames(plain(q), 1);
+  if (hit.length) return goFeature(hit[0]);
+  $('gotoErr').textContent = names.count ? 'No such name in the IAU catalogue, and not readable as coordinates.' : 'Not readable as coordinates (the name catalogue is not loaded).';
+});
+$('gotoSite').addEventListener('click', () => { if (site) goTo(site.lat, site.lon, 150, `${site.name || 'Apollo 11 landing site'}`); });
+$('gotoClose').addEventListener('click', closeGoto);
+$('gotoBtn').addEventListener('click', e => { e.currentTarget.blur(); openGoto(); });
+$('tGoto').addEventListener('click', openGoto);
+
+/* ======================================================================
    HUD
    ====================================================================== */
 const fm = (x, d = 1) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -1151,7 +1269,7 @@ function updateHUD() {
     if ($('tdata').classList.contains('open')) $('tdata').innerHTML = tlFull + '\n' + trFull + '<span class="k">Tap to close</span>';
     updateTouchUI();
   }
-  $('bl').innerHTML = `<span class="k">↑↓ fly · ←→ turn · PgUp/PgDn height · , . speed · B lander · N names · C camera · G help</span>`;
+  $('bl').innerHTML = `<span class="k">↑↓ fly · ←→ turn · PgUp/PgDn height · , . speed · Y go to · B lander · N names · C camera · G help</span>`;
   const lim = mag >= LIMIT_MAG;
   const nowMs = performance.now();
   if (lim && !limitShown && nowMs > limitNext) { limitUntil = nowMs + LIMIT_SHOW_MS; limitNext = nowMs + LIMIT_QUIET_MS; }
@@ -1194,7 +1312,7 @@ async function boot() {
   names.load(root + 'nomenclature.json');
   $('load').style.display = 'none';
   toast(touchUI ? `${man.name}\nFast flight: stick to fly and turn, ▲▼ for height.\nThe higher you are, the faster you fly (− + to adjust).\n☰ → How to fly` : `${man.name}\nArrow keys: ↑ ↓ forward / back, ← → turn.  PgUp / PgDn: up / down.\nThe higher you are, the faster you fly.  , and . : slower / faster\nB: lander physics   G: all controls`, 8000);
-  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, stepCruise, setCruise, setCam, keys, man, THREE, names, sound, CRUISE, topSpd, get cruiseIdx() { return cruiseIdx; }, get camMode() { return camMode; } };
+  window.__sim = { veh, cam, camera, terrain, geo, spawn, step, stepCruise, setCruise, setCam, keys, man, THREE, names, sound, CRUISE, topSpd, parseLatLon, findNames, get cruiseIdx() { return cruiseIdx; }, get camMode() { return camMode; } };
   let last = performance.now(), hudT = 0;
   renderer.setAnimationLoop(now => {
     const rawDt = (now - last) / 1000, real = Math.min(0.1, rawDt); last = now; fps += (1 / Math.max(real, 1e-3) - fps) * 0.05;

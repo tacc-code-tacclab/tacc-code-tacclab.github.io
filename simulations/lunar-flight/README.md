@@ -62,6 +62,8 @@ above the ground (level x height per second, 8 levels with `,` `.` or the on-scr
 `PgUp/PgDn` or `R/F` to go up / down (the rate grows with height, up to
 3000 km). It follows the Moon's curvature and stays above the DEM. This mode is kinematic: no forces are integrated,
 the speeds are not achievable by the lander, and the HUD labels it "kinematic, not physics". It cannot land.
+`Y` (or "Go to") jumps to a catalogue name or to coordinates - planetocentric latitude and east-positive longitude in
+degrees, e.g. `43.31 S 11.36 W`, `-43.31, -11.36`, `0°40'27" N 23°28'23" E`; longitude 0-360 E is accepted too.
 `6` jumps to the point opposite the site. Engine sound and background music (`U`) are synthesised in the browser with
 Web Audio; they are atmosphere, not data.
 
