@@ -1029,10 +1029,10 @@ const ret = {
     this.ship = makeLander(); this.ship.rotation.x = -Math.PI / 2; N.add(this.ship);
     this.earth = sph(1, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })); this.earth.rotation.z = 2.2; N.add(this.earth);
     const st = new Float32Array(1500 * 3); for (let i = 0; i < 1500; i++) { const v = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(3000); st.set([v.x, v.y, v.z], 3 * i); }
-    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(st, 3)); N.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false })));
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(st, 3)); this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false })); N.add(this.stars);
     this.rocks = []; const rm = new THREE.MeshStandardMaterial({ color: 0x6b655d, roughness: 1, flatShading: true }); for (let i = 0; i < 26; i++) { const m = new THREE.Mesh(rocks.meshes[i % 4].geometry, rm); m.visible = false; N.add(m); this.rocks.push({ m, on: false }); }
     this.chute = new THREE.Mesh(new THREE.ConeGeometry(3.4, 2.2, 16, 1, true), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, emissive: 0xc8501e, emissiveIntensity: 0.35, side: THREE.DoubleSide, roughness: 0.8 })); this.chute.visible = false; N.add(this.chute);
-    this.sea = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x0f4c8a, roughness: 0.6 })); this.sea.rotation.x = -Math.PI / 2; this.sea.visible = false; N.add(this.sea);
+    this.sea = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x0f4c8a, roughness: 0.6 })); this.sea.visible = false; N.add(this.sea);      // the plane already lies flat in this z-up world
     this.camN = new THREE.PerspectiveCamera(55, 1, 0.3, 8000);
   },
   isLand(lat, lon) { const c = Math.floor((lon + 180) / 360 * 720) % 720, r = clamp(Math.floor((90 - lat) / 180 * 360), 0, 359); return this.mask[4 * (r * 720 + c)] > 127; },
@@ -1042,7 +1042,7 @@ const ret = {
   quit() { this.on = false; document.body.classList.remove('ret'); $('guide').style.display = 'none'; $('bar').style.display = 'none'; $('heat').style.opacity = 0; for (const e of labels.pool) e.style.display = 'none'; ACT.rescue(); },
   go(ph) {
     this.ph = ph; this.t = 0; this.acc = 0; this.was = true; this.safe = 0; $('bar').style.display = 'none'; $('heat').style.opacity = 0; for (const r of this.rocks) { r.on = false; r.m.visible = false; }
-    this.chute.visible = false; this.sea.visible = false; this.earth.visible = true; this.sN.background = new THREE.Color(0x000000); this.ship.position.set(0, 0, 0); this.ship.rotation.set(-Math.PI / 2, 0, 0);
+    this.chute.visible = false; this.sea.visible = false; this.earth.visible = true; this.stars.visible = !(ph === 'chute' || ph === 'done'); this.sN.background = new THREE.Color(0x000000); this.ship.position.set(0, 0, 0); this.ship.rotation.set(-Math.PI / 2, 0, 0);
     if (ph === 'lap') { this.th = 0; this.th0 = 0; this.say(1, 'Lunar orbit. Let the ship complete <u>one full orbit</u>, then hold <u>Burn</u> while it crosses the <span style="color:#49ff8a">green arc</span> on the far side of the Moon. The burn there sends it towards the Earth (on the right).'); }
     if (ph === 'coast') this.say(2, '384,000 km to go. <u>Steer with the arrows</u> to avoid the meteoroids. Three hits and the hull is lost.');
     if (ph === 'brake') { this.say(3, 'Arriving at 11 km/s — too fast for the atmosphere. Hold <u>Braking burn</u> while the marker is in the <span style="color:#49ff8a">green zone</span> to enter Earth orbit. Miss it and the ship burns up.'); this.bar(0.55, 0.78); }
