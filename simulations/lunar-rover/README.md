@@ -20,8 +20,15 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 * Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
   100; with a flat battery the rover only crawls and can be brought back to base.
 * The total energy captured sets the level (speed, grip, gun, scoop, hop). At 3000 the journey to the Earth opens.
-* Ore odds (one rock in seven ilmenite, one in twenty-five thorium, more in larger rocks) are invented and the same
-  everywhere. Making them follow the real orbital maps of titanium and thorium is planned.
+* How rich a region is follows real measurements: the Lunar Prospector gamma-ray spectrometer maps of thorium and
+  titanium dioxide (`tools/fetch_lp_grs.py` -> `data/lp_grs_5deg.json`; PDS data set LP-L-GRS-5-ELEM-ABUNDANCE-V1.0,
+  5 deg equal-area map, footprint about 150 km, read between cell centres by linear interpolation). The chance
+  that a rock holds thorium ore scales with thorium relative to Tranquility Base (limited to 0.15-4 times),
+  ilmenite and armalcolite with TiO2 (0.05-2 times). A census of generated rocks: thorium ore in 8% of rocks at
+  Tranquility Base, 30% near Fra Mauro, 3% on the far-side highlands; ilmenite in 21%, 14% and 1%. The base odds
+  are invented; only their variation from place to place is measured. The globe view can show both maps.
+  The tool reads the column names from the PDS format file and stops if the values are not plausible
+  (for instance if the median Th/U ratio is not near 3.7). Titanium and iron are given as oxides.
 * The lander's speed grows with height and reaches tens of kilometres per second: purely theoretical, marked as such.
 
 ## The journey home
@@ -148,5 +155,5 @@ wire-mesh wheels and fenders of the Apollo lunar rover. All are built from simpl
 The Layers view colours each point by the share of measured, inferred and predicted relief in the local shape of
 the ground (near the base the median predicted relief is under 1 cm against 3 cm inferred).
 
-Not done yet: the lunar poles, and ore distributions that follow the real maps.
+Not done yet: the lunar poles.
 At top speed the map is rebuilt about once a second, which shows as a short stutter.
