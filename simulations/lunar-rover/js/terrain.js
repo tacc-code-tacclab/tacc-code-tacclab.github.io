@@ -230,6 +230,7 @@ export class Terrain {
         }
       }
     }
+    this.partC = z;                                       // craters only: the centimetre roughness is left out of the layer view
     return c <= 1 ? z + this.rough(X, Y) : z;
   }
   rough(x, y) {                                           // value noise, 3 octaves, ~1.5 cm rms
@@ -259,7 +260,7 @@ export class Terrain {
   /* full height for a mesh of spacing c (0.25 = everything). Parts are left in this.partS / partP */
   height(x, y, c = 0.25) {
     const d = this.measured(x, y), s = c <= 4 ? this.inferred(x, y) : 0, p = c <= 4096 ? this.predicted(x, y, c) : 0, m = this.dug.length ? this.made(x, y) : 0;
-    this.partS = s; this.partP = p;
+    this.partS = s; this.partP = p ? this.partC : 0;
     return d + s + p + m - this.drop(x, y);
   }
   slopeDeg(x, y, base = 4) {                              // slope of the measured surface
@@ -294,7 +295,7 @@ export class Clipmap {
     for (let i = 0; i < 256 * 256; i++) { const v = 128 + (r() + r() + r() - 1.5) * 90; id.data[4 * i] = id.data[4 * i + 1] = id.data[4 * i + 2] = clamp(v, 0, 255); id.data[4 * i + 3] = 255; }
     ctx.putImageData(id, 0, 0);
     const grain = new THREE.CanvasTexture(g); grain.wrapS = grain.wrapT = THREE.RepeatWrapping; grain.generateMipmaps = true; grain.minFilter = THREE.LinearMipmapLinearFilter;
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, vertexColors: true });
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, vertexColors: true }); mat.envMapIntensity = 0;
     const u = this.uniforms = {
       tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tWide: { value: t.texWide }, tGlobal: { value: t.texGlobal }, tGrain: { value: grain },
       uA: { value: new THREE.Vector4(t.lon0, t.lat0, t.kx, t.ky) },
@@ -400,9 +401,15 @@ export class Clipmap {
       P[v] = l.ox + i * c; P[v + 1] = l.oy + j * c; P[v + 2] = z;
       const nx = (h[k - 1] - h[k + 1]) / (2 * c), ny = (h[k - M] - h[k + M]) / (2 * c), inv = 1 / Math.sqrt(nx * nx + ny * ny + 1);
       Nn[v] = nx * inv; Nn[v + 1] = ny * inv; Nn[v + 2] = inv;
-      if (ov) {                                           // what the shape here is made of: grey measured, cyan inferred, orange predicted
-        const s = Math.min(1, Math.abs(l.s[k]) / 0.12), p = Math.min(1, Math.abs(l.p[k]) / 0.05);
-        C[v] = 1 - 0.75 * s + 0.6 * p; C[v + 1] = 1 + 0.25 * s - 0.25 * p; C[v + 2] = 1 + 0.45 * s - 0.85 * p;
+      if (ov) {
+        /* Layer view. Which source shapes the ground at this point? Three amounts of local relief are compared:
+           measured  = how far the measured surface departs from its own average a few metres around;
+           inferred  = the height added from the shading of the photo;  predicted = the height of the predicted craters.
+           The colour is their mix: light grey measured, cyan inferred, orange predicted. */
+        const x = l.ox + i * c, y = l.oy + j * c, e = Math.max(6, 2 * c), T = this.t;
+        const m = Math.abs(T.measured(x, y) - 0.25 * (T.measured(x + e, y) + T.measured(x - e, y) + T.measured(x, y + e) + T.measured(x, y - e))), sI = Math.abs(l.s[k]), p = Math.abs(l.p[k]), tot = m + sI + p + 0.004;
+        const wm = (m + 0.004) / tot, ws = sI / tot, wp = p / tot;
+        C[v] = 2.6 * wm + 0.35 * ws + 3.3 * wp; C[v + 1] = 2.6 * wm + 2.7 * ws + 1.55 * wp; C[v + 2] = 2.6 * wm + 3.3 * ws + 0.3 * wp;
       } else { C[v] = C[v + 1] = C[v + 2] = 1; }
     }
     l.geo.attributes.position.needsUpdate = l.geo.attributes.normal.needsUpdate = l.geo.attributes.color.needsUpdate = true;

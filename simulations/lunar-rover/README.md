@@ -19,11 +19,26 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 * The arm picks up a gem within reach; with none in reach it lifts the nearest rock and throws it aside.
 * Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
   100; with a flat battery the rover only crawls and can be brought back to base.
-* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 2000 the game announces that the
-  vehicle is ready for the Earth; that journey is not built yet.
+* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 3000 the journey to the Earth opens.
 * Ore odds (one rock in seven ilmenite, one in twenty-five thorium, more in larger rocks) are invented and the same
   everywhere. Making them follow the real orbital maps of titanium and thorium is planned.
 * The lander's speed grows with height and reaches tens of kilometres per second: purely theoretical, marked as such.
+
+## The journey home
+
+With 3000 units of energy captured, board the lander, climb above 100 km and press "Return to Earth". Six guided
+steps follow; a mistake sends the player back one step, never to the start of the game.
+
+| Step | What the player does | Real | Changed |
+|---|---|---|---|
+| 1 Lunar orbit | waits one orbit, then burns on the far side | trans-Earth injection: one engine burn behind the Moon, about +1 km/s | 118 min compressed to 18 s; the burn window is drawn; it is the engine, not centrifugal force, that sends the ship home |
+| 2 Coast | steers round meteoroids, three hits allowed | about three days; speed falls, then rises to about 11 km/s | space there is almost empty: the meteoroids are a game |
+| 3 Braking | burns in a timing window | - | Apollo did not brake into Earth orbit; it entered directly behind a heat shield. Braking instead costs about 3 km/s |
+| 4 Low Earth orbit | chooses where to come down | - | free choice of the place is a game; coastlines are Natural Earth 1:110m (public domain), colours illustrative |
+| 5 Entry | keeps the angle between 5.5 and 7.5 deg | entry corridor about 6.5 deg, roughly one degree wide; too steep burns, too shallow skips out | simplified to one number |
+| 6 Parachute | opens it between 7 and 3 km | Apollo: drogues near 7 km, mains near 3 km | one parachute |
+
+The figures in the "Real" column are quoted from memory and should be checked.
 
 ## The whole Moon
 
@@ -126,5 +141,12 @@ Not yet tested on a real phone or a real GPU, so performance there is unknown; t
 frames take too long. The sounds have not been listened to by a person yet. Points and energy are kept in the
 browser's local storage.
 
-Not done yet: the journey to the Earth, the lunar poles, and ore distributions that follow the real maps.
+Graphics: the lander is modelled on the Apollo lunar module (descent stage in gold and black blankets, four
+legs with struts and footpads, ladder, ascent stage with windows, tanks, thrusters and antennas) at 0.6 scale, with
+an invented ramp; the object at the landing site is the descent stage alone, as it was left. The rover borrows the
+wire-mesh wheels and fenders of the Apollo lunar rover. All are built from simple shapes, not from engineering data.
+The Layers view colours each point by the share of measured, inferred and predicted relief in the local shape of
+the ground (near the base the median predicted relief is under 1 cm against 3 cm inferred).
+
+Not done yet: the lunar poles, and ore distributions that follow the real maps.
 At top speed the map is rebuilt about once a second, which shows as a short stutter.

@@ -44,86 +44,153 @@ function aimSun(focus, half) {
   earth.userData.sky = true; scene.add(earth); scene.userData.earth = earth;
 }
 
+{ const es = new THREE.Scene(), g = new THREE.SphereGeometry(50, 32, 16), P = g.attributes.position, col = new Float32Array(P.count * 3), v = V();
+  for (let i = 0; i < P.count; i++) { v.set(P.getX(i), P.getY(i), P.getZ(i)).normalize(); const c = v.dot(sunDir) > 0.985 ? 60 : v.z < -0.02 ? 0.42 : 0.012; col[3 * i] = col[3 * i + 1] = col[3 * i + 2] = c; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(es, 0.03).texture; pm.dispose(); }
+
 /* ====================================================================== small helpers for the models */
 const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.15, ...o });
-function cyl(r1, r2, h, seg = 12, m) { const g = new THREE.CylinderGeometry(r1, r2, h, seg); g.rotateX(Math.PI / 2); const o = new THREE.Mesh(g, m); o.castShadow = true; return o; }   // axis along z
-function box(x, y, z, m) { const o = new THREE.Mesh(new THREE.BoxGeometry(x, y, z), m); o.castShadow = true; return o; }
+function canvasTex(w, h, draw, rep = [1, 1]) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); return t; }
+const crinkle = canvasTex(128, 128, (x, w, h) => { const r = rng(71), id = x.createImageData(w, h); for (let i = 0; i < w * h; i++) { const v = 128 + (r() + r() - 1) * 120; id.data[4 * i] = id.data[4 * i + 1] = id.data[4 * i + 2] = v; id.data[4 * i + 3] = 255; } x.putImageData(id, 0, 0); x.globalAlpha = 0.5; x.drawImage(x.canvas, 0, 0, w * 2, h * 2); }, [3, 2]);
+const cells = canvasTex(128, 128, (x, w, h) => { x.fillStyle = '#0c1a3c'; x.fillRect(0, 0, w, h); for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) { const g = x.createLinearGradient(i * 32, j * 32, i * 32 + 32, j * 32 + 32); g.addColorStop(0, '#1c3a86'); g.addColorStop(1, '#0d1f52'); x.fillStyle = g; x.fillRect(i * 32 + 1.5, j * 32 + 1.5, 29, 29); } x.strokeStyle = '#9fb4d8'; x.lineWidth = 0.6; for (let i = 0; i <= 4; i++) { x.beginPath(); x.moveTo(i * 32 + 16, 0); x.lineTo(i * 32 + 16, h); x.stroke(); } }, [3, 2]);
+cells.colorSpace = THREE.SRGBColorSpace;
+const cyl = (r1, r2, h, seg = 12, m) => { const g = new THREE.CylinderGeometry(r1, r2, h, seg); g.rotateX(Math.PI / 2); const o = new THREE.Mesh(g, m); o.castShadow = true; return o; };   // axis along z
+const box = (x, y, z, m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(x, y, z), m); o.castShadow = true; return o; };
+const ball = (r, m, seg = 14) => { const o = new THREE.Mesh(new THREE.SphereGeometry(r, seg, Math.max(6, seg >> 1)), m); o.castShadow = true; return o; };
 function strut(a, b, r, m) { const d = b.clone().sub(a), o = cyl(r, r, d.length(), 6, m); o.position.copy(a).addScaledVector(d, 0.5); o.quaternion.setFromUnitVectors(Z, d.clone().normalize()); return o; }
-const GOLD = mat(0xb08a3c, { metalness: 0.5, roughness: 0.45 }), GREY = mat(0x9aa0a6), DARK = mat(0x30363c), WHITE = mat(0xd9dde0), PANEL = mat(0x1d2f5a, { metalness: 0.6, roughness: 0.3 });
-
+const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
+const FOIL = mat(0xd39c2c, { metalness: 1, roughness: 0.33, bumpMap: crinkle, bumpScale: 1.4 });        // gold-coloured thermal blanket
+const FOIL_K = mat(0x1e1b18, { metalness: 0.85, roughness: 0.4, bumpMap: crinkle, bumpScale: 1.2 });     // black-coated panels
+const ALU = mat(0xc3c8ce, { metalness: 0.92, roughness: 0.4 }), GREY = mat(0x868c93, { metalness: 0.7, roughness: 0.5 }), DARK = mat(0x202428, { metalness: 0.5, roughness: 0.65 });
+const WHITE = mat(0xe6e8ea, { roughness: 0.55, metalness: 0.05 }), GLASS = mat(0x070b12, { metalness: 1, roughness: 0.06 }), ORANGE = mat(0xc9652b, { roughness: 0.7, side: THREE.DoubleSide });
+const PANEL = mat(0xffffff, { map: cells, metalness: 0.7, roughness: 0.25 }), MESH = mat(0xcbb26a, { metalness: 0.9, roughness: 0.45, side: THREE.DoubleSide });
+const GOLD = FOIL;
 function legs(g, rBody, zBody, rPad, n, m) {
   for (let i = 0; i < n; i++) {
     const a = (i + 0.5) * 2 * Math.PI / n, c = Math.cos(a), s = Math.sin(a);
-    g.add(strut(V(c * rBody, s * rBody, zBody), V(c * rPad, s * rPad, 0.08), 0.05, GREY));
-    g.add(strut(V(c * rBody * 0.9, s * rBody * 0.9, zBody * 0.45), V(c * rPad, s * rPad, 0.08), 0.035, GREY));
-    const pad = cyl(0.28, 0.28, 0.08, 10, GOLD); pad.position.set(c * rPad, s * rPad, 0.04); g.add(pad);
+    g.add(strut(V(c * rBody, s * rBody, zBody), V(c * rPad, s * rPad, 0.08), 0.05, m));
+    g.add(strut(V(c * rBody * 0.9, s * rBody * 0.9, zBody * 0.45), V(c * rPad, s * rPad, 0.08), 0.035, m));
+    g.add(at(cyl(0.28, 0.3, 0.08, 14, FOIL), c * rPad, s * rPad, 0.04));
   }
 }
-function makeEagle() {                                   // Apollo 11 descent stage: real position, illustrative shape
+/* Apollo lunar module, descent stage: octagonal body in gold and black blankets, four legs with primary and secondary
+   struts and dished footpads, ladder and porch on the front leg, engine skirt. Proportions follow the real one (4.2 m
+   across the body, 9.4 m across the pads); details are simplified. */
+function descentStage() {
   const g = new THREE.Group();
-  const b = cyl(2.1, 2.1, 1.65, 8, GOLD); b.position.z = 1.95; g.add(b);
-  const top = cyl(1.5, 2.0, 0.25, 8, GREY); top.position.z = 2.9; g.add(top);
-  const bell = cyl(0.35, 0.8, 0.9, 12, DARK); bell.position.z = 0.75; g.add(bell);
-  legs(g, 2.0, 2.2, 4.4, 4, GREY);
-  return g;
-}
-function makeLander() {                                  // the player's hopper
-  const g = new THREE.Group();
-  const b = cyl(1.25, 1.25, 1.0, 8, GOLD); b.position.z = 1.45; g.add(b);
-  const cab = cyl(0.6, 1.0, 0.9, 8, GREY); cab.position.z = 2.4; g.add(cab);
-  const bell = cyl(0.25, 0.55, 0.6, 12, DARK); bell.position.z = 0.7; g.add(bell);
-  legs(g, 1.2, 1.5, 2.3, 4, GREY);
-  const ramp = box(0.9, 1.7, 0.06, GREY); ramp.position.set(0, 1.95, 0.5); ramp.rotation.x = -0.55; g.add(ramp);
-  const flame = cyl(0.05, 0.45, 1.6, 12, new THREE.MeshBasicMaterial({ color: 0xbfd8ff, transparent: true, opacity: 0.55, depthWrite: false }));
-  flame.castShadow = false; flame.position.z = -0.4; flame.visible = false; g.add(flame); g.userData.flame = flame;
-  return g;
-}
-function makeRover() {
-  const g = new THREE.Group(), u = g.userData;
-  const body = box(0.9, 1.3, 0.28, WHITE); body.position.z = 0.06; g.add(body);
-  const deck = box(0.8, 0.7, 0.03, PANEL); deck.position.set(0, -0.2, 0.22); g.add(deck);
-  const mast = cyl(0.025, 0.025, 0.75, 6, GREY); mast.position.set(-0.28, 0.35, 0.57); g.add(mast);
-  const head = box(0.22, 0.12, 0.1, DARK); head.position.set(-0.28, 0.37, 0.98); g.add(head);
-  u.wheels = [];
-  for (const [x, y] of [[-0.56, 0.52], [0.56, 0.52], [-0.56, -0.52], [0.56, -0.52]]) {
-    const piv = new THREE.Group(); piv.position.set(x, y, -0.3);
-    const wg = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 14); wg.rotateZ(Math.PI / 2);
-    const w = new THREE.Mesh(wg, DARK); w.castShadow = true; piv.add(w);
-    for (let i = 0; i < 6; i++) { const t = box(0.17, 0.05, 0.03, GREY); const a = i * Math.PI / 3; t.position.set(0, Math.cos(a) * 0.22, Math.sin(a) * 0.22); t.rotation.x = a; w.add(t); }   // grousers, so the spin is visible
-    g.add(piv); u.wheels.push({ piv, w, x, y });
+  const body = cyl(2.1, 2.1, 1.65, 8, FOIL); body.position.z = 1.95; body.rotation.z = Math.PI / 8; g.add(body);
+  for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + i * Math.PI / 2, p = box(1.5, 0.05, 1.5, FOIL_K); p.position.set(Math.cos(a) * 1.95, Math.sin(a) * 1.95, 1.95); p.rotation.z = a + Math.PI / 2; g.add(p); }
+  const deck = cyl(1.95, 2.1, 0.12, 8, ALU); deck.position.z = 2.84; deck.rotation.z = Math.PI / 8; g.add(deck);
+  const under = cyl(2.0, 1.7, 0.1, 8, FOIL_K); under.position.z = 1.08; under.rotation.z = Math.PI / 8; g.add(under);
+  g.add(at(cyl(0.32, 0.78, 0.9, 24, DARK), 0, 0, 0.72), at(cyl(0.8, 0.8, 0.04, 24, GREY), 0, 0, 0.28));
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), A = V(c * 2.0, sn * 2.0, 2.6), P = V(c * 4.45, sn * 4.45, 0.12), M = A.clone().lerp(P, 0.6);
+    g.add(strut(A, M, 0.085, FOIL), strut(M, P, 0.06, ALU));
+    for (const sd of [-1, 1]) g.add(strut(V(Math.cos(a + sd * 0.62) * 1.95, Math.sin(a + sd * 0.62) * 1.95, 1.25), M, 0.045, FOIL));
+    g.add(strut(V(c * 2.0, sn * 2.0, 1.2), M, 0.04, ALU));
+    g.add(at(cyl(0.47, 0.4, 0.1, 18, FOIL), P.x, P.y, 0.07), at(cyl(0.5, 0.5, 0.02, 18, ALU), P.x, P.y, 0.125));
   }
-  // blaster turret
-  u.turret = new THREE.Group(); u.turret.position.set(0.22, 0.25, 0.3);
-  u.turret.add(box(0.2, 0.24, 0.14, DARK)); const barrel = cyl(0.035, 0.045, 0.5, 8, GREY); barrel.rotation.x = -Math.PI / 2; barrel.position.y = 0.3; u.turret.add(barrel); g.add(u.turret);
-  // arm: yaw base -> shoulder -> elbow -> gripper
-  u.armBase = new THREE.Group(); u.armBase.position.set(-0.05, 0.6, 0.22); g.add(u.armBase);
-  u.shoulder = new THREE.Group(); u.armBase.add(u.shoulder);
-  const l1 = box(0.06, ARM_L, 0.06, GREY); l1.position.y = ARM_L / 2; u.shoulder.add(l1);
-  u.elbow = new THREE.Group(); u.elbow.position.y = ARM_L; u.shoulder.add(u.elbow);
-  const l2 = box(0.05, ARM_L, 0.05, GREY); l2.position.y = ARM_L / 2; u.elbow.add(l2);
-  u.grip = new THREE.Group(); u.grip.position.y = ARM_L; u.elbow.add(u.grip);
-  const f1 = box(0.03, 0.14, 0.03, DARK), f2 = f1.clone(); f1.position.set(-0.06, 0.06, 0); f2.position.set(0.06, 0.06, 0); u.grip.add(f1, f2);
-  // scoop blade (unlocked later)
-  u.scoop = box(0.95, 0.06, 0.26, mat(0xc8a030, { metalness: 0.6 })); u.scoop.position.set(0, 0.74, -0.18); u.scoop.rotation.x = 0.35; u.scoop.visible = false; g.add(u.scoop);
+  for (const sd of [-0.2, 0.2]) g.add(strut(V(sd, 2.05, 2.6), V(sd, 3.25, 1.0), 0.022, ALU));         // ladder on the front (+y) leg
+  for (let k = 0; k < 8; k++) { const t = k / 7; g.add(at(box(0.4, 0.03, 0.03, ALU), 0, 2.05 + 1.2 * t, 2.6 - 1.6 * t)); }
+  g.add(at(box(0.95, 0.7, 0.05, ALU), 0, 2.15, 2.72));                                                 // porch
+  return g;
+}
+function makeEagle() { return descentStage(); }          // what is left at Tranquility Base: the descent stage, real position
+function ascentStage() {                                 // crew cabin: faceted pressure hull, windows, hatch, tanks, thrusters, antennas
+  const g = new THREE.Group();
+  const cg = new THREE.CylinderGeometry(1.16, 1.16, 2.3, 10); cg.rotateZ(Math.PI / 2); const cab = new THREE.Mesh(cg, ALU); cab.castShadow = true; g.add(at(cab, 0, 0.55, 4.1));
+  g.add(at(box(2.5, 1.3, 1.55, ALU), 0, -0.4, 3.95), at(box(1.5, 0.75, 1.3, FOIL_K), 0, -1.35, 3.95), at(box(2.0, 0.5, 0.5, FOIL), 0, -0.5, 3.05));
+  for (const sx of [-1, 1]) {
+    const w = box(0.5, 0.04, 0.42, GLASS); w.position.set(sx * 0.52, 1.6, 4.45); w.rotation.set(0.5, 0, sx * -0.35); g.add(w);          // the two triangular-looking windows
+    g.add(at(ball(0.62, FOIL, 16), sx * 1.5, -0.25, 3.7));                                                                           // propellant tanks
+    for (const sy of [-1, 1]) { const q = at(box(0.22, 0.22, 0.22, GREY), sx * 1.72, 0.2 + sy * 1.05, 4.75); g.add(q, strut(V(sx * 1.2, 0.2 + sy * 0.8, 4.5), q.position, 0.03, ALU));
+      for (const d of [[sx, 0, 0], [0, sy, 0], [0, 0, 1], [0, 0, -1]]) { const n = cyl(0.03, 0.07, 0.16, 8, DARK); n.position.copy(q.position).add(V(d[0], d[1], d[2]).multiplyScalar(0.18)); n.quaternion.setFromUnitVectors(Z, V(d[0], d[1], d[2])); g.add(n); } }
+  }
+  g.add(at(box(0.8, 0.05, 0.8, FOIL_K), 0, 1.72, 3.55), at(cyl(0.44, 0.44, 0.36, 18, ALU), 0, 0.15, 5.1), at(cyl(0.5, 0.5, 0.05, 18, GREY), 0, 0.15, 5.3));   // hatch, docking tunnel
+  const rr = cyl(0.34, 0.05, 0.15, 18, ALU); rr.rotation.x = -Math.PI / 2 + 0.3; g.add(at(rr, 0, 1.45, 5.05), strut(V(0, 1.2, 4.9), V(0, 1.42, 5.0), 0.04, GREY));       // rendezvous radar
+  const sb = cyl(0.42, 0.04, 0.16, 18, MESH); sb.rotation.set(0.5, 0.6, 0); g.add(at(sb, 1.35, 0.3, 5.6), strut(V(1.0, 0.2, 4.9), V(1.35, 0.3, 5.5), 0.03, GREY));       // S-band dish
+  g.add(strut(V(-0.9, -0.5, 4.7), V(-0.95, -0.55, 5.9), 0.012, GREY), strut(V(-0.4, -1.2, 4.6), V(-0.4, -1.3, 5.7), 0.012, GREY));
+  return g;
+}
+function makeLander() {                                  // the player's vehicle: a lunar module at 0.6 scale, with a ramp for the rover (the ramp is invented)
+  const g = new THREE.Group(), s = new THREE.Group(); s.add(descentStage(), ascentStage()); s.scale.setScalar(0.6); g.add(s);
+  const ramp = box(0.9, 1.9, 0.05, ALU); ramp.position.set(0, 2.45, 0.42); ramp.rotation.x = -0.42; g.add(ramp);
+  const flame = cyl(0.04, 0.42, 1.5, 16, new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.5, depthWrite: false })); flame.castShadow = false; flame.position.z = -0.55; flame.visible = false; g.add(flame); g.userData.flame = flame;
   return g;
 }
 const ARM_L = 0.8;
-function makeBase() {                                    // the station that stays at Tranquility Base: charging point and rescue home
-  const g = new THREE.Group();
-  const b = cyl(1.5, 1.5, 1.3, 10, WHITE); b.position.z = 1.35; g.add(b);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(1.5, 14, 8, 0, 6.3, 0, 1.57), WHITE); dome.rotation.x = Math.PI / 2; dome.position.z = 2.0; dome.castShadow = true; g.add(dome);
-  legs(g, 1.4, 1.3, 2.4, 3, GREY);
-  for (const sx of [-1, 1]) { const arr = box(3.2, 0.05, 1.4, PANEL); arr.position.set(sx * 3.3, 0, 2.3); arr.rotation.y = sx * 0.5; g.add(arr); g.add(strut(V(sx * 1.4, 0, 2.2), V(sx * 2.0, 0, 2.3), 0.04, GREY)); }
-  const mast = cyl(0.03, 0.03, 2.2, 6, GREY); mast.position.set(0.6, 0.6, 4.2); g.add(mast);
-  const dish = cyl(0.55, 0.05, 0.25, 14, GREY); dish.position.set(0.6, 0.6, 5.3); dish.rotation.x = 0.9; g.add(dish);
-  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: 0x66ff99 })); lamp.position.set(0.6, 0.6, 5.6); g.add(lamp);
+/* Rover: aluminium chassis, wire-mesh wheels with chevron treads and fenders (after the Apollo lunar rover), camera mast,
+   umbrella high-gain antenna, solar deck, sampling arm, gun and scoop. */
+function makeRover() {
+  const g = new THREE.Group(), u = g.userData;
+  g.add(at(box(0.86, 1.34, 0.07, ALU), 0, 0, -0.05), at(box(0.7, 0.86, 0.22, WHITE), 0, -0.12, 0.1), at(box(0.72, 0.8, 0.02, PANEL), 0, -0.14, 0.225));
+  for (const sx of [-1, 1]) g.add(at(box(0.06, 1.3, 0.05, GREY), sx * 0.4, 0, -0.02), at(box(0.14, 0.5, 0.16, FOIL), sx * 0.43, -0.15, 0.07));
+  g.add(at(box(0.5, 0.3, 0.16, FOIL), 0, 0.5, 0.07), at(box(0.3, 0.2, 0.12, WHITE), 0.2, -0.55, 0.09));
+  // mast with stereo cameras
+  g.add(at(cyl(0.022, 0.028, 0.8, 8, ALU), -0.3, 0.3, 0.62), at(box(0.05, 0.05, 0.08, GREY), -0.3, 0.3, 1.02), at(box(0.26, 0.1, 0.1, WHITE), -0.3, 0.32, 1.1));
+  for (const sx of [-0.08, 0.08]) { const l = cyl(0.028, 0.028, 0.05, 12, GLASS); l.rotation.x = Math.PI / 2; g.add(at(l, -0.3 + sx, 0.385, 1.1)); }
+  // umbrella antenna
+  const dish = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.1, 20, 1, true), MESH); dish.geometry.rotateX(-Math.PI / 2); dish.castShadow = true; dish.rotation.x = 0.45;
+  g.add(at(dish, 0.3, -0.5, 0.95), strut(V(0.3, -0.5, 0.15), V(0.3, -0.5, 0.92), 0.015, ALU), at(ball(0.03, GREY, 8), 0.3, -0.46, 1.03));
+  u.wheels = [];
+  const tg = new THREE.TorusGeometry(0.19, 0.045, 8, 24); tg.rotateY(Math.PI / 2);
+  const hg = new THREE.CylinderGeometry(0.19, 0.19, 0.035, 20); hg.rotateZ(Math.PI / 2); const hub = new THREE.CylinderGeometry(0.07, 0.07, 0.14, 12); hub.rotateZ(Math.PI / 2);
+  const fg = new THREE.CylinderGeometry(0.27, 0.27, 0.19, 12, 1, true, 0, Math.PI * 0.75); fg.rotateZ(Math.PI / 2); fg.rotateX(Math.PI / 2 - Math.PI * 0.125);
+  for (const [x, y] of [[-0.56, 0.52], [0.56, 0.52], [-0.56, -0.52], [0.56, -0.52]]) {
+    const piv = new THREE.Group(); piv.position.set(x, y, -0.3);
+    const w = new THREE.Group(), tire = new THREE.Mesh(tg, MESH); tire.castShadow = true; w.add(tire, new THREE.Mesh(hg, DARK), new THREE.Mesh(hub, ALU));
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, t = box(0.13, 0.035, 0.02, GREY); t.position.set(0, Math.cos(a) * 0.235, Math.sin(a) * 0.235); t.rotation.x = a; t.rotation.z = i % 2 ? 0.5 : -0.5; w.add(t); }   // chevron treads, so the spin shows
+    const fen = new THREE.Mesh(fg, ORANGE); fen.castShadow = true; piv.add(w, fen, at(box(0.03, 0.03, 0.3, GREY), -Math.sign(x) * 0.1, 0, 0.16));
+    g.add(piv, strut(V(Math.sign(x) * 0.36, y, -0.03), V(Math.sign(x) * 0.44, y, -0.06), 0.03, GREY)); u.wheels.push({ piv, w, x, y });
+  }
+  // gun: housing, twin barrels, magazine
+  u.turret = new THREE.Group(); u.turret.position.set(0.24, 0.25, 0.3);
+  u.turret.add(box(0.18, 0.26, 0.13, DARK), at(box(0.1, 0.14, 0.12, GREY), 0.12, -0.02, 0)); for (const sx of [-0.035, 0.035]) { const b = cyl(0.016, 0.02, 0.5, 8, GREY); b.rotation.x = -Math.PI / 2; u.turret.add(at(b, sx, 0.32, 0.01)); }
+  u.turret.add(at(cyl(0.04, 0.04, 0.05, 10, DARK), 0, 0.14, 0.01)); g.add(u.turret);
+  // arm: yaw base -> shoulder -> elbow -> three-finger gripper
+  u.armBase = new THREE.Group(); u.armBase.position.set(-0.05, 0.6, 0.22); g.add(u.armBase, at(cyl(0.07, 0.08, 0.06, 14, GREY), -0.05, 0.6, 0.19));
+  u.shoulder = new THREE.Group(); u.armBase.add(u.shoulder); u.shoulder.add(ball(0.055, DARK, 10));
+  const l1 = cyl(0.028, 0.034, ARM_L, 8, ALU); l1.rotation.x = -Math.PI / 2; l1.position.y = ARM_L / 2; u.shoulder.add(l1);
+  u.elbow = new THREE.Group(); u.elbow.position.y = ARM_L; u.shoulder.add(u.elbow); u.elbow.add(ball(0.045, DARK, 10));
+  const l2 = cyl(0.022, 0.028, ARM_L, 8, ALU); l2.rotation.x = -Math.PI / 2; l2.position.y = ARM_L / 2; u.elbow.add(l2);
+  u.grip = new THREE.Group(); u.grip.position.y = ARM_L; u.elbow.add(u.grip); u.grip.add(ball(0.035, DARK, 8));
+  for (let i = 0; i < 3; i++) { const a = i * 2.094, f = box(0.022, 0.15, 0.022, GREY); f.position.set(Math.cos(a) * 0.055, 0.07, Math.sin(a) * 0.055); f.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35); u.grip.add(f); }
+  u.scoop = box(0.95, 0.06, 0.26, mat(0xc8a030, { metalness: 0.8, roughness: 0.4 })); u.scoop.position.set(0, 0.74, -0.18); u.scoop.rotation.x = 0.35; u.scoop.visible = false; g.add(u.scoop);
   return g;
+}
+function makeBase() {                                    // the station that stays at Tranquility Base: habitat, solar wings, dish. Invented.
+  const g = new THREE.Group();
+  const hg = new THREE.CylinderGeometry(1.35, 1.35, 3.2, 20); hg.rotateZ(Math.PI / 2); const hab = new THREE.Mesh(hg, WHITE); hab.castShadow = true; g.add(at(hab, 0, 0, 1.95));
+  for (const sx of [-1, 1]) { g.add(at(ball(1.35, WHITE, 20), sx * 1.6, 0, 1.95)); const wing = box(3.4, 0.04, 1.5, PANEL); wing.position.set(sx * 4.6, 0, 3.0); wing.rotation.y = sx * 0.45; g.add(wing, strut(V(sx * 2.4, 0, 2.6), V(sx * 3.1, 0, 2.95), 0.05, ALU)); }
+  for (const [x, y] of [[-1.6, -1], [-1.6, 1], [1.6, -1], [1.6, 1]]) g.add(strut(V(x, y * 0.7, 1.2), V(x * 1.15, y * 1.5, 0.06), 0.06, ALU), at(cyl(0.3, 0.3, 0.06, 14, FOIL), x * 1.15, y * 1.5, 0.03));
+  g.add(at(box(1.0, 0.5, 1.5, FOIL), 0, 1.45, 1.6), at(box(0.6, 0.06, 1.0, GLASS), 0, 1.72, 1.7));   // airlock and hatch
+  g.add(strut(V(0.6, -0.4, 3.2), V(0.6, -0.4, 5.6), 0.03, ALU)); const dish = cyl(0.7, 0.06, 0.3, 20, MESH); dish.rotation.x = 0.9; g.add(at(dish, 0.6, -0.4, 5.75));
+  g.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: 0x66ff99 })), 0.6, -0.4, 6.15));
+  return g;
+}
+/* Gems: three minerals, three shapes. The real ones are dull dark grains; the glow is there so they can be found. */
+const GEMMAT = [null,
+  new THREE.MeshStandardMaterial({ color: 0x3b6fd8, emissive: 0x1750c8, emissiveIntensity: 1.2, metalness: 1, roughness: 0.18, flatShading: true }),
+  new THREE.MeshStandardMaterial({ color: 0x35e39a, emissive: 0x0fae62, emissiveIntensity: 1.6, metalness: 0.3, roughness: 0.12, flatShading: true }),
+  new THREE.MeshStandardMaterial({ color: 0xfff0b8, emissive: 0xffb830, emissiveIntensity: 2.6, metalness: 0.9, roughness: 0.1, flatShading: true })];
+const glowTex = (a, b) => canvasTex(64, 64, x => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, a); g.addColorStop(0.3, b); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
+const HALO = [null, ['rgba(120,170,255,.9)', 'rgba(60,110,255,.3)'], ['rgba(120,255,190,.9)', 'rgba(30,220,130,.3)'], ['rgba(255,240,180,1)', 'rgba(255,190,70,.5)']].map(c => c && new THREE.SpriteMaterial({ map: glowTex(c[0], c[1]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+const GEMGEO = [null, new THREE.CylinderGeometry(0.085, 0.085, 0.028, 6), new THREE.CylinderGeometry(0.012, 0.04, 0.2, 6), new THREE.OctahedronGeometry(0.06, 0)];
+function makeGem(type) {
+  const g = new THREE.Group(), r = rng(1000 + type * 77 + ((Math.random() * 1e6) | 0)), add = (m, sc) => { m.castShadow = true; g.add(m); return m; };
+  if (type === 1) for (let i = 0; i < 6; i++) { const m = add(new THREE.Mesh(GEMGEO[1], GEMMAT[1])); m.position.set((r() - 0.5) * 0.12, (r() - 0.5) * 0.12, i * 0.022); m.rotation.set(Math.PI / 2 + (r() - 0.5) * 0.9, (r() - 0.5) * 0.9, r() * 3); m.scale.setScalar(0.7 + r() * 0.6); }      // ilmenite: stacked hexagonal plates
+  else if (type === 2) for (let i = 0; i < 8; i++) { const m = add(new THREE.Mesh(GEMGEO[2], GEMMAT[2])), a = r() * 6.283, t = 0.15 + r() * 0.75; m.position.set(Math.sin(t) * Math.cos(a) * 0.07, Math.sin(t) * Math.sin(a) * 0.07, Math.cos(t) * 0.07); m.quaternion.setFromUnitVectors(V(0, -1, 0), V(Math.sin(t) * Math.cos(a), Math.sin(t) * Math.sin(a), Math.cos(t))); m.scale.set(1, 0.6 + r() * 0.8, 1); }   // thorium ore: a spray of prisms
+  else { add(new THREE.Mesh(GEMGEO[3], GEMMAT[3])).scale.setScalar(1.5); for (let i = 0; i < 14; i++) { const m = add(new THREE.Mesh(GEMGEO[3], GEMMAT[3])), d = V(r() - 0.5, r() - 0.5, r() * 0.9).normalize(); m.position.copy(d).multiplyScalar(0.11); m.quaternion.setFromUnitVectors(V(0, 1, 0), d); m.scale.set(0.35, 1.6 + r() * 1.6, 0.35); }      // armalcolite: radiating golden blades
+    const L = new THREE.PointLight(0xffc860, 2.2, 7, 2); L.position.z = 0.25; g.add(L); }
+  const sp = new THREE.Sprite(HALO[type]); sp.scale.setScalar(type === 3 ? 1.5 : 0.55); sp.position.z = 0.05; g.add(sp);
+  g.scale.setScalar(GEM[type].scale); return g;
 }
 const BASE = { x: -118, y: -48 };
 
 /* ====================================================================== game state */
 const LEVELS = [0, 60, 150, 300, 500, 800, 1200];        // total energy captured
-const LAUNCH = 2000;                                     // captured energy needed for the trip to the Earth
+const LAUNCH = 3000;                                     // captured energy needed for the trip to the Earth
 const PERKS = [
   null,
   { name: 'Rover deployed', vmax: 2.5, mu: 0.55, blastD: 0.35, blast: 1, liftD: 0.30, push: 15 },
@@ -148,7 +215,7 @@ const perk = () => PERKS[G.level];
 function addPoints(n, why) {
   G.points += n; G.energy += n; save();
   const nl = levelOf(G.points);
-  if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\n(That journey is the next chapter of this game.)`, 12000); sfx.level(); }
+  if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\nBoard the lander, climb above 100 km and press “Return to Earth”.`, 12000); sfx.level(); }
   else if (nl > G.level) { G.level = nl; toast(`LEVEL ${nl}\n${perk().name}`, 5000); sfx.level(); rover.obj.userData.scoop.visible = !!perk().scoop; buildActs(); }
   else if (why) toast(`+${n} energy\n${why}`, 1800);
   G.level = nl; hudScore();
@@ -237,12 +304,12 @@ class Particles {
    never appear or vanish at a size you can see: the big ones are there from far away, the small ones fill in as you come. */
 const BUCKET = 2, VIS = touchUI ? 170 : 220, CAP = touchUI ? 500 : 800;
 const RCLASS = [{ p: 'a', cell: 8, d0: 0.08, d1: 0.16 }, { p: 'b', cell: 16, d0: 0.16, d1: 0.4 }, { p: 'c', cell: 64, d0: 0.4, d1: 1.0 }];
-const GEM = [null, { name: 'ilmenite', scale: 1, e: () => COST.ilmenite }, { name: 'thorium ore', scale: 1.35, e: () => COST.thorium }, { name: 'armalcolite', scale: 2.6, e: () => COST.armalcolite }];
+const GEM = [null, { name: 'ilmenite', scale: 1.2, e: () => COST.ilmenite }, { name: 'thorium ore', scale: 1.5, e: () => COST.thorium }, { name: 'armalcolite', scale: 2.2, e: () => COST.armalcolite }];
 class Rocks {
   constructor() {
     this.cells = new Map(); this.removed = new Set(); this.moved = new Map(); this.active = []; this.buckets = new Map(); this.movers = new Set(); this.cx = 1e9; this.cy = 1e9; this.h = 0;
     this.debris = []; this.gems = [];
-    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true });
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, envMapIntensity: 0 });
     this.meshes = [];
     for (let v = 0; v < 4; v++) {
       const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, r = rng(977 + v * 31);
@@ -318,8 +385,7 @@ class Rocks {
   /* gems lie where they fell until they are collected; they are stored by latitude and longitude */
   gem(x, y, type) { const ll = terrain.toLatLon(x, y); return this.gemLL(ll[0], ll[1], type); }
   gemLL(lat, lon, type) {
-    const m = new THREE.Mesh(this.gemGeo, this.gemMats[type]); m.scale.setScalar(GEM[type].scale);
-    if (type === 3) { const sp = new THREE.Sprite(this.halo); sp.scale.setScalar(4.2); m.add(sp); }
+    const m = makeGem(type);
     scene.add(m); const g = { m, type, lat, lon, x: 0, y: 0, t: G.t }; this.gems.push(g); this.gemPlace(g); return g;
   }
   gemPlace(g) { const p = terrain.fromLatLon(g.lat, g.lon); g.x = p[0]; g.y = p[1]; const far = Math.hypot(g.x, g.y) > 3e5; g.m.visible = !far; if (!far) g.m.position.set(g.x, g.y, terrain.height(g.x, g.y) + 0.13 * GEM[g.type].scale); }
@@ -371,9 +437,10 @@ class Rocks {
       tmp.q.setFromAxisAngle(tmp.b.set(0.3, 0.5, 0.8).normalize(), f.rot); tmp.m.compose(tmp.a.set(f.x, f.y, f.z), tmp.q, tmp.s.set(f.s, f.s * 0.8, f.s * 0.6)); this.dm.setMatrixAt(i, tmp.m);
     }
     if (moving || this.dm.count !== this.debris.length) { this.dm.count = this.debris.length; this.dm.instanceMatrix.needsUpdate = true; }
+    GEMMAT[1].emissiveIntensity = 1.2 + 0.5 * Math.sin(G.t * 4); GEMMAT[2].emissiveIntensity = 1.6 + 0.7 * Math.sin(G.t * 4.6); GEMMAT[3].emissiveIntensity = 2.6 + 1.4 * Math.sin(G.t * 2.5);
     // gems: the brighter and larger, the more they are worth. Small ones jump into the rover; the rare large one needs the arm
     for (let i = this.gems.length - 1; i >= 0; i--) {
-      const g = this.gems[i]; if (!g.m.visible) continue; g.m.rotation.z += dt * (g.type === 3 ? 0.9 : 1.6); g.m.material.emissiveIntensity = (g.type === 3 ? 3.0 : 1.5) + (g.type === 3 ? 1.4 : 0.6) * Math.sin((G.t - g.t) * (g.type === 3 ? 2.5 : 4));
+      const g = this.gems[i]; if (!g.m.visible) continue; g.m.rotation.z += dt * (g.type === 3 ? 0.7 : 1.3);
       if (G.mode !== 'rover' || rover.arm.gem === g) continue;
       const dx = rover.pos.x - g.x, dy = rover.pos.y - g.y, d = Math.hypot(dx, dy);
       if (g.type === 3) { if (d < 1.6 && G.t > (this.hintT || 0)) { this.hintT = G.t + 8; toast('Too big to scoop up while driving.\nFace it and press Grab.', 3000); } continue; }
@@ -660,7 +727,9 @@ function deployOrBoard() {
 
 /* ====================================================================== input */
 const keys = new Set(), stick = { x: 0, y: 0 }, held = new Set();
-const ACT = { fire, grab: () => rover.grab(), dig, hop, flip, deploy: deployOrBoard,
+const ACT = { fire, grab: () => rover.grab(), dig, hop, flip, deploy: () => orbit.on ? ACT.earth() : deployOrBoard(),
+  earth() { if (!orbit.on) return; if (G.points < LAUNCH) return toast(`The journey to the Earth needs ${LAUNCH} units of energy captured.\nYou have ${G.points}.`, 3500); ret.start(); },
+  abort() { if (ret.on) ret.quit(); },
   names() { G.names = !G.names; document.querySelector('#more [data-act=names]').textContent = 'Crater names: ' + (G.names ? 'on' : 'off'); },
   rescue() {                                            // never stranded: the base station brings both vehicles home
     if (rover.arm.rock) { rover.arm.rock.held = false; rover.arm.rock = null; rover.arm.phase = 'idle'; }
@@ -713,7 +782,8 @@ addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive
 /* ====================================================================== UI */
 function buildActs() {
   const P = perk(), box = $('acts'), b = (act, sym, label, key, cls = '', hold = false) => `<button type="button" data-act="${act}" ${hold ? 'data-hold="1"' : ''} class="${cls}"><b>${sym}</b>${label}<kbd>${key}</kbd></button>`;
-  if (G.mode === 'lander') box.innerHTML = b('up', '▲', 'Up', 'R / PgUp', '', true) + b('down', '▼', 'Down', 'F / PgDn', '', true) + b('deploy', '⇣', 'Deploy rover', 'Enter', lander && lander.landed ? '' : 'locked');
+  if (ret.on) box.innerHTML = b('burn', '✹', ret.label(), 'Space', 'wide', true) + b('abort', '⌂', 'Give up: back to the Moon', '', 'wide');
+  else if (G.mode === 'lander') box.innerHTML = (orbit.on ? b('earth', '🜨', G.points >= LAUNCH ? 'Return to Earth' : `Return to Earth (needs ${LAUNCH})`, 'Enter', 'wide' + (G.points >= LAUNCH ? '' : ' locked')) : '') + b('up', '▲', 'Up', 'R / PgUp', '', true) + b('down', '▼', 'Down', 'F / PgDn', '', true) + b('deploy', '⇣', 'Deploy rover', 'Enter', lander && lander.landed ? '' : 'locked');
   else box.innerHTML = (G.flat ? b('rescue', '⌂', 'Back to base', 'B', 'wide') : '') + b('fire', '✹', 'Gun ' + ['', 'I', 'II', 'III'][P.blast], 'Space', '', true) + b('grab', '✊', 'Grab', 'E') + b('dig', '⛏', 'Dig', 'Q', P.scoop ? '' : 'locked')
     + b('hop', '⇡', 'Hop', 'H', P.hop ? '' : 'locked') + b('flip', '↻', 'Upright', 'T') + b('deploy', '⇡', 'Board', 'Enter');
   for (const el of box.querySelectorAll('[data-hold]')) {
@@ -721,7 +791,7 @@ function buildActs() {
     el.addEventListener('pointerdown', e => { e.preventDefault(); sfx.kick(); try { el.setPointerCapture(e.pointerId); } catch (_) {} held.add(a); el.classList.add('on'); });
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up); el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  $('keys').textContent = orbit.on ? '↑↓←→ move over the Moon · R / F higher, lower · come down to 100 km to descend at the circle' : G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · N names · Enter board · drag to look';
+  $('keys').textContent = ret.on ? 'Follow the instructions at the top · Space = the action button · arrows steer' : orbit.on ? '↑↓←→ move over the Moon · R / F higher, lower · come down to 100 km to descend at the circle' : G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · N names · Enter board · drag to look';
 }
 function hudScore() {
   $('enTxt').textContent = fm(Math.max(0, G.energy), 0); $('enFill').style.width = clamp(G.energy, 0, 100) + '%'; $('enFill').classList.toggle('low', G.energy < 12); $('enOver').textContent = G.energy > 100 ? '+' + fm(G.energy - 100, 0) : '';
@@ -782,6 +852,13 @@ function fillSheets() {
   <li><b>Lander.</b> It follows the controls almost at once, takes off its own sideways speed below 10 m, and always touches down gently on slopes up to 22°. Speed and climb rate grow with height.</li>
   <li><b>Above 100 km</b> the game shows the Moon as a globe and you slide a viewpoint over it. That is not an orbit: a real one at 100 km moves at 1.6 km/s and takes about two hours a lap.</li>
   <li>Gravity, the parabolas of debris and dust, and the low grip of the wheels are left as they are.</li></ul>
+  <h3>The journey home: what is real and what is not</h3>
+  <ul><li><b>Leaving lunar orbit — real.</b> Apollo left with one engine burn of about two and a half minutes behind the Moon (trans-Earth injection), adding roughly 1 km/s. It is the engine, fired at the right point of the orbit, that sends the ship home — not centrifugal force. The game asks for one orbit first and compresses its 118 minutes into 18 seconds.</li>
+  <li><b>The coast — real, except the rocks.</b> The trip takes about three days; the ship slows as it climbs away from the Moon and then falls towards the Earth, reaching about 11 km/s. Space between the two is almost perfectly empty: dodging meteoroids is a game.</li>
+  <li><b>Braking into Earth orbit — a choice of the game.</b> Apollo did not do it: it entered the atmosphere directly at 11 km/s behind a heat shield. A ship without one would have to brake first, as here, and that costs about 3 km/s of propellant.</li>
+  <li><b>The entry corridor — real.</b> Apollo had to enter at about 6.5° below the horizon, within roughly one degree: steeper and the heating and deceleration become too great, shallower and the capsule skips back out.</li>
+  <li><b>Parachutes — real numbers.</b> Apollo opened its drogues at about 7 km and its main parachutes at about 3 km, and splashed down in the ocean. Choosing any place on the Earth is a game. The coastlines are real (Natural Earth); the colours are illustrative.</li></ul>
+  <p class="dim">Figures in this section are quoted from memory.</p>
   <h3>What is only a game</h3>
   <ul><li>Minerals as glowing gems (real ilmenite and armalcolite are dull, dark grains), minerals as fuel, the gun, unlimited propellant for the lander.</li>
   <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
@@ -893,6 +970,119 @@ const orbit = {
   },
 };
 
+/* ====================================================================== the journey home, in six steps.
+   Each step states what is real and the page's Science notes say what was changed. Times are compressed. */
+const ret = {
+  on: false, ph: '', t: 0, hull: 3, lat: 0, lon: 0,
+  async build() {
+    const land = await (await fetch('data/earth_land.json')).json();
+    const draw = (w, h, mask) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+      if (mask) { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.fillStyle = '#fff'; } else { const o = x.createLinearGradient(0, 0, 0, h); o.addColorStop(0, '#0d2f5e'); o.addColorStop(0.5, '#0a3f7d'); o.addColorStop(1, '#0d2f5e'); x.fillStyle = o; x.fillRect(0, 0, w, h);
+        const g = x.createLinearGradient(0, 0, 0, h); for (const [la, col] of [[90, '#f4f6f8'], [72, '#e9edf0'], [62, '#6f8468'], [45, '#4f7a45'], [30, '#b9a56e'], [18, '#a8935c'], [8, '#3f7a3c'], [-8, '#3a7438'], [-22, '#a9955e'], [-35, '#5c8048'], [-55, '#6f8468'], [-64, '#f0f3f5'], [-90, '#ffffff']]) g.addColorStop((90 - la) / 180, col); x.fillStyle = g; }
+      for (const r of land.rings) { x.beginPath(); for (let i = 0; i < r.length; i += 2) { const px = (r[i] + 180) / 360 * w, py = (90 - r[i + 1]) / 180 * h; i ? x.lineTo(px, py) : x.moveTo(px, py); } x.closePath(); x.fill(); }
+      return c; };
+    const tex = new THREE.CanvasTexture(draw(2048, 1024, false)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; this.earthTex = tex;
+    const mc = draw(720, 360, true); this.mask = mc.getContext('2d').getImageData(0, 0, 720, 360).data;
+    const sph = (r, m) => { const g = new THREE.SphereGeometry(r, 96, 48); g.rotateX(Math.PI / 2); return new THREE.Mesh(g, m); }, L = (sc, x, y, z) => { const d = new THREE.DirectionalLight(0xffffff, 3); d.position.set(x, y, z); sc.add(d, new THREE.AmbientLight(0xffffff, 0.8)); };
+    // far scene 1: the Moon, the parking orbit, the burn window
+    const A = this.sA = new THREE.Scene(); A.add(sph(RKM, new THREE.MeshStandardMaterial({ map: terrain.texGlobal, roughness: 1 }))); L(A, -0.6, -0.5, 0.6);
+    const ring = (r, a0, a1, col) => { const p = []; for (let i = 0; i <= 96; i++) { const a = a0 + (a1 - a0) * i / 96; p.push(Math.cos(a) * r, Math.sin(a) * r, 0); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); return new THREE.Line(g, new THREE.LineBasicMaterial({ color: col })); };
+    const RO = RKM + 100; A.add(ring(RO, 0, 6.2832, 0x5f8f9c)); for (const d of [-14, 0, 14]) A.add(ring(RO + d, Math.PI - 0.44, Math.PI + 0.44, 0x49ff8a));
+    this.dot = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,255,255,1)', 'rgba(255,220,140,.6)'), depthTest: false })); this.dot.scale.setScalar(260); A.add(this.dot);
+    this.camA = new THREE.PerspectiveCamera(40, 1, 100, 1e5); this.camA.position.set(0, 0, 7600); this.camA.up.set(0, 1, 0); this.camA.lookAt(0, 0, 0);
+    // far scene 2: the Earth from low orbit, to choose where to come down
+    const E = this.sE = new THREE.Scene(); E.add(sph(6371, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }))); L(E, 0.7, -0.5, 0.5);
+    const atm = sph(6371 * 1.018, new THREE.MeshBasicMaterial({ color: 0x4d9bff, transparent: true, opacity: 0.16, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })); E.add(atm);
+    this.camE = new THREE.PerspectiveCamera(45, 1, 50, 1e5); this.camE.up.set(0, 0, 1);
+    // near scene: the ship itself, for the coast, the entry and the parachute
+    const N = this.sN = new THREE.Scene(); N.environment = scene.environment; L(N, -0.5, -0.4, 0.8);
+    this.ship = makeLander(); this.ship.rotation.x = -Math.PI / 2; N.add(this.ship);
+    this.earth = sph(1, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })); this.earth.rotation.z = 2.2; N.add(this.earth);
+    const st = new Float32Array(1500 * 3); for (let i = 0; i < 1500; i++) { const v = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(3000); st.set([v.x, v.y, v.z], 3 * i); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(st, 3)); N.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false })));
+    this.rocks = []; const rm = new THREE.MeshStandardMaterial({ color: 0x6b655d, roughness: 1, flatShading: true }); for (let i = 0; i < 26; i++) { const m = new THREE.Mesh(rocks.meshes[i % 4].geometry, rm); m.visible = false; N.add(m); this.rocks.push({ m, on: false }); }
+    this.chute = new THREE.Mesh(new THREE.ConeGeometry(3.4, 2.2, 16, 1, true), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, emissive: 0xc8501e, emissiveIntensity: 0.35, side: THREE.DoubleSide, roughness: 0.8 })); this.chute.visible = false; N.add(this.chute);
+    this.sea = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x0f4c8a, roughness: 0.6 })); this.sea.rotation.x = -Math.PI / 2; this.sea.visible = false; N.add(this.sea);
+    this.camN = new THREE.PerspectiveCamera(55, 1, 0.3, 8000);
+  },
+  isLand(lat, lon) { const c = Math.floor((lon + 180) / 360 * 720) % 720, r = clamp(Math.floor((90 - lat) / 180 * 360), 0, 359); return this.mask[4 * (r * 720 + c)] > 127; },
+  say(n, text) { $('guide').innerHTML = `<b>STEP ${n} OF 6</b>${text}`; $('guide').style.display = 'block'; },
+  label() { return { lap: 'Burn engine', coast: 'Steer with the arrows', brake: 'Braking burn', leo: 'De-orbit here', entry: 'Steer ↑ ↓', chute: 'Open parachute', down: '…', done: 'Back to the Moon' }[this.ph] || '…'; },
+  async start() { if (!this.sA) { toast('Preparing the journey…', 1500); await this.build(); } orbit.on = false; document.body.classList.remove('orbit'); document.body.classList.add('ret'); for (const e of labels.pool) e.style.display = 'none'; this.on = true; this.hull = 3; this.go('lap'); },
+  quit() { this.on = false; document.body.classList.remove('ret'); $('guide').style.display = 'none'; $('bar').style.display = 'none'; $('heat').style.opacity = 0; for (const e of labels.pool) e.style.display = 'none'; ACT.rescue(); },
+  go(ph) {
+    this.ph = ph; this.t = 0; this.acc = 0; this.was = true; this.safe = 0; $('bar').style.display = 'none'; $('heat').style.opacity = 0; for (const r of this.rocks) { r.on = false; r.m.visible = false; }
+    this.chute.visible = false; this.sea.visible = false; this.earth.visible = true; this.sN.background = new THREE.Color(0x000000); this.ship.position.set(0, 0, 0); this.ship.rotation.set(-Math.PI / 2, 0, 0);
+    if (ph === 'lap') { this.th = 0; this.th0 = 0; this.say(1, 'Lunar orbit. Let the ship complete <u>one full orbit</u>, then hold <u>Burn</u> while it crosses the <span style="color:#49ff8a">green arc</span> on the far side of the Moon. The burn there sends it towards the Earth (on the right).'); }
+    if (ph === 'coast') this.say(2, '384,000 km to go. <u>Steer with the arrows</u> to avoid the meteoroids. Three hits and the hull is lost.');
+    if (ph === 'brake') { this.say(3, 'Arriving at 11 km/s — too fast for the atmosphere. Hold <u>Braking burn</u> while the marker is in the <span style="color:#49ff8a">green zone</span> to enter Earth orbit. Miss it and the ship burns up.'); this.bar(0.55, 0.78); }
+    if (ph === 'leo') { this.lat = 20; this.lon = -30; this.say(4, 'Low Earth orbit. <u>Move the circle</u> over the place where you want to come down, then press <u>De-orbit here</u>.'); document.body.classList.add('orbit'); } else document.body.classList.remove('orbit');
+    if (ph === 'entry') { this.ang = 6.5; this.drift = 0; this.say(5, 'Re-entry. Keep the entry angle in the <span style="color:#49ff8a">green corridor</span> with ↑ ↓. Too steep: the ship burns. Too shallow: it skips off the atmosphere.'); this.bar((5.5 - 4) / 5, (7.5 - 4) / 5); }
+    if (ph === 'chute') { this.alt = 11; this.open = false; this.say(6, 'Open the parachute <u>between 7 km and 3 km</u>. Earlier it tears off, later it is too late.'); this.bar(1 - 7 / 11, 1 - 3 / 11); }
+    if (ph === 'done') { this.earth.visible = false; this.sea.visible = true; this.sea.position.set(0, 0, -1.3); this.chute.visible = true; this.chute.position.set(0, 0, 7.5); this.chute.rotation.x = Math.PI / 2; this.sN.background = new THREE.Color(0x4080d9); this.ship.rotation.set(0, 0, 0.6);
+      const land = this.isLand(this.lat, this.lon), where = `${fm(Math.abs(this.lat), 1)}°${this.lat >= 0 ? 'N' : 'S'} ${fm(Math.abs(this.lon), 1)}°${this.lon >= 0 ? 'E' : 'W'}`; G.home = (G.home || 0) + 1; sfx.rare();
+      $('guide').innerHTML = `<b>HOME</b>${land ? 'Touchdown on land' : 'Splashdown in the ocean'} at ${where}, with ${G.stats.il} ilmenite, ${G.stats.th} thorium and ${G.stats.ar || 0} armalcolite finds aboard. Press <u>Back to the Moon</u> to go on prospecting.`; }
+    buildActs();
+  },
+  bar(a, b) { const e = $('bar'); e.style.display = 'block'; e.firstElementChild.style.left = a * 100 + '%'; e.firstElementChild.style.width = (b - a) * 100 + '%'; },
+  mark(v) { $('bar').lastElementChild.style.left = clamp(v, 0, 1) * 100 + '%'; },
+  fail(msg, back) { sfx.boom(1.5); G.shake = 0.5; toast(msg, 6000); this.go(back); },
+  step(dt, ax, ay, burn) {
+    G.t += dt; this.t += dt; const edge = burn && !this.was; this.was = burn; const row = (a, b, c = '') => `<span class="k">${a.padEnd(9)}</span><span class="${c}">${b}</span>\n`; let hud = '';
+    sfx.frame(dt, { thrust: burn && (this.ph === 'lap' || this.ph === 'brake') ? 0.9 : 0, throttle: 0, wheel: 0, speed: 0, ground: false, geiger: 0 });
+    if (this.ph === 'lap') {
+      this.th += dt * 6.2832 / 18; const laps = Math.floor(this.th / 6.2832), a = this.th % 6.2832, inWin = Math.abs(a - Math.PI) < 0.44;       // one lap in 18 s; the real one takes 118 minutes
+      this.dot.position.set(Math.cos(a) * (RKM + 100), Math.sin(a) * (RKM + 100), 0); this.dot.material.color.set(burn ? 0xffb060 : 0xffffff);
+      if (burn) { if (laps < 1) { if (edge) toast('Not yet: complete one full orbit first.', 2500); } else if (inWin) { this.acc += dt; if (this.acc > 0.9) { toast('Trans-Earth injection: on the way home.', 3500); return this.go('coast'); } } else if (edge) toast('Not here. Wait for the green arc, on the far side of the Moon.', 3000); }
+      if (!inWin) this.acc = 0;
+      hud = row('ORBITS', `${laps} of 1`, laps ? 'ok' : '') + row('HEIGHT', '100 km') + row('SPEED', '1.63 km/s') + row('LAP', '118 min (here 18 s)');
+    } else if (this.ph === 'coast') {
+      const T = 38, u = Math.min(1, this.t / T), r = 384400 * (1 - u) + 6700 * u, v = Math.sqrt(2 * 398600 / r + 0.6);
+      this.ship.position.x = clamp(this.ship.position.x + ax * 9 * dt, -8, 8); this.ship.position.z = clamp(this.ship.position.z + ay * 7 * dt, -4.5, 4.5); this.ship.rotation.y = -ax * 0.35;
+      this.earth.position.set(-3, 900, 2); this.earth.scale.setScalar(14 + 380 * u * u * u);
+      if (u < 0.93 && Math.random() < dt * (0.5 + 1.3 * Math.sin(u * Math.PI))) { const k = this.rocks.find(q => !q.on); if (k) { k.on = true; k.m.visible = true; const aim = Math.random() < 0.4; k.m.position.set(aim ? this.ship.position.x + (Math.random() - 0.5) * 3 : (Math.random() - 0.5) * 18, 300, aim ? this.ship.position.z + (Math.random() - 0.5) * 2 : (Math.random() - 0.5) * 10); k.s = 0.5 + Math.random() * 1.3; k.m.scale.setScalar(k.s); k.v = 70 + Math.random() * 45; k.w = V(Math.random(), Math.random(), Math.random()); } }
+      for (const k of this.rocks) { if (!k.on) continue; k.m.position.y -= k.v * dt; k.m.rotation.x += k.w.x * dt * 2; k.m.rotation.y += k.w.y * dt * 2;
+        if (Math.abs(k.m.position.y) < 2.5 && Math.hypot(k.m.position.x - this.ship.position.x, k.m.position.z - this.ship.position.z) < 1.1 + 0.8 * k.s && this.t > (this.safe || 0)) { k.on = false; k.m.visible = false; this.hull--; this.safe = this.t + 1.2; sfx.boom(1); G.shake = 0.4; if (this.hull <= 0) { this.hull = 3; return this.fail('The hull is breached.\nBack to lunar orbit to try again.', 'lap'); } toast(`Hit! Hull ${this.hull} of 3`, 1800); }
+        else if (k.m.position.y < -30) { k.on = false; k.m.visible = false; } }
+      hud = row('TO EARTH', fm(r, 0) + ' km') + row('SPEED', fm(v, 2) + ' km/s') + row('HULL', '▮'.repeat(this.hull) + '▯'.repeat(3 - this.hull), this.hull < 2 ? 'warn' : 'ok') + row('TIME', 'about 3 days (here 38 s)');
+      if (u >= 1) return this.go('brake');
+    } else if (this.ph === 'brake') {
+      const m = this.t / 6; this.mark(m); this.earth.position.set(-60, 900, -40); this.earth.scale.setScalar(394 + 140 * m); if (burn && m > 0.55 && m < 0.78) this.acc += dt;
+      hud = row('SPEED', fm(11 - 3.2 * Math.min(1, this.acc / 0.5), 1) + ' km/s', 'warn') + row('NEED', '7.8 km/s for orbit');
+      if (m >= 1) return this.acc >= 0.5 ? (toast('Captured: low Earth orbit.', 3000), this.go('leo')) : this.fail('No braking burn in time: the ship met the atmosphere at 11 km/s\nwithout a heat shield and burned up. Try the approach again.', 'brake');
+    } else if (this.ph === 'leo') {
+      this.lat = clamp(this.lat + ay * 40 * dt, -80, 80); this.lon = wrap180(this.lon + ax * 40 * dt / Math.max(0.3, Math.cos(this.lat * D2R)));
+      hud = row('LAT LON', `${fm(Math.abs(this.lat), 1)}°${this.lat >= 0 ? 'N' : 'S'} ${fm(Math.abs(this.lon), 1)}°${this.lon >= 0 ? 'E' : 'W'}`) + row('BELOW', this.isLand(this.lat, this.lon) ? 'land' : 'ocean', 'ok') + row('HEIGHT', '400 km') + row('SPEED', '7.7 km/s');
+      if (edge) return this.go('entry');
+    } else if (this.ph === 'entry') {
+      this.drift += (Math.random() - 0.5) * 9 * dt; this.drift *= 1 - dt; this.ang = clamp(this.ang + (this.drift + 0.5 * Math.sin(this.t * 1.3) - ay * 1.9) * dt, 4, 9); this.mark((this.ang - 4) / 5);
+      const steep = this.ang > 7.5, shallow = this.ang < 5.5; this.acc = steep || shallow ? this.acc + dt : Math.max(0, this.acc - dt * 0.5);
+      $('heat').style.opacity = clamp(0.25 + 0.5 * Math.sin(Math.min(1, this.t / 10) * Math.PI) + (steep ? 0.35 : 0), 0, 1); G.shake = 0.06 + (steep ? 0.2 : 0);
+      this.earth.position.set(0, 600, -520); this.earth.scale.setScalar(620); this.ship.rotation.x = -Math.PI / 2 - 0.5;
+      hud = row('ANGLE', fm(this.ang, 1) + '°', steep || shallow ? 'warn' : 'ok') + row('CORRIDOR', '5.5° – 7.5°') + row('SPEED', fm(7.8 - 7.3 * Math.min(1, this.t / 10) ** 2, 1) + ' km/s') + row('HEAT', steep ? 'TOO STEEP' : shallow ? 'too shallow' : 'within limits', steep ? 'warn' : '');
+      if (this.acc > 2.2) return steep ? this.fail('Too steep: the heating was more than the ship could take.\nBack to orbit — try the entry again.', 'leo') : this.fail('Too shallow: the ship skipped off the atmosphere, back into orbit.\nTry the entry again.', 'leo');
+      if (this.t >= 10) return this.go('chute');
+    } else if (this.ph === 'chute' || this.ph === 'down') {
+      const land = this.isLand(this.lat, this.lon); this.earth.visible = false; this.sea.visible = true; this.sea.material.color.set(land ? 0x6f7a4a : 0x0f4c8a);
+      this.alt = Math.max(0, this.alt - dt * (this.open ? 0.9 : 1.05)); this.mark(1 - this.alt / 11); const k = clamp(1 - this.alt / 11, 0, 1); this.sN.background.setRGB(0.25 * k, 0.5 * k, 0.85 * k);
+      this.ship.rotation.set(0, 0, this.t * 0.4); this.ship.position.set(0, 0, 0); this.sea.position.set(0, 0, -30 - this.alt * 60); this.chute.visible = this.open; this.chute.position.set(0, 0, 7.5); this.chute.rotation.x = Math.PI / 2;
+      hud = row('HEIGHT', fm(this.alt, 1) + ' km', this.alt < 7 && this.alt > 3 && !this.open ? 'ok' : '') + row('SPEED', this.open ? '8 m/s' : fm(60 + this.alt * 22, 0) + ' m/s') + row('CHUTE', this.open ? 'open' : 'closed', this.open ? 'ok' : 'warn') + row('BELOW', land ? 'land' : 'ocean');
+      if (!this.open && edge) { if (this.alt > 7.3) return this.fail('Opened too early: at that speed the parachute tore away.\nTry the descent again.', 'chute'); this.open = true; this.ph = 'down'; sfx.hop(); toast('Parachute open.', 2000); buildActs(); }
+      if (!this.open && this.alt < 2.5) return this.fail('Too late to open the parachute.\nTry the descent again.', 'chute');
+      if (this.alt <= 0) return this.go('done');
+    } else if (this.ph === 'done') { hud = row('MISSION', 'complete', 'ok') + row('RETURNS', String(G.home || 1)); if (edge) return this.quit(); }
+    this.hT = (this.hT || 0) - dt; if (this.hT <= 0) { this.hT = 0.12; $('stat').innerHTML = hud; hudScore(); }
+  },
+  draw() {
+    const asp = innerWidth / innerHeight, sh = G.shake > 0.001 ? G.shake : 0; G.shake *= 0.9;
+    if (this.ph === 'lap') { const c = this.camA; c.aspect = asp; c.updateProjectionMatrix(); renderer.render(this.sA, c); }
+    else if (this.ph === 'leo') { const c = this.camE; c.aspect = asp; c.updateProjectionMatrix(); orbit.P(this.lat, this.lon, 6371 + 9000, c.position); c.lookAt(0, 0, 0); renderer.render(this.sE, c); }
+    else { const c = this.camN; c.aspect = asp; c.updateProjectionMatrix(); const dn = this.ph === 'chute' || this.ph === 'down' || this.ph === 'done';
+      if (dn) { c.position.set(9, -13, 6); c.up.set(0, 0, 1); c.lookAt(0, 0, 2.5); } else { c.position.set(this.ship.position.x * 0.6 + (Math.random() - 0.5) * sh, -15, this.ship.position.z * 0.6 + 4 + (Math.random() - 0.5) * sh); c.up.set(0, 0, 1); c.lookAt(this.ship.position.x * 0.8, 40, this.ship.position.z * 0.8); }
+      renderer.render(this.sN, c); }
+  },
+};
+
 (async function boot() {
   const load = $('load');
   try {
@@ -918,6 +1108,7 @@ const orbit = {
     G.t += dt;
     const ax = clamp(kd('ArrowRight', 'KeyD') - kd('ArrowLeft', 'KeyA') + stick.x, -1, 1), ay = clamp(kd('ArrowUp', 'KeyW') - kd('ArrowDown', 'KeyS') + stick.y, -1, 1);
     const vzIn = kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
+    if (ret.on) { ret.step(dt, ax, ay, keys.has('Space') || held.has('burn')); return; }
     if (orbit.on) { orbit.step(dt, ax, ay, vzIn); return; }
     let focus, agl = 0;
     if (G.mode === 'rover') {
@@ -985,12 +1176,13 @@ const orbit = {
     const real = (now - last) / 1000; last = now; if (real <= 0) return;
     if (!G.paused) tick(Math.min(0.05, real));
     adapt(real);
+    if (ret.on) { $('tag').style.display = 'none'; ret.draw(); return; }
     if (orbit.on) { $('tag').style.display = 'none'; orbit.draw(); return; }
     const tag = $('tag'), de = camera.position.distanceTo(eagle.position);       // label on the descent stage
     if (de < 150) { const p = tmp.b.set(eagle.position.x, eagle.position.y, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
     labels.frame();
     renderer.render(scene, camera);
   }
-  window.__game = { labels, base, sfx, need, COST, orbit, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
+  window.__game = { labels, base, sfx, need, COST, orbit, ret, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
   requestAnimationFrame(frame);
 })();
