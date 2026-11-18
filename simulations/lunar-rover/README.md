@@ -10,10 +10,13 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
   titanium-rich lunar samples, and ilmenite is a candidate ore for oxygen, iron and titanium.
 * **Thorium and uranium** are real and concentrate in KREEP-rich material; orbiters mapped thorium with gamma-ray
   spectrometers, which the rover's ticking detector imitates.
-* In the game the rover turns both into energy (ilmenite +10, thorium ore +40). That is fiction: lunar thorium is a
-  few parts per million of the rock, and neither mineral is a fuel.
-* The arm lifts every rock it can reach and analyses it: ore becomes energy, a plain rock is thrown away. Rocks too
-  big for the arm are shot, and the ore that falls out is collected by driving over it.
+* **Armalcolite** is real too: a titanium mineral discovered in the Apollo 11 samples and named after ARMstrong,
+  ALdrin and COLlins. In the game it is the rare, large, bright gem.
+* The gems are hidden inside rocks and appear only when a rock is broken by the gun. They stay where they fall
+  (stored by latitude and longitude, also across reloads) until collected. Ilmenite (+10) and thorium ore (+40)
+  are picked up by driving over them; armalcolite (+150, only in rocks of 40 cm or more) only with the arm.
+  Turning minerals into energy is fiction, and so is their glow: the real ones are dull, dark grains.
+* The arm picks up a gem within reach; with none in reach it lifts the nearest rock and throws it aside.
 * Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
   100; with a flat battery the rover only crawls and can be brought back to base.
 * The total energy captured sets the level (speed, grip, gun, scoop, hop). At 2000 the game announces that the
@@ -26,32 +29,39 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 
 The world is a flat map (x east, y north) around an anchor point, with the curvature added as a parabola. When the
 lander flies away the anchor follows it, so any place between 82 deg N and S can be reached; the poles are left out
-because this method breaks down there. Measured data by distance from the Apollo 11 site: NAC DTM 2 m/px and photo
-0.5 m/px (2 km), 59 m/px (120 km), 474 m/px (485 km), then the global LOLA/Kaguya DEM, here at 3.8 km/px
-(`data/global_dem_half.png`, a 2x2 block mean of the Lunar Flight file) with the 2.7 km/px LROC WAC mosaic.
+because this method breaks down there. Above 100 km the page switches to a globe textured with the real mosaic:
+the viewpoint slides over the Moon up to 20,000 km, a circle marks the point below, and coming back down to
+100 km starts the descent there. This is a way of choosing a destination, not an orbit being flown.
+
+Measured data by distance from the Apollo 11 site: NAC DTM 2 m/px and photo 0.5 m/px (2 km), 59 m/px (120 km),
+474 m/px (485 km), then the global LOLA/Kaguya DEM, here at 3.8 km/px (`data/global_dem_half.png`, a 2x2 block
+mean of the Lunar Flight file) with the 2.7 km/px LROC WAC mosaic.
 
 Craters are predicted only in the size range the local data cannot show: up to 3 m in the photo, 150 m in the 59 m
 DEM, 1.5 km in the 474 m DEM, 8 km on the global DEM. Above 150 m the equilibrium law no longer holds, so a rule of
 thumb thins them out: on mare by (D/150 m)^-1.2, on highland to 0.6 of equilibrium; mare and highland are told
 apart by the brightness of the real mosaic. This is an order-of-magnitude rule, not a fitted production function.
-Predicted features are tied to Moon-fixed coordinates; they can shift by tens of metres when the map's latitude
-band changes, which only happens in flight.
+
+Rocks are drawn while they are nearer than 220 times their size (about three pixels), so they do not appear or
+vanish at a visible size; they are generated in Moon-fixed cells, and rocks that were pushed, thrown or destroyed
+stay that way. Predicted features can shift by tens of metres when the map's latitude band changes, which only
+happens in flight.
 
 Simplifications: the Sun stands at the same height everywhere (as if it were the same local time all over the Moon);
 the Earth is placed correctly for each location (overhead at the centre of the near side, absent from the far side).
 
-The scientific point is the ground. The LRO cameras resolve this site at 0.5 m per pixel (image) and 2 m per pixel
-(elevation); a rover is smaller than that. The ground is therefore built from three layers that the page keeps apart
-and can show in colour (button **Layers**):
+## Changed so that it can be played
 
-| Layer | Source | Scales | Status |
-|---|---|---|---|
-| measured | LROC NAC DTM (2 m/px), LROC NAC orthophoto (0.5 m/px); regional DEM beyond the tile | > ~10 m | real data, unchanged |
-| inferred | shape from shading of the real photo, `tools/shape_from_shading.py` | 2-10 m | real positions, estimated heights |
-| predicted | statistical generation, `js/terrain.js` (`RULES`) | < 3 m craters, 8 cm - 1 m rocks, cm roughness; outside the 2 km photo also craters up to 150 m | invented features, published statistics |
+A faithful simulation of these vehicles is very hard to control, so some physics was altered on purpose, and the
+page says so in its Science notes:
 
-The measured data are the files produced by `../lunar-flight/fetch_and_process.py` (this page reads
-`../lunar-flight/assets/apollo11/`); nothing is downloaded again.
+* rover stabiliser: an invented device holds the body parallel to the ground, level in flight, and damps rolling;
+* wheels roll over rocks up to 20 cm, taller ones are pushed or stop the rover; suspension forces are capped;
+* the lander follows the controls almost at once, removes its own sideways speed below 10 m and always touches
+  down gently, on slopes up to 22 deg; its speed and climb rate grow with height (theoretical);
+* the globe view above 100 km replaces orbital flight.
+
+Gravity, the ballistic flight of debris and dust, and the low traction are left as they are.
 
 ## Inferred layer: what was done and how well it holds
 

@@ -135,11 +135,11 @@ const PERKS = [
   { name: 'Hop thrusters', vmax: 9.0, mu: 1.1, blastD: 1.05, blast: 3, liftD: 0.6, push: 600, scoop: true, hop: true },
 ];
 const KEEP_OUT = 75;                                     // m around the Apollo 11 descent stage where tools are locked
-const G = { mode: 'lander', points: 0, level: 1, t: 0, shake: 0, overlay: false, cam: 0, soundOn: true, energy: 60, flat: false, names: true, det: 99, stats: { rocks: 0, th: 0, il: 0, shot: 0 }, ready: false, area: '' };
-try { const s = JSON.parse(localStorage.getItem('lunar-rover-v1') || 'null'); if (s && s.points > 0) { G.points = s.points | 0; if (s.energy > 0) G.energy = +s.energy; if (s.stats) Object.assign(G.stats, s.stats); G.ready = G.points >= LAUNCH; } } catch (_) {}
-function save() { try { localStorage.setItem('lunar-rover-v1', JSON.stringify({ points: G.points, energy: Math.round(G.energy), stats: G.stats })); } catch (_) {} }
+const G = { mode: 'lander', points: 0, level: 1, t: 0, shake: 0, overlay: false, cam: 0, soundOn: true, energy: 60, flat: false, names: true, det: 99, stats: { rocks: 0, th: 0, il: 0, ar: 0, shot: 0 }, ready: false, area: '' };
+try { const s = JSON.parse(localStorage.getItem('lunar-rover-v1') || 'null'); if (s && s.points > 0) { G.points = s.points | 0; if (s.energy > 0) G.energy = +s.energy; if (s.stats) Object.assign(G.stats, s.stats); G.ready = G.points >= LAUNCH; G.savedGems = s.gems || []; } } catch (_) {}
+function save() { try { localStorage.setItem('lunar-rover-v1', JSON.stringify({ points: G.points, energy: Math.round(G.energy), stats: G.stats, gems: rocks ? rocks.gems.slice(-150).map(g => [+g.lat.toFixed(6), +g.lon.toFixed(6), g.type]) : [] })); } catch (_) {} }
 /* energy: every function of the rover draws on it; thorium ore tops it up without limit, sunlight only trickles */
-const COST = { drive: 0.3, shot: 0.25, grab: 0.6, dig: 2, hop: 4, solar: 0.04, baseRate: 8, baseMax: 100, thorium: 40, ilmenite: 10 };
+const COST = { drive: 0.3, shot: 0.25, grab: 0.6, dig: 2, hop: 4, solar: 0.04, baseRate: 8, baseMax: 100, thorium: 40, ilmenite: 10, armalcolite: 150 };
 function need(e) { if (G.energy < e) { toast(G.flat ? 'Battery flat — solar power only.\nFind thorium ore, or go back to base.' : 'Not enough energy for that', 2200); return false; } G.energy -= e; return true; }
 const levelOf = p => { let l = 1; while (l < LEVELS.length && p >= LEVELS[l]) l++; return l; };
 G.level = levelOf(G.points);
@@ -196,6 +196,7 @@ const sfx = {
   servo(dur = 0.45) { const c = this.ctx; if (!c || !G.soundOn) return; const t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(170, t); o.frequency.linearRampToValueAtTime(260, t + dur * 0.5); o.frequency.linearRampToValueAtTime(190, t + dur);
     f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 3; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t + 0.04); g.gain.setValueAtTime(0.09, t + dur - 0.05); g.gain.linearRampToValueAtTime(0, t + dur); o.connect(f).connect(g).connect(this.out); o.start(t); o.stop(t + dur + 0.02); },
   grab() { this.tone(240, 90, 0.05, 'square', 0.16); this.nz(0.03, 'bandpass', 1500, 700, 0.2); },
+  rare() { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => { this.tone(f, f * 1.005, 0.9, 'sine', 0.22); this.tone(f * 2, f * 2, 0.5, 'triangle', 0.08); }, i * 70)); this.tone(98, 98, 1.2, 'sine', 0.3); },   // a full rising chord over a deep note
   ore(th) { if (th) { for (let i = 0; i < 14; i++) setTimeout(() => this.tick(0.2), i * 28); this.tone(660, 990, 0.3, 'sine', 0.14); } else this.tone(520, 780, 0.2, 'sine', 0.14); },
   level() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, f, 0.3, 'triangle', 0.2), i * 110)); },
   thud(v) { this.nz(0.14, 'lowpass', 260, 50, clamp(v * 0.2, 0.06, 0.6), this.brown); this.tone(60, 35, 0.12, 'sine', clamp(v * 0.12, 0.05, 0.4)); },
@@ -232,60 +233,73 @@ class Particles {
 }
 
 /* ---------------------------------------------------------------------- rocks: predicted from the rock-size statistics; each can be pushed, lifted or blown up */
-const CELL = 8, ACTIVE_R = touchUI ? 22 : 30, BUCKET = 2;
+/* A rock is drawn while it is nearer than VIS times its own size, i.e. while it covers about three pixels or more. So rocks
+   never appear or vanish at a size you can see: the big ones are there from far away, the small ones fill in as you come. */
+const BUCKET = 2, VIS = touchUI ? 170 : 220, CAP = touchUI ? 500 : 800;
+const RCLASS = [{ p: 'a', cell: 8, d0: 0.08, d1: 0.16 }, { p: 'b', cell: 16, d0: 0.16, d1: 0.4 }, { p: 'c', cell: 64, d0: 0.4, d1: 1.0 }];
+const GEM = [null, { name: 'ilmenite', scale: 1, e: () => COST.ilmenite }, { name: 'thorium ore', scale: 1.35, e: () => COST.thorium }, { name: 'armalcolite', scale: 2.6, e: () => COST.armalcolite }];
 class Rocks {
   constructor() {
-    this.cells = new Map(); this.removed = new Set(); this.active = []; this.buckets = new Map(); this.movers = new Set(); this.cx = 1e9; this.cy = 1e9;
+    this.cells = new Map(); this.removed = new Set(); this.moved = new Map(); this.active = []; this.buckets = new Map(); this.movers = new Set(); this.cx = 1e9; this.cy = 1e9; this.h = 0;
     this.debris = []; this.gems = [];
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true });
     this.meshes = [];
     for (let v = 0; v < 4; v++) {
       const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, r = rng(977 + v * 31);
       const off = new Map();                               // same displacement for coincident vertices, so the rock stays closed
-      for (let i = 0; i < p.count; i++) { const k = [p.getX(i), p.getY(i), p.getZ(i)].map(c => c.toFixed(3)).join(); if (!off.has(k)) off.set(k, 0.72 + 0.5 * r()); const s = off.get(k); p.setXYZ(i, p.getX(i) * s, p.getY(i) * s, p.getZ(i) * s); }
+      for (let i = 0; i < p.count; i++) { const k = [p.getX(i), p.getY(i), p.getZ(i)].map(c => c.toFixed(3)).join(); if (!off.has(k)) off.set(k, 0.72 + 0.5 * r()); const sc = off.get(k); p.setXYZ(i, p.getX(i) * sc, p.getY(i) * sc, p.getZ(i) * sc); }
       g.computeVertexNormals();
-      const im = new THREE.InstancedMesh(g, m, 420); im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; im.count = 0;
-      im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(420 * 3).fill(1), 3); scene.add(im); this.meshes.push(im);
+      const im = new THREE.InstancedMesh(g, m, CAP); im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; im.count = 0;
+      im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); scene.add(im); this.meshes.push(im);
     }
     this.dm = new THREE.InstancedMesh(this.meshes[0].geometry, m, 320); this.dm.castShadow = true; this.dm.frustumCulled = false; this.dm.count = 0; scene.add(this.dm);
-    const gg = new THREE.OctahedronGeometry(0.11, 0);
-    this.gemMats = [null, new THREE.MeshStandardMaterial({ color: 0x4aa8ff, emissive: 0x1e6fe0, emissiveIntensity: 1.6, roughness: 0.15, metalness: 0.2 }),
-      new THREE.MeshStandardMaterial({ color: 0x2fe08a, emissive: 0x10b060, emissiveIntensity: 1.8, roughness: 0.15, metalness: 0.2 })];
-    this.gemGeo = gg;
+    this.gemGeo = new THREE.OctahedronGeometry(0.11, 0);
+    const gm = (c, e, i) => new THREE.MeshStandardMaterial({ color: c, emissive: e, emissiveIntensity: i, roughness: 0.15, metalness: 0.2 });
+    this.gemMats = [null, gm(0x4aa8ff, 0x1e6fe0, 1.6), gm(0x2fe08a, 0x10b060, 1.9), gm(0xfff2c0, 0xffc040, 3.2)];
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,236,170,1)'); gr.addColorStop(0.3, 'rgba(255,200,90,.45)'); gr.addColorStop(1, 'rgba(255,180,60,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    this.halo = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
   }
-  cell(ci, cj) {
-    const key = ci + ',' + cj; let c = this.cells.get(key); if (c) return c;
-    c = []; const r = rng(hash3(ci, cj, 4242)), K = RULES.rocks, x0 = ci * CELL - terrain.ax, y0 = cj * CELL - terrain.ay;      // cells are fixed to the Moon, not to the map
-    const slope = terrain.slopeDeg(x0 + CELL / 2, y0 + CELL / 2, 3), mult = 1 + Math.min(5, (slope / 7) ** 2);   // assumption: fresher, steeper ground exposes more blocks
-    const mean = CELL * CELL * K.k * Math.pow(K.minD, K.g) * mult;
+  cell(c, ci, cj) {
+    const key = c.p + ci + ',' + cj; let list = this.cells.get(key); if (list) return list;
+    list = []; const r = rng(hash3(ci, cj, 4242 + c.cell)), K = RULES.rocks, x0 = ci * c.cell - terrain.ax, y0 = cj * c.cell - terrain.ay;      // cells are fixed to the Moon, not to the map
+    const slope = terrain.slopeDeg(x0 + c.cell / 2, y0 + c.cell / 2, 3), mult = 1 + Math.min(5, (slope / 7) ** 2);   // assumption: fresher, steeper ground exposes more blocks
+    const mean = c.cell * c.cell * K.k * Math.pow(c.d0, K.g) * mult;
     const n = Math.max(0, Math.round(mean + Math.sqrt(mean) * (r() + r() + r() - 1.5) * 2));
     for (let i = 0; i < n; i++) {
-      const x = x0 + r() * CELL, y = y0 + r() * CELL, D = K.minD * Math.pow(1 - r(), 1 / K.g), u1 = r(), u2 = r(), u3 = r(), u4 = r(), u5 = r(), u6 = r();
-      if (D > K.maxD || (x - terrain.sx) ** 2 + (y - terrain.sy) ** 2 < 81) continue;      // nothing bigger than the photo could hide; keep the descent stage clear
-      const a = D / 2, sx = a * (0.8 + 0.4 * u1), sy = a * (0.8 + 0.4 * u2), sz = a * (0.5 + 0.4 * u3), bury = 0.12 + 0.4 * u4;
-      const gemU = u5 / (1 + 2.5 * D), gem = gemU < 0.04 ? 2 : gemU < 0.15 ? 1 : 0;      // 2 = thorium-bearing (energy), 1 = ilmenite (titanium ore)
-      c.push({ id: key + ',' + i, x, y, z: 0, D, sx, sy, sz, bury, hr: 2 * sz * (1 - bury), yaw: u6 * 6.283, tilt: (u1 - 0.5) * 0.5, v: (u2 * 4) | 0, shade: 0.17 + 0.13 * u3, gem, mass: 3000 * 4.19 * sx * sy * sz, dyn: null, held: false, hp: 0 });
+      let x = x0 + r() * c.cell, y = y0 + r() * c.cell; const D = c.d0 * Math.pow(1 - r(), 1 / K.g), u1 = r(), u2 = r(), u3 = r(), u4 = r(), u5 = r(), u6 = r(), id = key + ',' + i;
+      if (D > c.d1 || this.removed.has(id) || (x - terrain.sx) ** 2 + (y - terrain.sy) ** 2 < 81) continue;      // larger sizes belong to the next class; keep the descent stage clear
+      const a = D / 2, sx = a * (0.8 + 0.4 * u1), sy = a * (0.8 + 0.4 * u2), sz = a * (0.5 + 0.4 * u3); let bury = 0.12 + 0.4 * u4;
+      const gemU = u5 / (1 + 2.5 * D), gem = D >= 0.4 && u6 < 0.012 * (1 + 4 * D) ? 3 : gemU < 0.04 ? 2 : gemU < 0.15 ? 1 : 0;      // 3 armalcolite (rare, large rocks only), 2 thorium-bearing, 1 ilmenite
+      const mv = this.moved.get(id); if (mv) { const q = terrain.fromLatLon(mv[0], mv[1]); x = q[0]; y = q[1]; bury = 0.05; }     // a rock that was pushed or thrown stays where it ended up
+      list.push({ id, x, y, z: 0, D, sx, sy, sz, bury, hr: 2 * sz * (1 - bury), yaw: u6 * 6.283, tilt: (u1 - 0.5) * 0.5, v: (u2 * 4) | 0, shade: 0.17 + 0.13 * u3, gem, mass: 3000 * 4.19 * sx * sy * sz, dyn: null, held: false, hp: 0 });
     }
-    for (const k of c) k.z = terrain.height(k.x, k.y) + k.sz * (1 - 2 * k.bury);
-    this.cells.set(key, c);
-    if (this.cells.size > 500) { const first = this.cells.keys().next().value; this.cells.delete(first); }
-    return c;
+    for (const k of list) k.z = terrain.height(k.x, k.y) + k.sz * (1 - 2 * k.bury);
+    this.cells.set(key, list);
+    if (this.cells.size > 6000) { const first = this.cells.keys().next().value; this.cells.delete(first); }
+    return list;
   }
   rebuild(x, y) {
     this.cx = x; this.cy = y; this.active.length = 0; this.buckets.clear();
-    const gx = x + terrain.ax, gy = y + terrain.ay, c0 = Math.floor((gx - ACTIVE_R) / CELL), c1 = Math.floor((gx + ACTIVE_R) / CELL), d0 = Math.floor((gy - ACTIVE_R) / CELL), d1 = Math.floor((gy + ACTIVE_R) / CELL);
-    const counts = [0, 0, 0, 0];
-    for (let j = d0; j <= d1; j++) for (let i = c0; i <= c1; i++) for (const k of this.cell(i, j)) {
-      if (this.removed.has(k.id) || counts[k.v] >= 420) continue;
-      k.ii = counts[k.v]++; this.active.push(k); this.bucket(k); this.place(k);
+    const gx = x + terrain.ax, gy = y + terrain.ay, h2 = this.h * this.h, counts = [0, 0, 0, 0];
+    for (let q = RCLASS.length - 1; q >= 0; q--) {         // large first, so that if the buffers ever fill it is the smallest that are left out
+      const c = RCLASS[q], R2 = (VIS * c.d1) ** 2 - h2; if (R2 <= 0) continue; const R = Math.sqrt(R2);
+      const c0 = Math.floor((gx - R) / c.cell), c1 = Math.floor((gx + R) / c.cell), d0 = Math.floor((gy - R) / c.cell), d1 = Math.floor((gy + R) / c.cell);
+      for (let j = d0; j <= d1; j++) for (let i = c0; i <= c1; i++) for (const k of this.cell(c, i, j)) {
+        if (k.dead || counts[k.v] >= CAP) continue;
+        const dx = k.x - x, dy = k.y - y; if (!k.dyn && !k.held && dx * dx + dy * dy + h2 > (VIS * k.D) ** 2) continue;
+        k.ii = counts[k.v]++; this.active.push(k); this.bucket(k); this.place(k);
+      }
     }
     for (let v = 0; v < 4; v++) { this.meshes[v].count = counts[v]; this.meshes[v].instanceMatrix.needsUpdate = true; this.meshes[v].instanceColor.needsUpdate = true; }
   }
-  reset() { this.cells.clear(); this.active.length = 0; this.buckets.clear(); this.movers.clear(); for (const m of this.meshes) m.count = 0; this.debris.length = 0; this.dm.count = 0; for (const g of this.gems) scene.remove(g.m); this.gems.length = 0; this.cx = this.cy = 1e9; this.hidden = true; }
+  reset() {                                               // the map moved: rocks and gems keep their place on the Moon
+    this.cells.clear(); this.active.length = 0; this.buckets.clear(); this.movers.clear(); for (const m of this.meshes) m.count = 0; this.debris.length = 0; this.dm.count = 0; this.cx = this.cy = 1e9;
+    for (const g of this.gems) this.gemPlace(g);
+  }
   bucket(k) { const key = Math.floor(k.x / BUCKET) + ',' + Math.floor(k.y / BUCKET); let b = this.buckets.get(key); if (!b) this.buckets.set(key, b = []); b.push(k); }
   place(k) {
     tmp.q.setFromEuler(new THREE.Euler(k.tilt, k.tilt * 0.7, k.yaw, 'ZYX')); tmp.m.compose(tmp.a.set(k.x, k.y, k.z), tmp.q, tmp.s.set(k.sx, k.sy, k.sz));
-    const im = this.meshes[k.v]; im.setMatrixAt(k.ii, tmp.m);
+    const im = this.meshes[k.v]; if (k.ii === undefined || k.ii >= CAP) return; im.setMatrixAt(k.ii, tmp.m);
     const c = im.instanceColor.array, o = 3 * k.ii, ov = G.overlay;
     c[o] = ov ? 1.0 : k.shade; c[o + 1] = ov ? 0.55 : k.shade; c[o + 2] = ov ? 0.2 : k.shade * 0.97;
     im.instanceMatrix.needsUpdate = true;
@@ -297,47 +311,57 @@ class Rocks {
   }
   bump(x, y) {                                            // extra height a wheel feels from small rocks
     let h = 0;
-    this.near(x, y, 0.1, k => { if (k.hr > 0.3) return; const dx = x - k.x, dy = y - k.y, r = Math.max(k.sx, k.sy), d2 = (dx * dx + dy * dy) / (r * r); if (d2 < 1) h = Math.max(h, k.hr * Math.sqrt(1 - d2)); });
+    this.near(x, y, 0.1, k => { if (k.hr > 0.2) return; const dx = x - k.x, dy = y - k.y, r = Math.max(k.sx, k.sy), d2 = (dx * dx + dy * dy) / (r * r); if (d2 < 1) h = Math.max(h, k.hr * Math.sqrt(1 - d2)); });
     return h;
   }
-  remove(k) { k.dead = true; this.removed.add(k.id); this.movers.delete(k); tmp.m.makeScale(0, 0, 0); this.meshes[k.v].setMatrixAt(k.ii, tmp.m); this.meshes[k.v].instanceMatrix.needsUpdate = true; }
-  reveal(k) { if (k.gem && !k.gemOut) { k.gemOut = true; this.gem(k.x, k.y, k.gem); } }
-  gem(x, y, type) {
-    const m = new THREE.Mesh(this.gemGeo, this.gemMats[type]); m.scale.setScalar(type === 2 ? 1.25 : 1); m.position.set(x, y, clip.ground(x, y) + 0.16); scene.add(m);
-    this.gems.push({ m, type, x, y, t: G.t });
+  remove(k) { k.dead = true; this.removed.add(k.id); this.movers.delete(k); if (k.ii !== undefined) { tmp.m.makeScale(0, 0, 0); this.meshes[k.v].setMatrixAt(k.ii, tmp.m); this.meshes[k.v].instanceMatrix.needsUpdate = true; } }
+  /* gems lie where they fell until they are collected; they are stored by latitude and longitude */
+  gem(x, y, type) { const ll = terrain.toLatLon(x, y); return this.gemLL(ll[0], ll[1], type); }
+  gemLL(lat, lon, type) {
+    const m = new THREE.Mesh(this.gemGeo, this.gemMats[type]); m.scale.setScalar(GEM[type].scale);
+    if (type === 3) { const sp = new THREE.Sprite(this.halo); sp.scale.setScalar(4.2); m.add(sp); }
+    scene.add(m); const g = { m, type, lat, lon, x: 0, y: 0, t: G.t }; this.gems.push(g); this.gemPlace(g); return g;
+  }
+  gemPlace(g) { const p = terrain.fromLatLon(g.lat, g.lon); g.x = p[0]; g.y = p[1]; const far = Math.hypot(g.x, g.y) > 3e5; g.m.visible = !far; if (!far) g.m.position.set(g.x, g.y, terrain.height(g.x, g.y) + 0.13 * GEM[g.type].scale); }
+  take(g) {
+    const i = this.gems.indexOf(g); if (i < 0) return; this.gems.splice(i, 1); scene.remove(g.m); g.gone = true;
+    if (g.type === 3) { G.stats.ar++; sfx.rare(); addPoints(COST.armalcolite, 'ARMALCOLITE — the mineral first found here, in the Apollo 11 samples'); }
+    else if (g.type === 2) { G.stats.th++; sfx.ore(true); addPoints(COST.thorium, 'thorium ore'); } else { G.stats.il++; sfx.ore(false); addPoints(COST.ilmenite, 'ilmenite'); }
   }
   explode(k, power) {
     if (k.dead) return;
-    this.reveal(k); this.remove(k);
+    if (k.gem && !k.gemOut) { k.gemOut = true; this.gem(k.x, k.y, k.gem); if (k.gem === 3) toast('Something large and bright was inside.\nPick it up with the arm (Grab).', 4000); }
+    this.remove(k);
     const n = Math.round(clamp(5 + k.D * 26, 6, 26));
     for (let i = 0; i < n; i++) {
-      const a = Math.random() * 6.283, el = (15 + Math.random() * 65) * D2R, v = (1.2 + Math.random() * 4.2) * (0.8 + 0.25 * power), s = k.D * (0.08 + Math.random() * 0.14);
-      this.fragment(k.x + Math.cos(a) * k.sx * 0.5, k.y + Math.sin(a) * k.sy * 0.5, k.z + k.sz * 0.3, Math.cos(a) * Math.cos(el) * v, Math.sin(a) * Math.cos(el) * v, Math.sin(el) * v, s, k.shade);
+      const a = Math.random() * 6.283, el = (15 + Math.random() * 65) * D2R, v = (1.2 + Math.random() * 4.2) * (0.8 + 0.25 * power), sc = k.D * (0.08 + Math.random() * 0.14);
+      this.fragment(k.x + Math.cos(a) * k.sx * 0.5, k.y + Math.sin(a) * k.sy * 0.5, k.z + k.sz * 0.3, Math.cos(a) * Math.cos(el) * v, Math.sin(a) * Math.cos(el) * v, Math.sin(el) * v, sc, k.shade);
     }
     particles.burst(k.x, k.y, k.z, 50, 1, 6 + power, 20, 80);
     G.shake = Math.max(G.shake, 0.15 + k.D * 0.4); sfx.boom(k.D);
   }
-  fragment(x, y, z, vx, vy, vz, s, shade) {
+  fragment(x, y, z, vx, vy, vz, sc, shade) {
     if (this.debris.length >= 320) this.debris.shift();
-    this.debris.push({ x, y, z, vx, vy, vz, s, shade, rot: Math.random() * 6.28, spin: (Math.random() - 0.5) * 12, rest: false });
+    this.debris.push({ x, y, z, vx, vy, vz, s: sc, shade, rot: Math.random() * 6.28, spin: (Math.random() - 0.5) * 12, rest: false });
   }
-  step(dt, fx, fy, show = true) {
-    if (!show) { if (!this.hidden) { this.hidden = true; for (const m of this.meshes) m.count = 0; this.active.length = 0; this.buckets.clear(); } }
-    else if (this.hidden || Math.hypot(fx - this.cx, fy - this.cy) > 5) { this.hidden = false; this.rebuild(fx, fy); }
-    // pushed / dropped rocks: slide, roll and bounce on the real ground
+  /* h: height of the viewer above the ground (0 for the rover) */
+  step(dt, fx, fy, h = 0) {
+    if (h > VIS) { if (this.active.length) { this.active.length = 0; this.buckets.clear(); for (const m of this.meshes) m.count = 0; this.cx = 1e9; } }      // too high for any rock to cover two pixels
+    else if (Math.hypot(fx - this.cx, fy - this.cy) > Math.max(4, h * 0.15) || Math.abs(h - this.h) > Math.max(3, this.h * 0.15)) { this.h = h; this.rebuild(fx, fy); }
+    // pushed / thrown rocks: slide, roll and bounce on the real ground
     for (const k of this.movers) {
       const d = k.dyn; if (!d) continue;
       d.vz -= G_MOON * dt; k.x += d.vx * dt; k.y += d.vy * dt; k.z += d.vz * dt;
       const g = clip.ground(k.x, k.y) + k.sz * (1 - 2 * k.bury * 0.3);
       if (k.z <= g) {
         k.z = g; if (d.vz < -0.4) { d.vz = -d.vz * 0.25; sfx.thud(-d.vz); } else d.vz = 0;
-        const sp = Math.hypot(d.vx, d.vy), dec = 0.7 * G_MOON * dt; if (sp <= dec) { d.vx = d.vy = 0; if (d.vz === 0) { k.dyn = null; this.movers.delete(k); this.bucket(k); } } else { d.vx *= 1 - dec / sp; d.vy *= 1 - dec / sp; }
+        const sp = Math.hypot(d.vx, d.vy), dec = 0.7 * G_MOON * dt;
+        if (sp <= dec) { d.vx = d.vy = 0; if (d.vz === 0) { k.dyn = null; this.movers.delete(k); this.bucket(k); this.moved.set(k.id, terrain.toLatLon(k.x, k.y)); } } else { d.vx *= 1 - dec / sp; d.vy *= 1 - dec / sp; }
         clip.normal(k.x, k.y, tmp.a); d.vx += tmp.a.x * G_MOON * dt; d.vy += tmp.a.y * G_MOON * dt;       // rolls downhill
       }
       k.yaw += Math.hypot(d ? d.vx : 0, d ? d.vy : 0) * dt / Math.max(0.05, k.sx); this.place(k);
     }
-    // fragments
-    let moving = false;
+    let moving = false;                                   // fragments
     for (let i = 0; i < this.debris.length; i++) {
       const f = this.debris[i]; if (!f.rest) {
         moving = true; f.vz -= G_MOON * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt; f.rot += f.spin * dt;
@@ -347,15 +371,14 @@ class Rocks {
       tmp.q.setFromAxisAngle(tmp.b.set(0.3, 0.5, 0.8).normalize(), f.rot); tmp.m.compose(tmp.a.set(f.x, f.y, f.z), tmp.q, tmp.s.set(f.s, f.s * 0.8, f.s * 0.6)); this.dm.setMatrixAt(i, tmp.m);
     }
     if (moving || this.dm.count !== this.debris.length) { this.dm.count = this.debris.length; this.dm.instanceMatrix.needsUpdate = true; }
-    // gems: glow, turn, and jump into the rover when it comes close
+    // gems: the brighter and larger, the more they are worth. Small ones jump into the rover; the rare large one needs the arm
     for (let i = this.gems.length - 1; i >= 0; i--) {
-      const g = this.gems[i]; g.m.rotation.z += dt * 1.6; g.m.material.emissiveIntensity = 1.4 + 0.6 * Math.sin((G.t - g.t) * 4);
-      if (G.mode === 'rover') {
-        const dx = rover.pos.x - g.x, dy = rover.pos.y - g.y, d = Math.hypot(dx, dy);
-        if (d < 2.2) { g.x += dx / d * dt * 5; g.y += dy / d * dt * 5; g.m.position.set(g.x, g.y, g.m.position.z + (rover.pos.z + 0.2 - g.m.position.z) * Math.min(1, dt * 4)); }
-        if (d < 0.7) { scene.remove(g.m); this.gems.splice(i, 1); sfx.ore(g.type === 2);
-          if (g.type === 2) { G.stats.th++; addPoints(COST.thorium, 'thorium ore'); } else { G.stats.il++; addPoints(COST.ilmenite, 'ilmenite'); } }
-      }
+      const g = this.gems[i]; if (!g.m.visible) continue; g.m.rotation.z += dt * (g.type === 3 ? 0.9 : 1.6); g.m.material.emissiveIntensity = (g.type === 3 ? 3.0 : 1.5) + (g.type === 3 ? 1.4 : 0.6) * Math.sin((G.t - g.t) * (g.type === 3 ? 2.5 : 4));
+      if (G.mode !== 'rover' || rover.arm.gem === g) continue;
+      const dx = rover.pos.x - g.x, dy = rover.pos.y - g.y, d = Math.hypot(dx, dy);
+      if (g.type === 3) { if (d < 1.6 && G.t > (this.hintT || 0)) { this.hintT = G.t + 8; toast('Too big to scoop up while driving.\nFace it and press Grab.', 3000); } continue; }
+      if (d < 2.2 && d > 1e-3) { g.x += dx / d * dt * 5; g.y += dy / d * dt * 5; g.m.position.set(g.x, g.y, g.m.position.z + (rover.pos.z + 0.2 - g.m.position.z) * Math.min(1, dt * 4)); }
+      if (d < 0.7) this.take(g);
     }
   }
 }
@@ -368,9 +391,9 @@ class Rover {
     this.m = 180; this.I = V(180 * (1.3 * 1.3 + 0.3 * 0.3) / 12, 180 * (0.9 * 0.9 + 0.3 * 0.3) / 12, 180 * (0.9 * 0.9 + 1.3 * 1.3) / 12);
     this.hp = [V(-0.56, 0.52, -0.05), V(0.56, 0.52, -0.05), V(-0.56, -0.52, -0.05), V(0.56, -0.52, -0.05)];
     this.comp = [0, 0, 0, 0]; this.spin = [0, 0, 0, 0]; this.onGround = 0; this.air = 0; this.lastAir = 0; this.steer = 0; this.thr = 0;
-    this.arm = { phase: 'idle', t: 0, rock: null, tip: V(0, 0.3, 0.35), from: V(), to: V() }; this.cool = 0;
+    this.arm = { phase: 'idle', t: 0, rock: null, gem: null, tip: V(0, 0.3, 0.35), from: V(), to: V() }; this.cool = 0;
     this.F = V(); this.T = V();
-    this.s = { hp: V(), n: V(), tF: V(), tS: V(), cp: V(), v: V(), Fw: V(), wW: V(), Tb: V(), r: V(), qi: new THREE.Quaternion(), dq: new THREE.Quaternion() };
+    this.s = { hp: V(), n: V(), tF: V(), tS: V(), cp: V(), v: V(), Fw: V(), wW: V(), Tb: V(), r: V(), na: V(), ax: V(), qi: new THREE.Quaternion(), dq: new THREE.Quaternion() };
   }
   place(x, y, yaw) { this.pos.set(x, y, clip.ground(x, y) + 0.6); this.vel.set(0, 0, 0); this.w.set(0, 0, 0); this.q.setFromAxisAngle(Z, -yaw); this.comp.fill(0); }
   get fwd() { return tmp.f.set(0, 1, 0).applyQuaternion(this.q); }
@@ -386,6 +409,7 @@ class Rover {
     let contacts = 0;
     const upz = n.set(0, 0, 1).applyQuaternion(this.q).z;
     this.rolled = upz < 0.5 ? (this.rolled || 0) + dt : 0;        // tilted more than 60°
+    S.na.set(0, 0, 0);
     for (let i = 0; i < 4; i++) {
       if (upz < 0.3) { this.comp[i] = 0; continue; }          // on its side or roof: the wheels are in the air
       hp.copy(this.hp[i]).applyQuaternion(this.q).add(this.pos);
@@ -394,9 +418,9 @@ class Rover {
       if (comp <= 0) { this.comp[i] = 0; this.spin[i] += this.thr * P.vmax / RW * dt; continue; }
       comp = Math.min(comp, REST + 0.12);
       const rate = (comp - this.comp[i]) / dt; this.comp[i] = comp;
-      const Fn = clamp(K * comp + C * rate, 0, 3500); if (Fn <= 0) continue;
+      const Fn = clamp(K * comp + C * rate, 0, 2200); if (Fn <= 0) continue;
       contacts++;
-      clip.normal(hp.x, hp.y, n, 0.2);
+      clip.normal(hp.x, hp.y, n, 0.2); S.na.add(n);
       cp.set(hp.x, hp.y, hg);
       v.copy(cp).sub(this.pos); v.crossVectors(wW, v).add(this.vel);          // velocity of the contact point
       const st = i < 2 ? this.steer : 0;
@@ -415,11 +439,14 @@ class Rover {
       Fw.set(-v.x * 260, -v.y * 260, clamp(9000 * pen - 500 * v.z, 0, 6000)); this.force(Fw, cp);
     }
     this.onGround = contacts;
+    /* Stabiliser — changed for playability, a real rover has nothing like it. It holds the body parallel to the ground under
+       the wheels (level, while in flight) and damps rolling, so the rover can be driven without tipping over all the time. */
+    if (upz > 0.2) { const tg = contacts ? S.na.normalize() : Z; S.ax.set(0, 0, 1).applyQuaternion(this.q).cross(tg); this.T.addScaledVector(S.ax, 900); }
     if (contacts === 0) this.air += dt; else { if (this.air > 0.35) { this.lastAir = this.air; this.lastAirT = G.t; sfx.thud(Math.abs(this.vel.z)); } this.air = 0; }
     // integrate: linear, then Euler's equations in the body frame
     this.vel.addScaledVector(this.F, dt / this.m); this.pos.addScaledVector(this.vel, dt);
     Tb.copy(this.T).applyQuaternion(S.qi.copy(this.q).invert());
-    const w = this.w, I = this.I;
+    const w = this.w, I = this.I; Tb.x -= 170 * w.x; Tb.y -= 170 * w.y;
     w.x += (Tb.x - (I.z - I.y) * w.y * w.z) / I.x * dt; w.y += (Tb.y - (I.x - I.z) * w.z * w.x) / I.y * dt; w.z += (Tb.z - (I.y - I.x) * w.x * w.y) / I.z * dt;
     w.multiplyScalar(1 - 0.15 * dt);
     const ang = w.length() * dt; if (ang > 1e-9) { S.dq.setFromAxisAngle(hp.copy(w).normalize(), ang); this.q.multiply(S.dq).normalize(); }
@@ -428,13 +455,13 @@ class Rover {
   collide(dt) {
     const P = perk(), R = 0.8;
     rocks.near(this.pos.x, this.pos.y, R, k => {
-      if (k.hr <= 0.3 && !k.dyn) return;
+      if (k.hr <= 0.2 && !k.dyn) return;
       const dx = k.x - this.pos.x, dy = k.y - this.pos.y, d = Math.hypot(dx, dy), rr = Math.max(k.sx, k.sy), ov = R * 0.75 + rr - d;
       if (ov <= 0 || d < 1e-6 || Math.abs(k.z - this.pos.z) > 0.9 + k.sz) return;
       const nx = dx / d, ny = dy / d, vn = this.vel.x * nx + this.vel.y * ny - (k.dyn ? k.dyn.vx * nx + k.dyn.vy * ny : 0);
       if (k.mass <= P.push) {
         if (!k.dyn) { k.dyn = { vx: 0, vy: 0, vz: 0 }; rocks.movers.add(k); k.bury *= 0.3; }
-        if (vn > 0) { const j = vn * 1.2 / (1 / this.m + 1 / k.mass); k.dyn.vx += nx * j / k.mass; k.dyn.vy += ny * j / k.mass; this.vel.x -= nx * j / this.m; this.vel.y -= ny * j / this.m; rocks.reveal(k); }
+        if (vn > 0) { const j = vn * 1.2 / (1 / this.m + 1 / k.mass); k.dyn.vx += nx * j / k.mass; k.dyn.vy += ny * j / k.mass; this.vel.x -= nx * j / this.m; this.vel.y -= ny * j / this.m; }
         k.x += nx * ov * 0.6; k.y += ny * ov * 0.6; this.pos.x -= nx * ov * 0.1; this.pos.y -= ny * ov * 0.1;
       } else {
         this.pos.x -= nx * ov; this.pos.y -= ny * ov;
@@ -454,12 +481,14 @@ class Rover {
     if (A.phase !== 'idle' && A.phase !== 'hold') {
       A.t += dt / 0.45; const t = Math.min(1, A.t), e = t * t * (3 - 2 * t);
       if (A.phase === 'reach' && A.rock) this.armLocal(tmp.a.set(A.rock.x, A.rock.y, A.rock.z + A.rock.sz * 0.6), A.to);
+      if (A.phase === 'reachGem' && A.gem) this.armLocal(tmp.a.copy(A.gem.m.position), A.to);
       A.tip.lerpVectors(A.from, A.to, e);
       if (t >= 1) this.armNext();
     }
     if (A.rock && A.rock.held) {                          // carried rock follows the gripper
       u.grip.getWorldPosition(tmp.a); A.rock.x = tmp.a.x; A.rock.y = tmp.a.y; A.rock.z = tmp.a.z - A.rock.sz * 0.5; rocks.place(A.rock);
     }
+    if (A.gem && A.phase === 'liftGem') { u.grip.getWorldPosition(tmp.a); A.gem.m.position.copy(tmp.a); }
     // two-link inverse kinematics in the vertical plane through the target
     const tip = A.tip, yaw = Math.atan2(-tip.x, tip.y), d = Math.hypot(tip.x, tip.y), h = tip.z, r = clamp(Math.hypot(d, h), 0.25, 2 * ARM_L - 0.02);
     const el = Math.acos(clamp((2 * ARM_L * ARM_L - r * r) / (2 * ARM_L * ARM_L), -1, 1)), sh = Math.atan2(h, d) + Math.acos(clamp(r / (2 * ARM_L), -1, 1));
@@ -468,28 +497,31 @@ class Rover {
   }
   armGo(phase, to) { const A = this.arm; A.phase = phase; A.t = 0; A.from.copy(A.tip); if (to) A.to.copy(to); }
   armNext() {
-    const A = this.arm, k = A.rock, P = perk();
+    const A = this.arm, k = A.rock, STOW = V(0, 0.28, 0.32);
     if (A.phase === 'reach') {
-      if (!k || k.dead) return this.armGo('stow', V(0, 0.28, 0.32));
-      sfx.grab(); sfx.servo(0.45); k.held = true; k.dyn = null; k.gemOut = true; rocks.movers.add(k);      // any ore is handled by the arm
-      this.armGo('lift', V(0.1, 0.5, 0.8));
-    } else if (A.phase === 'lift') {                      // held over the analyser on the deck
-      G.stats.rocks++; k.held = false; A.rock = null;
-      if (k.gem) { rocks.remove(k); sfx.ore(k.gem === 2); if (k.gem === 2) G.stats.th++; else G.stats.il++; addPoints(k.gem === 2 ? COST.thorium : COST.ilmenite, `Rock ${G.stats.rocks}: ${k.gem === 2 ? 'thorium ore' : 'ilmenite'}`); }
-      else { const r = tmp.b.set(1, 0, 0).applyQuaternion(this.q), side = Math.random() < 0.5 ? -1 : 1; k.bury = 0.05; k.dyn = { vx: this.vel.x + r.x * side * 2.4, vy: this.vel.y + r.y * side * 2.4, vz: 2.3 }; sfx.toss(); toast(`Rock ${G.stats.rocks}: no ore — thrown away`, 1300); }
-      this.armGo('stow', V(0, 0.28, 0.32));
-    } else A.phase = 'idle';
-    void P;
+      if (!k || k.dead) return this.armGo('stow', STOW);
+      sfx.grab(); sfx.servo(0.45); k.held = true; k.dyn = null; rocks.movers.add(k); this.armGo('lift', V(0.1, 0.5, 0.8));
+    } else if (A.phase === 'lift') {                      // moved aside: whatever is inside stays inside until the rock is broken
+      const r = tmp.b.set(1, 0, 0).applyQuaternion(this.q), side = Math.random() < 0.5 ? -1 : 1; k.held = false; A.rock = null; k.bury = 0.05;
+      k.dyn = { vx: this.vel.x + r.x * side * 2.4, vy: this.vel.y + r.y * side * 2.4, vz: 2.3 }; sfx.toss(); this.armGo('stow', STOW);
+    } else if (A.phase === 'reachGem') {
+      if (!A.gem || A.gem.gone) { A.gem = null; return this.armGo('stow', STOW); }
+      sfx.grab(); sfx.servo(0.5); this.armGo('liftGem', V(0, 0.15, 0.6));
+    } else if (A.phase === 'liftGem') { const g = A.gem; A.gem = null; rocks.take(g); this.armGo('stow', STOW); }
+    else A.phase = 'idle';
   }
+  /* Grab: a gem within reach is picked up; otherwise the nearest rock is lifted and thrown aside */
   grab() {
-    const A = this.arm, P = perk();
-    if (A.phase !== 'idle') return;
-    const f = this.fwd.clone(); let best = null, bd = 1e9;
+    const A = this.arm, P = perk(); if (A.phase !== 'idle') return;
+    const f = this.fwd.clone(); let bg = null, bd = 1e9;
+    for (const g of rocks.gems) { if (!g.m.visible) continue; const dx = g.x - this.pos.x, dy = g.y - this.pos.y, d = Math.hypot(dx, dy); if (d < 2.4 && dx * f.x + dy * f.y > 0.2 && d < bd) { bd = d; bg = g; } }
+    if (bg) { if (!need(COST.grab)) return; A.gem = bg; sfx.servo(0.45); return this.armGo('reachGem'); }
+    let best = null; bd = 1e9;
     rocks.near(this.pos.x + f.x * 0.9, this.pos.y + f.y * 0.9, 1.25, k => {
       const dx = k.x - this.pos.x, dy = k.y - this.pos.y, d = Math.hypot(dx, dy); if (d > 2.05 || dx * f.x + dy * f.y < 0.25 || k.D > P.liftD) return;
       if (d < bd) { bd = d; best = k; }
     });
-    if (!best) return toast(`No rock within reach.\nThe arm lifts rocks up to ${fm(P.liftD * 100, 0)} cm — shoot the bigger ones.`, 2200);
+    if (!best) return toast(`Nothing within reach.\nThe arm picks up gems, and throws aside rocks up to ${fm(P.liftD * 100, 0)} cm.`, 2400);
     if (!need(COST.grab)) return;
     A.rock = best; sfx.servo(0.45); this.armGo('reach');
   }
@@ -506,22 +538,21 @@ class Lander {
       if (vz > 0) { this.landed = false; this.vel.set(0, 0, 1.2); toast('Lift-off', 1200); }
       return agl;
     }
-    this.yaw += -ax * 0.9 * dt;
+    this.yaw += -ax * (agl < 300 ? 1.4 : 1.0) * dt;
     const f = tmp.a.set(Math.sin(this.yaw), Math.cos(this.yaw), 0);
-    /* The stick asks for a speed that grows with height. Close to the ground this is ordinary hover flight; high up the
-       speeds and accelerations are far beyond any real lander — theoretical, there to cross the map. */
-    const vMaxH = Math.max(12, 0.8 * agl), aLim = Math.max(2.6, 0.6 * agl);
-    const axW = clamp((f.x * ay * vMaxH - this.vel.x) * 0.9, -aLim, aLim), ayW = clamp((f.y * ay * vMaxH - this.vel.y) * 0.9, -aLim, aLim);
-    const vMax = Math.max(2.5, 0.45 * agl), vT = vz * vMax, az = clamp((vT - this.vel.z) * 1.6, -Math.max(G_MOON, 0.5 * agl), Math.max(3.5, 0.5 * agl));
+    /* Changed for playability: the lander follows the controls almost at once, its speed and climb rate grow with height
+       (far beyond any real vehicle — "theoretical"), and below 10 m it takes off its own sideways speed so that it can be set down. */
+    const low = clamp(agl / 10, 0, 1), vMaxH = Math.max(8, 0.8 * agl) * (0.1 + 0.9 * low), aLim = Math.max(8, 1.6 * agl);
+    const axW = clamp((f.x * ay * vMaxH - this.vel.x) * 2.4, -aLim, aLim), ayW = clamp((f.y * ay * vMaxH - this.vel.y) * 2.4, -aLim, aLim);
+    const vMax = Math.max(2.2, 0.9 * agl), vT = vz * vMax, az = clamp((vT - this.vel.z) * 2.5, -Math.max(G_MOON, 1.3 * agl), Math.max(4, 1.3 * agl));
     this.thrust = clamp(Math.hypot(axW, ayW, az + G_MOON) / (G_MOON + 3.5), 0, 1.4);
     this.vel.x += axW * dt; this.vel.y += ayW * dt; this.vel.z += az * dt; this.pos.addScaledVector(this.vel, dt);
     this.tilt.lerp(tmp.b.set(axW, ayW, 0).multiplyScalar(1 / (G_MOON + 3)), Math.min(1, dt * 4));
     if (this.pos.z > g + 100000) { this.pos.z = g + 100000; this.vel.z = Math.min(0, this.vel.z); }
-    if (this.pos.z <= g) {                                 // touchdown
-      const vh = Math.hypot(this.vel.x, this.vel.y), slope = terrain.slopeDeg(this.pos.x, this.pos.y, 2);
-      this.pos.z = g;
-      if (this.vel.z > -3 && vh < 2.5 && slope < 16) { this.landed = true; this.vel.set(0, 0, 0); sfx.thud(2); toast('Touchdown — you can deploy the rover', 2500); buildActs(); }
-      else { this.vel.z = Math.abs(this.vel.z) * 0.35 + 0.6; this.vel.x *= 0.5; this.vel.y *= 0.5; sfx.thud(4); toast(slope >= 16 ? `Too steep to land here (${fm(slope, 0)}°)` : 'Too fast — bounced', 2000); }
+    if (this.pos.z <= g) {                                 // touchdown: gentle by construction; only a steep slope refuses it
+      const slope = terrain.slopeDeg(this.pos.x, this.pos.y, 2); this.pos.z = g;
+      if (slope < 22) { this.landed = true; this.vel.set(0, 0, 0); sfx.thud(2); toast('Touchdown — you can deploy the rover', 2500); buildActs(); }
+      else { this.vel.set(this.vel.x * 0.3, this.vel.y * 0.3, 2.5); sfx.thud(3); toast(`Too steep to stand here (${fm(slope, 0)}°) — move a little and try again`, 2500); }
     }
     // engine exhaust blows regolith away in flat, straight sheets (no air to make it billow)
     if (agl < 14 && this.thrust > 0.15 && particles) for (let i = 0; i < 6; i++) { const a = Math.random() * 6.283, v = 6 + Math.random() * 16, r = 0.4 + Math.random() * 1.2, el = (2 + Math.random() * 8) * D2R;
@@ -690,7 +721,7 @@ function buildActs() {
     el.addEventListener('pointerdown', e => { e.preventDefault(); sfx.kick(); try { el.setPointerCapture(e.pointerId); } catch (_) {} held.add(a); el.classList.add('on'); });
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up); el.addEventListener('contextmenu', e => e.preventDefault());
   }
-  $('keys').textContent = G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · N names · Enter board · drag to look';
+  $('keys').textContent = orbit.on ? '↑↓←→ move over the Moon · R / F higher, lower · come down to 100 km to descend at the circle' : G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · N names · Enter board · drag to look';
 }
 function hudScore() {
   $('enTxt').textContent = fm(Math.max(0, G.energy), 0); $('enFill').style.width = clamp(G.energy, 0, 100) + '%'; $('enFill').classList.toggle('low', G.energy < 12); $('enOver').textContent = G.energy > 100 ? '+' + fm(G.energy - 100, 0) : '';
@@ -703,7 +734,7 @@ function hudStat(agl) {
   else {
     const up = rover.up(), tilt = Math.acos(clamp(up.z, -1, 1)) * R2D, sp = rover.vel.length();
     s.push(row('SPEED', fm(sp * 3.6, 1) + ' km/h'), row('TILT', fm(tilt, 0) + '°', tilt > 30 ? 'warn' : ''));
-    s.push(row('ROCKS', `${G.stats.rocks} · Th ${G.stats.th} · Il ${G.stats.il}`));
+    s.push(row('BROKEN', `${G.stats.shot} rocks`), row('FOUND', `Il ${G.stats.il} · Th ${G.stats.th} · Ar ${G.stats.ar || 0}`));
     const lv = G.det < 16 ? Math.round(clamp(1 - G.det / 16, 0, 1) * 8) : 0; s.push(row('THORIUM', '▮'.repeat(lv) + '▯'.repeat(8 - lv) + (G.det < 16 ? ' ' + fm(G.det, 0) + ' m' : ''), lv > 4 ? 'ok' : ''));
     if (rover.air > 0.25) s.push(row('AIR', fm(rover.air, 1) + ' s', 'ok')); else if (rover.lastAir && G.t - (rover.lastAirT || 0) < 3) s.push(row('JUMP', fm(rover.lastAir, 1) + ' s', 'ok'));
   }
@@ -721,7 +752,8 @@ function fillSheets() {
   <p>Two things in the lunar soil matter for anyone who wants to stay on the Moon, and both are real:</p>
   <ul><li><b style="color:var(--blue)">Ilmenite</b>, an iron–titanium oxide. The basalts Apollo 11 brought back from this very spot are among the most titanium-rich rocks known on the Moon. Ilmenite is a candidate ore for oxygen, iron and titanium.</li>
   <li><b style="color:var(--emer)">Thorium and uranium</b>, concentrated in a rock type called KREEP. Orbiters mapped thorium across the Moon with gamma-ray spectrometers — the instrument your detector imitates. There is about one part of uranium for four of thorium.</li></ul>
-  <p>In the game the rover turns both into energy: ilmenite +${COST.ilmenite}, thorium ore +${COST.thorium}. Energy runs everything, and the total you have captured decides how fast and how strong the rover becomes. At ${LAUNCH} captured, you are ready for the journey to the Earth. <span class="dim">Ore as fuel is fiction: real lunar thorium is a few parts per million of the rock, far too dilute to fuel anything without an industrial plant. Real rovers run on sunlight, which here only trickles in.</span></p>
+  <p>A third find is rarer: <b style="color:#ffe9a0">armalcolite</b>, a titanium mineral discovered in the Apollo 11 samples from this site and named after ARMstrong, ALdrin and COLlins. In the game it is the large bright gem, worth +${COST.armalcolite}, hidden only in big rocks and picked up with the arm.</p>
+  <p>The gems are inside the rocks and come out only when a rock is broken by the gun; they stay where they fall until collected. In the game the rover turns them into energy: ilmenite +${COST.ilmenite}, thorium ore +${COST.thorium}. Energy runs everything, and the total you have captured decides how fast and how strong the rover becomes. At ${LAUNCH} captured, you are ready for the journey to the Earth. <span class="dim">Ore as fuel is fiction: real lunar thorium is a few parts per million of the rock, far too dilute to fuel anything without an industrial plant. Real rovers run on sunlight, which here only trickles in.</span></p>
   <h3>The ground: what is real and what is a prediction</h3>
   <p>The LRO cameras see this site at 0.5 m per pixel and its elevation at 2 m per pixel. A rover is smaller than that, so the ground is built from three layers. Press <b>Layers</b> to see them in colour.</p>
   <p><b class="tagm">1 · Measured.</b> Elevation from the LROC NAC stereo model and the brightness of the real LROC photograph. Shapes larger than about 10 m are exactly these data.</p>
@@ -743,8 +775,15 @@ function fillSheets() {
   <li>No air also means no sound. What you hear is what the vehicle's own structure would carry: motors, the gun's action, impacts through the wheels.</li>
   <li>Grip depends on weight, and the rover weighs a sixth: it accelerates and brakes gently.</li>
   <li>The Earth hangs over the middle of the near side: high in the sky at Tranquility Base, on the horizon near the limb, and never visible from the far side. Fly there and look.</li></ul>
+  <h3>Changed so that it can be played</h3>
+  <p>A faithful simulation of these vehicles is very hard to control, so some physics was deliberately altered:</p>
+  <ul><li><b>Rover stabiliser.</b> An invented device holds the body parallel to the ground and damps rolling; in flight it keeps the rover level. A real rover at this speed in this gravity would tip over constantly.</li>
+  <li><b>Softer obstacles.</b> The wheels roll over rocks up to 20 cm; taller ones are pushed or stop the rover, instead of launching it. Suspension forces are capped.</li>
+  <li><b>Lander.</b> It follows the controls almost at once, takes off its own sideways speed below 10 m, and always touches down gently on slopes up to 22°. Speed and climb rate grow with height.</li>
+  <li><b>Above 100 km</b> the game shows the Moon as a globe and you slide a viewpoint over it. That is not an orbit: a real one at 100 km moves at 1.6 km/s and takes about two hours a lap.</li>
+  <li>Gravity, the parabolas of debris and dust, and the low grip of the wheels are left as they are.</li></ul>
   <h3>What is only a game</h3>
-  <ul><li>Ore as glowing nuggets, thorium as fuel, the gun, unlimited propellant for the lander.</li>
+  <ul><li>Minerals as glowing gems (real ilmenite and armalcolite are dull, dark grains), minerals as fuel, the gun, unlimited propellant for the lander.</li>
   <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
   <li>The Apollo 11 descent stage stands at its real position; its shape is illustrative. Tools are locked within ${KEEP_OUT} m of it, in the spirit of NASA's guidelines for protecting the Apollo sites.</li></ul>`;
   $('helpBody').innerHTML = `
@@ -752,12 +791,12 @@ function fillSheets() {
   <table>
     <tr><td><b>Energy</b></td><td>Everything the rover does uses it. Sunlight gives a trickle; the base station recharges to 100; thorium ore adds ${COST.thorium} each, with no upper limit. If it runs flat the rover only crawls — press <b>Back to base</b>.</td></tr>
     <tr><td><b>Detector</b></td><td>Ticks faster, and the THORIUM bar fills, as you approach a rock that holds thorium ore.</td></tr>
-    <tr><td><b>Grab</b></td><td>The arm lifts the nearest rock in front and analyses it. Ore is turned into energy, with its own sound; a plain rock is thrown away. The HUD counts rocks analysed, thorium (Th) and ilmenite (Il) finds.</td></tr>
+    <tr><td><b>Grab</b></td><td>The arm picks up a gem within reach — the only way to take the large bright ones. With no gem in reach it lifts the nearest rock and throws it aside.</td></tr>
     <tr><td><b>Gun</b></td><td>Aims at the nearest rock ahead. Any rock can be destroyed; big ones take several rounds. The ore drops out.</td></tr>
-    <tr><td><b>Ore</b></td><td><span style="color:var(--emer)">Thorium ore</span> +${COST.thorium} energy, <span style="color:var(--blue)">ilmenite</span> +${COST.ilmenite}. Rocks too big for the arm must be shot; drive over what falls out.</td></tr>
+    <tr><td><b>Gems</b></td><td>They appear only when a rock is broken, and stay until you take them. <span style="color:var(--blue)">Ilmenite</span> +${COST.ilmenite} and <span style="color:var(--emer)">thorium ore</span> +${COST.thorium}: drive over them. <span style="color:#ffe9a0">Armalcolite</span> +${COST.armalcolite}: larger, brighter, rare, only in big rocks, and only the arm can lift it.</td></tr>
     <tr><td><b>Levels</b></td><td>By total energy captured:<br>${PERKS.slice(2).map((p, i) => `L${i + 2} (${LEVELS[i + 1]}): ${p.name}`).join('<br>')}<br>${LAUNCH}: ready for the Earth</td></tr>
     <tr><td><b>Drive</b></td><td>${touchUI ? 'Left stick' : 'Arrow keys or W A S D'}. Hit a rock at speed and the rover jumps — slowly, this is the Moon.</td></tr>
-    <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs, up to 100 km. Come down and slow down to land, on ground that is not too steep.</td></tr>
+    <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs. Above 100 km you see the whole Moon: move the circle anywhere, then come down to descend there. Come down and slow down to land, on ground that is not too steep.</td></tr>
     <tr><td><b>Names</b></td><td>Official IAU names of craters and other features point the way, with distances. ${touchUI ? '☰ → Crater names' : 'N'} turns them off.</td></tr>
     <tr><td><b>View</b></td><td>Drag to look round, ${touchUI ? 'pinch' : 'scroll'} to zoom.</td></tr>
   </table>`;
@@ -803,6 +842,57 @@ const labels = {
 };
 
 /* ====================================================================== main */
+/* ====================================================================== orbit: the Moon as a globe, to choose where to go down.
+   This is a viewpoint sliding over the Moon, not an orbit being flown: a real one at 100 km takes two hours a lap. */
+const RKM = R_MOON / 1000;
+const orbit = {
+  on: false, lat: 0, lon: 0, alt: 100, armed: false, hudT: 0, selT: 0, act: [], area: '',
+  build() {
+    const sc = this.scene = new THREE.Scene(); sc.background = new THREE.Color(0x000000);
+    const g = new THREE.SphereGeometry(RKM, 128, 64); g.rotateX(Math.PI / 2);                 // north = +z, longitude 0 = +x, east = +y
+    sc.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: terrain.texGlobal, roughness: 1, metalness: 0 })));
+    const sl = (terrain.site.lon - 72) * D2R, s2 = new THREE.DirectionalLight(0xffffff, 3.0); s2.position.set(Math.cos(sl), Math.sin(sl), 0.05); sc.add(s2, new THREE.AmbientLight(0xffffff, 1.1));
+    const e = new THREE.Mesh(new THREE.SphereGeometry(6371, 32, 16), new THREE.MeshLambertMaterial({ color: 0x4f86c6, emissive: 0x0a1626 })); e.position.set(384400, 0, 0); sc.add(e);   // the Earth, at its real distance and size
+    this.cam = new THREE.PerspectiveCamera(45, 1, 20, 1.2e6); this.cam.up.set(0, 0, 1);
+  },
+  P(lat, lon, r, out) { const a = lat * D2R, o = lon * D2R; return out.set(Math.cos(a) * Math.cos(o) * r, Math.cos(a) * Math.sin(o) * r, Math.sin(a) * r); },
+  enter() {
+    if (!this.scene) this.build(); const ll = terrain.toLatLon(lander.pos.x, lander.pos.y); this.lat = clamp(ll[0], -82, 82); this.lon = ll[1]; this.alt = 100; this.armed = false; this.on = true;
+    document.body.classList.add('orbit'); buildActs(); toast('Above 100 km: the whole Moon.\nKeep climbing, move the circle over the place you want,\nthen come back down to descend there.', 8000);
+  },
+  leave() {
+    this.on = false; document.body.classList.remove('orbit'); setAnchorAt(this.lat, this.lon);
+    const p = terrain.fromLatLon(this.lat, this.lon); clip.update(p[0], p[1], 800); lander.pos.set(p[0], p[1], clip.ground(p[0], p[1]) + 99000); lander.vel.set(0, 0, 0); lander.landed = false;
+    buildActs(); toast('Descending' + (this.area ? ' — ' + this.area : ''), 4000);
+  },
+  step(dt, ax, ay, vz) {
+    G.t += dt; this.alt = clamp(this.alt * Math.exp(vz * 1.1 * dt), 100, 20000); if (this.alt > 102) this.armed = true;
+    const k = 0.9 * this.alt / RKM * R2D * dt * Math.min(1, 0.3 + 600 / this.alt);       // the ground slides by at a similar pace on screen whatever the height
+    this.lat = clamp(this.lat + ay * k, -82, 82); this.lon = wrap180(this.lon + ax * k / Math.max(0.25, Math.cos(this.lat * D2R)));
+    if (this.armed && vz < 0 && this.alt <= 100.001) return this.leave();
+    sfx.frame(dt, { thrust: 0.12 * Math.abs(vz), throttle: 0, wheel: 0, speed: 0, ground: false, geiger: 0 });
+    this.hudT -= dt; if (this.hudT <= 0) { this.hudT = 0.2;
+      if (labels.all) { let best = null; const la = this.lat * D2R, lo = this.lon * D2R; for (const f of labels.all) { const a = f.lat * D2R, d = Math.acos(clamp(Math.sin(la) * Math.sin(a) + Math.cos(la) * Math.cos(a) * Math.cos(f.lon * D2R - lo), -1, 1)) * R_MOON; if (d < f.D / 2 && (!best || f.D < best.D)) best = f; } this.area = best ? 'over ' + best.n : ''; }
+      const row = (a, b, c = '') => `<span class="k">${a.padEnd(8)}</span><span class="${c}">${b}</span>\n`;
+      $('stat').innerHTML = row('HEIGHT', fm(this.alt, 0) + ' km') + row('LAT LON', `${fm(Math.abs(this.lat), 1)}°${this.lat >= 0 ? 'N' : 'S'} ${fm(Math.abs(this.lon), 1)}°${this.lon >= 0 ? 'E' : 'W'}`) + (this.area ? row('AREA', this.area.length > 24 ? this.area.slice(0, 23) + '…' : this.area) : '') + row('SIDE', Math.abs(this.lon) < 90 ? 'near side' : 'far side') + row('DESCEND', this.alt > 100.5 ? 'come down to 100 km' : 'hold ▼', 'warn'); hudScore(); }
+  },
+  draw() {
+    const c = this.cam; c.aspect = innerWidth / innerHeight; c.near = Math.max(5, this.alt * 0.3); c.updateProjectionMatrix();
+    this.P(this.lat, this.lon, RKM + this.alt, c.position); c.lookAt(0, 0, 0); c.updateMatrixWorld();
+    const box = $('names'), pool = labels.pool, want = G.names && labels.all ? 12 : 0;      // names of the features large enough to read from this height
+    this.selT -= 1; if (this.selT <= 0 && want) { this.selT = 12; const cp = c.position, lim = RKM * RKM * 1.02, a = [];
+      for (const f of labels.all) { if (f.D < this.alt * 45 || this.alt > 9000) continue; this.P(f.lat, f.lon, RKM, tmp.c); if (tmp.c.dot(cp) < lim) continue; a.push(f); }
+      a.sort((p, q) => q.D - p.D); this.act = a.slice(0, want); }
+    for (let i = 0; i < Math.max(pool.length, want); i++) {
+      let e = pool[i]; if (!e) { e = pool[i] = document.createElement('div'); e.className = 'nm'; box.appendChild(e); }
+      const f = this.act[i]; if (!f || !want) { e.style.display = 'none'; continue; }
+      const p = this.P(f.lat, f.lon, RKM, tmp.c).project(c); if (p.z > 1 || Math.abs(p.x) > 0.97 || Math.abs(p.y) > 0.95) { e.style.display = 'none'; continue; }
+      e.style.display = ''; e.style.transform = `translate(${((p.x + 1) * innerWidth / 2).toFixed(1)}px,${((1 - p.y) * innerHeight / 2).toFixed(1)}px)`; if (e._t !== f.n) { e._t = f.n; e.textContent = f.n; }
+    }
+    renderer.render(this.scene, c);
+  },
+};
+
 (async function boot() {
   const load = $('load');
   try {
@@ -816,6 +906,7 @@ const labels = {
     BASE.ll = terrain.toLatLon(BASE.x, BASE.y);
     const sx = BASE.x + 15, sy = BASE.y + 7; clip.update(sx, sy); placeStatics(); base.rotation.z = 0.5; 
     lander.place(sx, sy); lander.yaw = 68 * D2R; rocks.rebuild(sx, sy); labels.load();
+    for (const q of G.savedGems || []) if (q && q[2] >= 1 && q[2] <= 3) rocks.gemLL(q[0], q[1], q[2]);
     camS.yaw = lander.yaw; buildActs(); hudScore(); fillSheets();
     load.style.display = 'none';
     toast('Tranquility Base, 130 m from where Apollo 11 landed.\nDeploy the rover and prospect for ore — or lift off and fly anywhere.', 7000);
@@ -826,6 +917,8 @@ const labels = {
   function tick(dt) {
     G.t += dt;
     const ax = clamp(kd('ArrowRight', 'KeyD') - kd('ArrowLeft', 'KeyA') + stick.x, -1, 1), ay = clamp(kd('ArrowUp', 'KeyW') - kd('ArrowDown', 'KeyS') + stick.y, -1, 1);
+    const vzIn = kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
+    if (orbit.on) { orbit.step(dt, ax, ay, vzIn); return; }
     let focus, agl = 0;
     if (G.mode === 'rover') {
       const thr = G.flat ? ay * 0.25 : ay;                // flat battery: sunlight alone only lets it crawl
@@ -846,14 +939,15 @@ const labels = {
       if (Math.abs(rover.pos.x) > 58000 || Math.abs(rover.pos.y) > 58000) { rover.pos.x = clamp(rover.pos.x, -58000, 58000); rover.pos.y = clamp(rover.pos.y, -58000, 58000); rover.vel.multiplyScalar(0.5); }
       rover.sync(dt); focus = rover.pos;
     } else {
-      agl = lander.step(dt, ax, ay, kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0)); focus = lander.pos;
+      agl = lander.step(dt, ax, ay, vzIn); focus = lander.pos;
+      if (!lander.landed && agl > 99500 && vzIn > 0) { orbit.enter(); return; }
       const dA = Math.hypot(lander.pos.x, lander.pos.y);
       if (G.t > anchorT && (lander.landed ? dA > 12000 : dA > clamp(agl, 20000, 150000))) { anchorT = G.t + 1; reanchor(); }
       const lat = terrain.lat0 + lander.pos.y / terrain.ky;      // the polar regions are not covered by this flat-map method
       if (Math.abs(lat) > 82) { lander.pos.y = (82 * Math.sign(lat) - terrain.lat0) * terrain.ky; lander.vel.y = 0; if (G.t > poleT) { poleT = G.t + 10; toast('The polar regions are not covered yet (beyond 82°)', 3500); } }
     }
     const lowSlow = G.mode === 'rover' || (agl < 40 && lander.vel.length() < 20);
-    lander.sync(); stepShots(dt); particles.step(dt); rocks.step(dt, focus.x, focus.y, lowSlow);
+    lander.sync(); stepShots(dt); particles.step(dt); rocks.step(dt, focus.x, focus.y, G.mode === 'lander' ? agl : 0);
     // detector: distance to the nearest thorium ore, still in its rock or lying free
     detT -= dt; if (detT <= 0) { detT = 0.25; let d = 99; if (G.mode === 'rover') { for (const k of rocks.active) if (k.gem === 2 && !k.gemOut && !k.dead) d = Math.min(d, Math.hypot(k.x - rover.pos.x, k.y - rover.pos.y)); for (const g of rocks.gems) if (g.type === 2) d = Math.min(d, Math.hypot(g.x - rover.pos.x, g.y - rover.pos.y)); } G.det = d; }
     sfx.frame(dt, { thrust: G.mode === 'lander' && !lander.landed ? Math.min(1, lander.thrust) : 0, throttle: G.mode === 'rover' ? ay : 0, wheel: G.mode === 'rover' ? Math.abs(rover.vel.length()) / 6 : 0,
@@ -891,11 +985,12 @@ const labels = {
     const real = (now - last) / 1000; last = now; if (real <= 0) return;
     if (!G.paused) tick(Math.min(0.05, real));
     adapt(real);
+    if (orbit.on) { $('tag').style.display = 'none'; orbit.draw(); return; }
     const tag = $('tag'), de = camera.position.distanceTo(eagle.position);       // label on the descent stage
     if (de < 150) { const p = tmp.b.set(eagle.position.x, eagle.position.y, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
     labels.frame();
     renderer.render(scene, camera);
   }
-  window.__game = { labels, base, sfx, need, COST, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
+  window.__game = { labels, base, sfx, need, COST, orbit, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
   requestAnimationFrame(frame);
 })();
