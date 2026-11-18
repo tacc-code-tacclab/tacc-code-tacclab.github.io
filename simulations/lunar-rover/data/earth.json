@@ -1,0 +1,55 @@
+{
+ "source": "NASA Global Imagery Browse Services (GIBS), https://gibs.earthdata.nasa.gov - NASA imagery, free to use",
+ "retrieved_utc": "2026-11-18T23:48:43Z",
+ "target": {
+  "name": "Cape Canaveral, Florida",
+  "lat": 28.4889,
+  "lon": -80.5778
+ },
+ "images": {
+  "earth_globe.jpg": {
+   "layer": "BlueMarble_ShadedRelief_Bathymetry",
+   "south": -90,
+   "west": -180,
+   "north": 90,
+   "east": 180,
+   "width": 4096,
+   "height": 2048,
+   "time": null,
+   "bytes": 939458
+  },
+  "earth_florida.jpg": {
+   "layer": "BlueMarble_ShadedRelief_Bathymetry",
+   "south": 23.5,
+   "west": -89.0,
+   "north": 32.5,
+   "east": -77.0,
+   "width": 2400,
+   "height": 1800,
+   "time": null,
+   "bytes": 253655
+  },
+  "earth_coast.jpg": {
+   "layer": "Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual",
+   "south": 27.4,
+   "west": -81.7,
+   "north": 29.6,
+   "east": -79.5,
+   "width": 2048,
+   "height": 2048,
+   "time": "2000-12-01",
+   "bytes": 675813
+  },
+  "earth_cape.jpg": {
+   "layer": "Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual",
+   "south": 28.19,
+   "west": -80.88,
+   "north": 28.79,
+   "east": -80.28,
+   "width": 2048,
+   "height": 2048,
+   "time": "2000-12-01",
+   "bytes": 752319
+  }
+ }
+}
