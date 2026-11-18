@@ -4,7 +4,7 @@ Element abundances measured from orbit by the Lunar Prospector gamma-ray spectro
 (PDS data set LP-L-GRS-5-ELEM-ABUNDANCE-V1.0, T. H. Prettyman et al.), 5-degree equal-area map.
 
 Downloads the table and its format file from the PDS Geosciences Node and writes data/lp_grs_5deg.json:
-thorium, uranium and potassium (ppm), titanium and iron (weight %), resampled to a regular 5 x 5 degree grid by
+thorium, uranium and potassium (ppm), titanium dioxide and iron oxide (weight %), resampled to a regular 5 x 5 degree grid by
 taking, for each grid cell, the equal-area pixel that contains its centre. Values are copied, not smoothed.
 The instrument's footprint is about 150 km, so this says what a region is like, not what a single rock contains.
 """
@@ -27,8 +27,8 @@ rows = [[float(v) for v in ln.split()] for ln in tab.splitlines() if ln.strip()]
 print(f"::notice::{len(rows)} pixels, {len(rows[0])} columns")
 
 # column for each element: by name if the format file names it, otherwise by position; either way checked for plausibility
-want = {"Th_ppm": (r"^(TH|THORIUM)\b", 14, (0.05, 15)), "U_ppm": (r"^(U|URANIUM)\b", 15, (0.01, 5)), "K_ppm": (r"^(K|POTASSIUM)\b", 13, (50, 5000)),
-        "Ti_wt": (r"^(TI|TITANIUM)\b", 11, (0.0, 0.09)), "Fe_wt": (r"^(FE|IRON)\b", 12, (0.01, 0.22))}
+want = {"Th_ppm": (r"^(W_)?TH$", 14, (0.05, 15)), "U_ppm": (r"^(W_)?U$", 15, (0.01, 5)), "K_ppm": (r"^(W_)?K$", 13, (50, 5000)),
+        "TiO2_wt": (r"^(W_)?TIO2$", 11, (0.0, 0.12)), "FeO_wt": (r"^(W_)?FEO$", 12, (0.01, 0.25))}       # titanium and iron are given as oxides
 cols, how = {}, {}
 for key, (rx, pos, (lo, hi)) in want.items():
     idx = [i for i, n in enumerate(names) if re.match(rx, n.upper()) and not re.search(r"ERR|SIG|COV|UNC", n.upper())]
@@ -55,9 +55,9 @@ for la in lats:
 out = {"source": {"mission": "Lunar Prospector", "instrument": "Gamma Ray Spectrometer", "data_set": "LP-L-GRS-5-ELEM-ABUNDANCE-V1.0",
                   "producer": "T. H. Prettyman, Planetary Science Institute", "file": TAB, "url": BASE + TAB},
        "generated_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-       "processing": "for each 5 x 5 degree cell, the value of the equal-area pixel containing its centre; titanium and iron converted "
+       "processing": "for each 5 x 5 degree cell, the value of the equal-area pixel containing its centre; TiO2 and FeO converted "
                      "from weight fraction to weight percent; nothing smoothed or filled", "columns_used": how,
-       "th_over_u_median": round(ratio, 2), "lat_centres": lats, "lon_centres": lons, "units": {"Th_ppm": "ppm", "U_ppm": "ppm", "K_ppm": "ppm", "Ti_wt": "wt% Ti", "Fe_wt": "wt% Fe"},
+       "th_over_u_median": round(ratio, 2), "lat_centres": lats, "lon_centres": lons, "units": {"Th_ppm": "ppm", "U_ppm": "ppm", "K_ppm": "ppm", "TiO2_wt": "wt% TiO2", "FeO_wt": "wt% FeO"},
        "grid": grid}
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 json.dump(out, open(OUT, "w"), separators=(",", ":"))
