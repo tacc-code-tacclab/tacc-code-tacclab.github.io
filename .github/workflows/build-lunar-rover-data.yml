@@ -1,0 +1,30 @@
+name: Build Lunar Rover data (Lunar Prospector element maps)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-lunar-rover-data.yml"
+      - "simulations/lunar-rover/tools/fetch_lp_grs.py"
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download and convert the Lunar Prospector GRS 5-degree element map
+        run: python simulations/lunar-rover/tools/fetch_lp_grs.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add simulations/lunar-rover/data/lp_grs_5deg.json
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Lunar Rover: Lunar Prospector element maps"
+          git pull --rebase origin main
+          git push
