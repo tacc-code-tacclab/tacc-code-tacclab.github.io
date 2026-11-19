@@ -59,7 +59,7 @@
   #miniLeg{color:var(--dim);padding:0 2px 1px;white-space:nowrap} #miniLeg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 7px;vertical-align:-1px} #miniLeg i:first-child{margin-left:0}
   #mini.big{width:min(94vw,760px);right:50%;transform:translateX(50%);top:calc(70px + env(safe-area-inset-top));z-index:6;font-size:12px}
   body.touch #mini{width:150px} body.touch #mini.big{width:94vw}
-  body.ret #mini{display:none} body.ret #mini.show{display:block}
+  body.ret #mini{display:none} body.ret #mini.show{display:block} body.ret #miniLeg{display:none}
   @media (max-width:560px){ #mini{top:calc(96px + env(safe-area-inset-top))} #miniLeg{display:none} #mini.big #miniLeg{display:block} }
   @media (orientation:landscape) and (max-height:460px){ #mini{width:128px !important;top:calc(56px + env(safe-area-inset-top))} #miniLeg{display:none} #br{display:none} }
   #stat{white-space:pre;color:var(--ink)}
