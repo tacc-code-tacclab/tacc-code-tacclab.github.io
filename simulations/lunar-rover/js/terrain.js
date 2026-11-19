@@ -275,7 +275,7 @@ export class Clipmap {
   constructor(terrain, scene, opts = {}) {
     this.t = terrain; terrain.clip = this; this.group = new THREE.Group(); scene.add(this.group);
     this.overlay = false;
-    this.mat = this.makeMaterial();
+    this.mat = this.makeMaterial(opts.grain);
     const cells = [0.25, 1, 4, 16, 64, 256, 1024, 4096, 16384];
     this.first = 0;
     this.levels = cells.map((c, i) => {
@@ -289,12 +289,12 @@ export class Clipmap {
       return { i, c, geo, mesh, ox: NaN, oy: NaN, h: new Float32Array(M * M).fill(NaN), s: new Float32Array(M * M), p: new Float32Array(M * M), hole: '', dirty: true };
     });
   }
-  makeMaterial() {
+  makeMaterial(grainTex) {                                // grainTex: optionally a real close-up photograph of the soil instead of generated grain
     const t = this.t, g = document.createElement('canvas'); g.width = g.height = 256;
     const ctx = g.getContext('2d'), id = ctx.createImageData(256, 256), r = rng(12345);
     for (let i = 0; i < 256 * 256; i++) { const v = 128 + (r() + r() + r() - 1.5) * 90; id.data[4 * i] = id.data[4 * i + 1] = id.data[4 * i + 2] = clamp(v, 0, 255); id.data[4 * i + 3] = 255; }
     ctx.putImageData(id, 0, 0);
-    const grain = new THREE.CanvasTexture(g); grain.wrapS = grain.wrapT = THREE.RepeatWrapping; grain.generateMipmaps = true; grain.minFilter = THREE.LinearMipmapLinearFilter;
+    let grain = new THREE.CanvasTexture(g); grain.wrapS = grain.wrapT = THREE.RepeatWrapping; grain.generateMipmaps = true; grain.minFilter = THREE.LinearMipmapLinearFilter; if (grainTex) grain = grainTex;
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, vertexColors: true }); mat.envMapIntensity = 0;
     const u = this.uniforms = {
       tLocal: { value: t.texLocal }, tRegional: { value: t.texRegional }, tWide: { value: t.texWide }, tGlobal: { value: t.texGlobal }, tGrain: { value: grain },

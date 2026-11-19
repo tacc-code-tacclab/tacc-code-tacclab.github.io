@@ -26,6 +26,12 @@ Rendering in version 3: filmic (ACES) tone mapping, a larger shadow map, a soft 
 burn out under a Sun set for the dark lunar soil. It downloads about 8 MB more than version 2. If the models fail
 to load, the built-in ones are used. Use of the models does not imply endorsement by NASA.
 
+Added on 20 November 2026: the lunar module's blankets are rendered as creased metal foil (a wrinkled normal generated
+in the shader on metallic materials; NASA's model paints them flat); the gun is fixed to the rover by a post, an arm
+and a brace; the lamp above the habitat is gone; rocks are rounded and, like the soil near the rover, wear a real
+photograph - undisturbed soil cropped from NASA's Apollo 11 bootprint picture, taken at this site, evened out and
+saved as `data/apollo11_soil.jpg`. Rock shapes are still generated: NASA's free collection has no scanned lunar rocks.
+
 What it is not: photographs, or hardware modelled for this game. The limits are those of NASA's models (the lunar
 module has flat colours, not real foil) and of real-time rendering in a browser.
 

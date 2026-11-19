@@ -80,14 +80,37 @@ function legs(g, rBody, zBody, rPad, n, m) {
   }
 }
 /* ---- version 3: NASA's 3-D models (github.com/nasa/NASA-3D-Resources, free and without copyright) ---- */
-const MODELS = {};
+const MODELS = {}, SOIL = {};                              // SOIL: a real Apollo 11 photograph of the ground, used as the skin of rocks and soil in version 3
 async function loadModels(onStep) {
   const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/loaders/DRACOLoader.js')]);
   const draco = new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/'); const L = new GLTFLoader(); L.setDRACOLoader(draco);
   for (const [key, file, label] of [['lm', 'apollo_lunar_module.glb', 'Apollo lunar module'], ['rover', 'perseverance_rover.glb', 'rover'], ['hab1', 'habitat_1.glb', 'habitat'], ['hab2', 'habitat_2.glb', 'habitat'], ['astro', 'astronaut.glb', 'astronaut']]) {
     onStep(label); const g = await L.loadAsync('data/models/' + file); MODELS[key] = g.scene;
-    g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; for (const m of [].concat(o.material)) if (m && !m.userData.fitted) { m.userData.fitted = true; m.envMapIntensity = 1; if (m.transmission) m.transmission = 0; if (m.color) m.color.multiplyScalar(0.42); if (key.startsWith('hab')) { m.metalness = 0; m.roughness = 0.9; } } } });      // the Sun here is set for the dark lunar soil: painted surfaces are toned down so that they do not burn out
+    g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; for (const m of [].concat(o.material)) if (m && !m.userData.fitted) { m.userData.fitted = true; m.userData.c0 = m.color ? m.color.clone() : null; m.envMapIntensity = 1; if (m.transmission) m.transmission = 0; if (m.color) m.color.multiplyScalar(0.42); if (key.startsWith('hab')) { m.metalness = 0; m.roughness = 0.9; } } } });
+    if (key === 'lm') dressLM(g.scene);      // the Sun here is set for the dark lunar soil: painted surfaces are toned down so that they do not burn out
   }
+}
+/* Thermal blankets: the real lunar module is wrapped in crinkled metallised film. NASA's model paints those surfaces a flat
+   colour; here they are given the look of creased foil — a wrinkled surface generated in the shader, on a metallic material. */
+function foilify(m, scale, amp) {
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vOP;
+      float fh(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float fn(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(fh(i), fh(i + vec3(1,0,0)), f.x), mix(fh(i + vec3(0,1,0)), fh(i + vec3(1,1,0)), f.x), f.y), mix(mix(fh(i + vec3(0,0,1)), fh(i + vec3(1,0,1)), f.x), mix(fh(i + vec3(0,1,1)), fh(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      { float h = fn(vOP * ${scale.toFixed(1)}) + 0.45 * fn(vOP * ${(scale * 2.3).toFixed(1)});      // broad creases only: finer ones would just sparkle
+        vec3 sx = dFdx(-vViewPosition), sy = dFdy(-vViewPosition), r1 = cross(sy, normal), r2 = cross(normal, sx); float det = dot(sx, r1); vec2 dh = vec2(dFdx(h), dFdy(h)) * ${amp.toFixed(2)};
+        normal = normalize(abs(det) * normal - sign(det) * (dh.x * r1 + dh.y * r2)); }`);
+  };
+  m.customProgramCacheKey = () => 'foil' + scale + '_' + amp; m.needsUpdate = true;
+}
+function dressLM(root) {                                 // gold and copper film, black film, bare aluminium, by the colour NASA gave each part
+  const seen = new Set(); root.traverse(o => { if (!o.isMesh) return; for (const m of [].concat(o.material)) { if (!m || seen.has(m) || m.map) continue; seen.add(m); const c = m.userData.c0 || m.color, r = c.r, g = c.g, b = c.b;
+    if (r > 0.5 && b < 0.2 && g > 0.25) { m.color.setRGB(r > 0.7 ? 0.95 : 0.85, r > 0.7 ? 0.63 : 0.42, r > 0.7 ? 0.2 : 0.12); m.metalness = 0.82; m.roughness = 0.56; m.envMapIntensity = 1.7; foilify(m, 3.6, 0.2); }      // gold / copper-coloured film
+    else if (r < 0.3) { m.color.setRGB(0.07, 0.065, 0.06); m.metalness = 0.7; m.roughness = 0.5; m.envMapIntensity = 2.0; foilify(m, 4.5, 0.16); }                                                                      // black film
+    else { m.color.setRGB(0.4, 0.41, 0.43); m.metalness = 0.55; m.roughness = 0.68; m.envMapIntensity = 1.1; } } });                                                                              // aluminium skin, slightly uneven
 }
 /* bring a model into the game's frame: z up, standing on z = 0, centred, scaled so that its width (or height) has the given size */
 function fit(src, size, by = 'w', yaw = 0) {
@@ -190,14 +213,15 @@ function makeRover() {
   if (V3 && MODELS.rover) {                             // NASA's Perseverance model takes the place of the hand-built body; the working arm, gun and scoop stay
     for (const c of g.children) if (c !== u.armBase && c !== u.turret && c !== u.scoop) c.visible = false;
     const m = fit(MODELS.rover, 2.15, 'w', V3YAW.rover); m.scale.setScalar(0.74); m.position.z = -0.57; g.add(m); u.nasa = m;
-    u.armBase.position.set(-0.32, 0.72, 0.18); u.turret.position.set(0.34, 0.5, 0.42);
+    u.armBase.position.set(-0.32, 0.72, 0.18); u.turret.position.set(0.24, 0.46, 0.44);
+    g.add(strut(V(0.24, 0.46, 0.37), V(0, 0.4, 0.33), 0.032, ALU), strut(V(0, 0.4, 0.34), V(0, 0.4, -0.2), 0.04, ALU), strut(V(0.24, 0.46, 0.37), V(0.05, 0.4, 0.05), 0.02, GREY), at(cyl(0.09, 0.11, 0.05, 14, GREY), 0, 0.4, 0.33));     // the gun's mount: a post rising from the deck, an arm and a brace
   }
   return g;
 }
 function makeBase() {                                    // the station that stays at Tranquility Base: habitat, solar wings, dish. Invented.
   if (V3 && MODELS.hab1) { const both = new THREE.Group(); both.add(MODELS.hab1, MODELS.hab2); const g = new THREE.Group(); g.add(fit(both, 9.5, 'w', V3YAW.hab));        // NASA's Habitat Demonstration Unit
     if (MODELS.astro) { const a = fit(MODELS.astro, 1.85, 'h', 2.4); a.position.set(3.2, -6.4, 0); g.add(a); }
-    g.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0x66ff99 })), 0, 0, g.children[0].userData.h + 0.3)); return g; }
+    return g; }
   const g = new THREE.Group();
   const hg = new THREE.CylinderGeometry(1.35, 1.35, 3.2, 20); hg.rotateZ(Math.PI / 2); const hab = new THREE.Mesh(hg, WHITE); hab.castShadow = true; g.add(at(hab, 0, 0, 1.95));
   for (const sx of [-1, 1]) { g.add(at(ball(1.35, WHITE, 20), sx * 1.6, 0, 1.95)); const wing = box(3.4, 0.04, 1.5, PANEL); wing.position.set(sx * 4.6, 0, 3.0); wing.rotation.y = sx * 0.45; g.add(wing, strut(V(sx * 2.4, 0, 2.6), V(sx * 3.1, 0, 2.95), 0.05, ALU)); }
@@ -406,7 +430,9 @@ class Rocks {
     this.debris = []; this.gems = [];
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, envMapIntensity: 0 });
     this.meshes = [];
+    if (V3 && SOIL.map) { m.flatShading = false; m.map = SOIL.map; m.bumpMap = SOIL.map; m.bumpScale = 5; m.needsUpdate = true; }      // version 3: rounded stones wearing a real photograph of lunar soil
     for (let v = 0; v < 4; v++) {
+      if (V3 && SOIL.map) { const g = asteroidGeo(977 + v * 31, 14, 9); g.scale(1, 1, 0.9); const im = new THREE.InstancedMesh(g, m, CAP); im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; im.count = 0; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); scene.add(im); this.meshes.push(im); continue; }
       const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, r = rng(977 + v * 31);
       const off = new Map();                               // same displacement for coincident vertices, so the rock stays closed
       for (let i = 0; i < p.count; i++) { const k = [p.getX(i), p.getY(i), p.getZ(i)].map(c => c.toFixed(3)).join(); if (!off.has(k)) off.set(k, 0.72 + 0.5 * r()); const sc = off.get(k); p.setXYZ(i, p.getX(i) * sc, p.getY(i) * sc, p.getZ(i) * sc); }
@@ -464,7 +490,7 @@ class Rocks {
     tmp.q.setFromEuler(new THREE.Euler(k.tilt, k.tilt * 0.7, k.yaw, 'ZYX')); tmp.m.compose(tmp.a.set(k.x, k.y, k.z), tmp.q, tmp.s.set(k.sx, k.sy, k.sz));
     const im = this.meshes[k.v]; if (k.ii === undefined || k.ii >= CAP) return; im.setMatrixAt(k.ii, tmp.m);
     const c = im.instanceColor.array, o = 3 * k.ii, ov = G.overlay;
-    c[o] = ov ? 1.0 : k.shade; c[o + 1] = ov ? 0.55 : k.shade; c[o + 2] = ov ? 0.2 : k.shade * 0.97;
+    const sh = V3 && SOIL.map ? k.shade * 3.0 : k.shade; c[o] = ov ? 1.0 : sh; c[o + 1] = ov ? 0.55 : sh; c[o + 2] = ov ? 0.2 : sh * 0.97;
     im.instanceMatrix.needsUpdate = true;
   }
   near(x, y, r, fn) {                                     // visit rocks whose centre is within r (+ their own size) of a point
@@ -1030,7 +1056,7 @@ function fillSheets() {
   <ul><li>Minerals as glowing gems (real ilmenite and armalcolite are dull, dark grains), minerals as fuel, the gun, unlimited propellant for the lander.</li>
   <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
   <li>The Apollo 11 descent stage stands at its real position; its shape is illustrative. Tools are locked within ${KEEP_OUT} m of it, in the spirit of NASA's guidelines for protecting the Apollo sites.</li></ul>`;
-  if (V3) $('infoBody').innerHTML += `<h3>Version 3: the models</h3><p>The lunar module, the rover, the habitat and the astronaut are NASA's own 3-D models, from the NASA 3D Resources collection (free and without copyright). The module is the Apollo lunar module; at the landing site only its descent stage is shown, as it was left. The rover is NASA's model of <b>Perseverance</b> — a Mars rover, used here because it is the most detailed rover model NASA publishes; nothing like it has driven on the Moon. Its wheels do not turn in this version, and the arm, gun and scoop added to it are the game's. The habitat is the Habitat Demonstration Unit, a ground prototype. Their use here does not imply any endorsement by NASA.</p>`;
+  if (V3) $('infoBody').innerHTML += `<h3>Version 3: the models</h3><p>The lunar module, the rover, the habitat and the astronaut are NASA's own 3-D models, from the NASA 3D Resources collection (free and without copyright). The module is the Apollo lunar module; at the landing site only its descent stage is shown, as it was left. The rover is NASA's model of <b>Perseverance</b> — a Mars rover, used here because it is the most detailed rover model NASA publishes; nothing like it has driven on the Moon. Its wheels do not turn in this version, and the arm, gun and scoop added to it are the game's. The habitat is the Habitat Demonstration Unit, a ground prototype. The lunar module's blankets are given the look of creased metal foil by the page (NASA's model paints them flat). The rocks and the soil close to the rover wear a real photograph: undisturbed soil from the Apollo 11 picture of a bootprint, taken at this very site. The shapes of the rocks are still generated — NASA's free collection has no scanned lunar rocks. Their use here does not imply any endorsement by NASA.</p>`;
   $('helpBody').innerHTML = `
   <p>You start in the lander beside the base station at Tranquility Base. <b>Deploy</b> the rover, prospect, and <b>Board</b> again to fly anywhere on the Moon.</p>
   <table>
@@ -1228,8 +1254,8 @@ const orbit = {
 /* ====================================================================== the journey home (version 2): four checkpoints.
    A mistake restarts the checkpoint where it happened. The Earth is shown with real NASA images (tools/fetch_earth.py). */
 const texLoad = url => new Promise((ok, no) => new THREE.TextureLoader().load(url, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; ok(t); }, undefined, () => no(new Error('cannot load ' + url))));
-function asteroidGeo(seed) {                             // an irregular, cratered body: a sphere pushed in and out by smooth noise, with a few dents
-  const g = new THREE.SphereGeometry(1, 30, 20), P = g.attributes.position, r = rng(seed), o = [r() * 50, r() * 50, r() * 50], ax = [0.75 + r() * 0.5, 0.75 + r() * 0.5, 0.75 + r() * 0.5], v = V();
+function asteroidGeo(seed, sw = 30, sh2 = 20) {                             // an irregular, cratered body: a sphere pushed in and out by smooth noise, with a few dents
+  const g = new THREE.SphereGeometry(1, sw, sh2), P = g.attributes.position, r = rng(seed), o = [r() * 50, r() * 50, r() * 50], ax = [0.75 + r() * 0.5, 0.75 + r() * 0.5, 0.75 + r() * 0.5], v = V();
   const n3 = (x, y, z) => { const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z), fx = x - ix, fy = y - iy, fz = z - iz, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), sz = fz * fz * (3 - 2 * fz), h = (a, b, c) => hash3(a, b, c * 131 + seed) / 4294967296, L = (a, b, t) => a + (b - a) * t;
     return L(L(L(h(ix, iy, iz), h(ix + 1, iy, iz), sx), L(h(ix, iy + 1, iz), h(ix + 1, iy + 1, iz), sx), sy), L(L(h(ix, iy, iz + 1), h(ix + 1, iy, iz + 1), sx), L(h(ix, iy + 1, iz + 1), h(ix + 1, iy + 1, iz + 1), sx), sy), sz) - 0.5; };
   const dents = Array.from({ length: 7 }, () => ({ d: V(r() - 0.5, r() - 0.5, r() - 0.5).normalize(), a: 0.22 + r() * 0.45, k: 0.07 + r() * 0.15 }));
@@ -1401,7 +1427,8 @@ const ret = {
   try {
     terrain = await new Terrain().load(s => { load.textContent = 'Loading lunar data…\n' + s; });
     load.textContent = 'Building the ground…';
-    clip = new Clipmap(terrain, scene, { terrainShadows: !touchUI });
+    if (V3) try { const t = await texLoad('data/apollo11_soil.jpg'); t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping; t.repeat.set(2, 1); SOIL.map = t; const g2 = t.clone(); g2.colorSpace = THREE.NoColorSpace; g2.repeat.set(1, 1); g2.needsUpdate = true; SOIL.grain = g2; } catch (e) { console.warn('soil photograph not loaded:', e.message); }
+    clip = new Clipmap(terrain, scene, { terrainShadows: !touchUI, grain: SOIL.grain });
     // tone: bring the regional mosaic to the brightness of the local photo
     clip.uniforms.uGain.value.set(1.0, 1.0);
     load.textContent = 'Loading the element maps (Lunar Prospector)…'; await lp.load();
@@ -1416,7 +1443,7 @@ const ret = {
     camS.yaw = lander.yaw; buildActs(); hudScore(); fillSheets();
     if (V3 && !touchUI) try {                               // a soft glow round the brightest things: gems, the laser, flames, sunlit metal
       const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all([import('three/addons/postprocessing/EffectComposer.js'), import('three/addons/postprocessing/RenderPass.js'), import('three/addons/postprocessing/UnrealBloomPass.js'), import('three/addons/postprocessing/OutputPass.js')]);
-      composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.45, 1.7)); composer.addPass(new OutputPass()); composer.setSize(innerWidth, innerHeight);
+      composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.4, 2.4)); composer.addPass(new OutputPass()); composer.setSize(innerWidth, innerHeight);
     } catch (e) { console.warn('no bloom:', e.message); composer = null; }
     load.style.display = 'none';
     toast(`YOUR MISSION\nCapture ${LAUNCH.toLocaleString('en-US')} units of energy from the Moon's minerals.\nThen press B, board the lander and fly home to the Earth.\nStart: press Deploy to let the rover out.`, 11000);
