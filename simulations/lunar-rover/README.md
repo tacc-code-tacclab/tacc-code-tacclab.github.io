@@ -7,6 +7,18 @@ floors (the game does not say so); the journey home has four checkpoints - a fas
 a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
 A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
+**Version 2.2** (19 November 2026): more to hear and see, and a clearer goal.
+* Each mineral has its own, louder sound when collected (a chime, a counter burst with a rising run, a fanfare).
+* The gun fires tracer rounds with a muzzle flash; from level 6 it becomes a laser (an instant, straight beam).
+* The map starts almost blank and is uncovered as the player travels, more widely from higher up; a deposit is
+  announced when it first appears.
+* The mission is stated at the start, and at 1,000, 3,000, 5,000 and 8,000 a fanfare repeats what to do at 10,000.
+* Journey: the burn window lasts 0.22 s of a 7 s orbit; the ship's engine burns on the way to the Earth; the
+  meteoroid field is wider and denser and one hit destroys the ship in a fireball of wreckage; in the atmosphere
+  the red zones are deadly on contact; the descent is free over the whole Earth, with thrusters for height, but
+  only the red ring at Cape Canaveral has the (invented) cooling foam - on land elsewhere the ship explodes after
+  a few seconds, in water it sinks. Each stage has its own original, synthesised music.
+
 **Version 2.1** (19 November 2026): nothing is stored between visits, so reloading the page resets every counter;
 the goal is 10,000; minerals are no longer plentiful in one place but in deposits scattered over the Moon; from
 level 8 (2,000 captured) the rover can fly to another region, at a high cost in energy.

@@ -62,6 +62,8 @@
   body.ret #mini{display:none} body.ret #mini.show{display:block} body.ret #miniLeg{display:none}
   @media (max-width:560px){ #mini{top:calc(96px + env(safe-area-inset-top))} #miniLeg{display:none} #mini.big #miniLeg{display:block} }
   @media (orientation:landscape) and (max-height:460px){ #mini{width:128px !important;top:calc(56px + env(safe-area-inset-top))} #miniLeg{display:none} #br{display:none} }
+  #pts.pop{animation:pop .5s ease-out} @keyframes pop{0%{transform:scale(1);color:#fff}30%{transform:scale(1.25);color:#ffe680;text-shadow:0 0 12px #ffc040}100%{transform:scale(1)}} #pts{transform-origin:left center;display:inline-block}
+  @media (prefers-reduced-motion:reduce){ #pts.pop{animation:none} }
   #stat{white-space:pre;color:var(--ink)}
   #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
 
