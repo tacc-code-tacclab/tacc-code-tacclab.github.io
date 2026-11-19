@@ -1,4 +1,11 @@
-# Lunar Rover - prospecting on predicted ground at Tranquility Base
+# Lunar Rover 2 - prospect the Moon, then fly home to Cape Canaveral
+
+**Version 2** (19 November 2026). What changed from version 1: the goal is 20,000 units of energy, shown by a bar,
+after which `B` brings the rover back to base; a map shows the whole Moon with the regions rich in each mineral,
+the base and the vehicle, with arrows to base and lander; digging can be deepened and pays off mostly on crater
+floors (the game does not say so); the journey home has four checkpoints - a faster orbit with a short burn window,
+a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
+A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
 A browser game that starts beside a base station 130 m from the Apollo 11 landing site. A lander flies anywhere on
 the Moon between 82 deg north and south, up to 100 km high, and lands; a rover drives out, lifts rocks with its arm
@@ -19,7 +26,9 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 * The arm picks up a gem within reach; with none in reach it lifts the nearest rock and throws it aside.
 * Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
   100; with a flat battery the rover only crawls and can be brought back to base.
-* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 3000 the journey to the Earth opens.
+* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 20,000 the journey to the Earth opens.
+* Digging: each dig deepens the hole (to about 2 m). The chance of a find grows with depth and with how far the
+  spot lies below the ground around it. In a test, 12 crater floors gave 20 finds in 108 digs, 12 ordinary spots 4.
 * How rich a region is follows real measurements: the Lunar Prospector gamma-ray spectrometer maps of thorium and
   titanium dioxide (`tools/fetch_lp_grs.py` -> `data/lp_grs_5deg.json`; PDS data set LP-L-GRS-5-ELEM-ABUNDANCE-V1.0,
   5 deg equal-area map, footprint about 150 km, read between cell centres by linear interpolation). The chance
@@ -33,19 +42,19 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 
 ## The journey home
 
-With 3000 units of energy captured, board the lander, climb above 100 km and press "Return to Earth". Six guided
-steps follow; a mistake sends the player back one step, never to the start of the game.
+With 20,000 units of energy captured: `B` to base, board the lander, climb above 100 km, "Return to Earth".
 
-| Step | What the player does | Real | Changed |
+| Checkpoint | What the player does | Real | Changed |
 |---|---|---|---|
-| 1 Lunar orbit | waits one orbit, then burns on the far side | trans-Earth injection: one engine burn behind the Moon, about +1 km/s | 118 min compressed to 18 s; the burn window is drawn; it is the engine, not centrifugal force, that sends the ship home |
-| 2 Coast | steers round meteoroids, three hits allowed | about three days; speed falls, then rises to about 11 km/s | space there is almost empty: the meteoroids are a game |
-| 3 Braking | burns in a timing window | - | Apollo did not brake into Earth orbit; it entered directly behind a heat shield. Braking instead costs about 3 km/s |
-| 4 Low Earth orbit | chooses where to come down | - | free choice of the place is a game; coastlines are Natural Earth 1:110m (public domain), colours illustrative |
-| 5 Entry | keeps the angle between 5.5 and 7.5 deg | entry corridor about 6.5 deg, roughly one degree wide; too steep burns, too shallow skips out | simplified to one number |
-| 6 Parachute | opens it between 7 and 3 km | Apollo: drogues near 7 km, mains near 3 km | one parachute |
+| 1 Lunar orbit | waits one orbit, then burns exactly on the short arc behind the Moon; a wasted burn locks the engine until the arc has passed | trans-Earth injection: one engine burn behind the Moon, about +1 km/s | 118 min compressed to 9 s; it is the engine, not centrifugal force, that sends the ship home |
+| 2 Meteoroids | steers through them; three hits destroy the ship | about three days; speed falls, then rises to about 11 km/s | space there is almost empty: the field is a game |
+| 3 Fire | steers away from the red zones before the heat gauge fills | entry at about 11 km/s, gas at thousands of degrees ahead of the heat shield | the heating cannot be steered around in reality |
+| 4 Cape Canaveral | steers a parachute to the red ring; touchdown must be within 450 m when the height runs out, in changing wind | the place and the pictures | Apollo splashed down in the ocean under unsteerable parachutes |
 
-The figures in the "Real" column are quoted from memory and should be checked.
+Earth images (`tools/fetch_earth.py`, run by `.github/workflows/build-earth-images.yml`) come from NASA GIBS, which
+is public and free to use: the Blue Marble shaded-relief mosaic for the globe and for Florida (about 500 m/px) and
+the Landsat WELD true-colour annual composite for the Space Coast (about 100 m/px) and the Cape (about 30 m/px).
+Google Maps imagery is not public data and is not used. The figures in the "Real" column are quoted from memory.
 
 ## The whole Moon
 

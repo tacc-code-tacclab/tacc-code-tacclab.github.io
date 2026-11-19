@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<title>Lunar Rover — prospecting on predicted ground at Tranquility Base</title>
+<title>Lunar Rover 2 — prospect the Moon, then fly home to Cape Canaveral</title>
 <meta name="description" content="Drive a rover on the Moon near the Apollo 11 landing site. The ground combines measured LRO elevation, relief inferred from the real photographs, and a statistical prediction of what lies below their resolution.">
 <style>
   :root{--ink:#d6f3f7;--dim:#7fb6c4;--line:rgba(120,200,220,.38);--glass:rgba(4,10,14,.66);--hot:#9fe3f2;
@@ -50,6 +50,18 @@
   #heat{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;background:radial-gradient(ellipse at 50% 60%,rgba(255,170,60,0) 25%,rgba(255,110,30,.55) 70%,rgba(255,60,10,.85) 100%)}
   body.ret #top{opacity:.55}
   @media (orientation:landscape) and (max-height:460px){ #guide{top:calc(6px + env(safe-area-inset-top));width:min(56vw,520px);font-size:11px} #bar{bottom:calc(8px + env(safe-area-inset-bottom));width:34vw} }
+  #goal{display:flex;align-items:center;gap:6px;margin:0 0 5px;font-size:10px;color:var(--dim)}
+  #goalBar{flex:1;height:6px;border-radius:3px;background:rgba(120,200,220,.18);overflow:hidden} #goalFill{height:100%;width:0;background:linear-gradient(90deg,#3d7bd8,#6fd0ff);transition:width .4s}
+  #goal b{font-weight:400;color:var(--ink)} #goal.ready b{color:#8ff0a0} #goal.ready #goalFill{background:#8ff0a0}
+  #mini{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(60px + env(safe-area-inset-top));width:226px;padding:4px;cursor:pointer;font-size:10px}
+  #mini canvas{display:block;width:100%;border-radius:3px}
+  #miniTxt{display:flex;justify-content:space-between;gap:8px;padding:3px 2px 1px;color:#fff;white-space:nowrap} #miniTxt .arr{display:inline-block;font-size:13px;line-height:1;color:var(--hot)}
+  #miniLeg{color:var(--dim);padding:0 2px 1px;white-space:nowrap} #miniLeg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 7px;vertical-align:-1px} #miniLeg i:first-child{margin-left:0}
+  #mini.big{width:min(94vw,760px);right:50%;transform:translateX(50%);top:calc(70px + env(safe-area-inset-top));z-index:6;font-size:12px}
+  body.touch #mini{width:150px} body.touch #mini.big{width:94vw}
+  body.ret #mini{display:none} body.ret #mini.show{display:block}
+  @media (max-width:560px){ #mini{top:calc(96px + env(safe-area-inset-top))} #miniLeg{display:none} #mini.big #miniLeg{display:block} }
+  @media (orientation:landscape) and (max-height:460px){ #mini{width:128px !important;top:calc(56px + env(safe-area-inset-top))} #miniLeg{display:none} #br{display:none} }
   #stat{white-space:pre;color:var(--ink)}
   #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
 
@@ -112,10 +124,12 @@
 <div id="hud" class="glass">
   <div id="pts">0<small>energy captured</small></div>
   <div id="lvl"><span id="lvlTxt">Level 1</span><div id="lvlBar"><div id="lvlFill"></div></div></div>
+  <div id="goal" title="Energy captured, towards the journey to the Earth"><span>EARTH</span><div id="goalBar"><div id="goalFill"></div></div><b id="goalTxt"></b></div>
   <div id="en" title="Energy"><span>&#9889;</span><div id="enBar"><div id="enFill"></div></div><b id="enTxt">0</b><small id="enOver"></small></div>
   <div id="stat"></div>
 </div>
 <div id="names"></div>
+<div id="mini" class="glass" title="Click to enlarge"><canvas id="miniC" width="440" height="220"></canvas><div id="miniTxt"></div><div id="miniLeg"><i style="background:var(--blue)"></i>ilmenite<i style="background:var(--emer)"></i>thorium<i style="background:#ffd84a"></i>armalcolite</div></div>
 <div id="cross"></div>
 <div id="heat"></div>
 <div id="guide" class="glass"></div>
