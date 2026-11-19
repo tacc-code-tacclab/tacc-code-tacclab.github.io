@@ -219,10 +219,11 @@ function addPoints(n, why) {
   if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH.toLocaleString('en-US')} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\nPress B to return to base, board the lander and climb to orbit.`, 12000); sfx.level(); }
   else if (nl > G.level) { G.level = nl; toast(`LEVEL ${nl}\n${perk().name}`, 5000); sfx.level(); rover.obj.userData.scoop.visible = !!perk().scoop; buildActs(); }
   else if (why) toast(`+${n} energy\n${why}`, 1800);
+  if (G.points >= SURVEY && !mini.all && mini.bg) { mini.revealAll(); setTimeout(() => { sfx.fanfare(); toast(`SURVEY DATA UNLOCKED\nThe map now shows every deposit on the Moon.\nClick the map${touchUI ? '' : ' (or press Z)'} to enlarge it.`, 8000); }, 1700); }
   G.level = nl; hudScore(); const el = $('pts'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
   while (G.mile < MILES.length && G.points >= MILES[G.mile] && G.points < LAUNCH) { const m = MILES[G.mile++]; setTimeout(() => { sfx.fanfare(); toast(`${m.toLocaleString('en-US')} OF ${LAUNCH.toLocaleString('en-US')}\nAt ${LAUNCH.toLocaleString('en-US')} press B: back to base, aboard the lander, and home to the Earth.`, 7000); }, 1600); }
 }
-const MILES = [1000, 3000, 5000, 8000];
+const MILES = [1000, 3000, 5000, 8000], SURVEY = 500;   // energy captured at which the whole map is handed over
 let toastT = 0;
 function toast(t, ms = 2500) { const m = $('msg'); m.textContent = t; m.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => { m.style.opacity = 0; }, ms); }
 
@@ -842,9 +843,13 @@ function deployOrBoard() {
 
 /* ====================================================================== input */
 const keys = new Set(), stick = { x: 0, y: 0 }, held = new Set();
+/* camera views: round the vehicle at ground level, straight down from three heights, and the rover's own camera */
+const VIEWS = [{ n: 'from behind', yaw: 0 }, { n: 'from the front', yaw: Math.PI }, { n: 'from the left side', yaw: -Math.PI / 2, pit: 0.14 }, { n: 'from the right side', yaw: Math.PI / 2, pit: 0.14 },
+  { n: 'from above, 15 m', top: 15 }, { n: 'from above, 60 m', top: 60 }, { n: 'from above, 250 m', top: 250 }, { n: 'rover webcam', web: true }];
 const ACT = { fire, fly, grab: () => rover.grab(), dig, hop, flip, deploy: () => orbit.on ? ACT.earth() : deployOrBoard(),
   earth() { if (!orbit.on) return; if (G.points < LAUNCH) return toast(`The journey to the Earth needs ${LAUNCH} units of energy captured.\nYou have ${G.points}.`, 3500); ret.start(); },
   abort() { if (ret.on) ret.quit(); },
+  bigmap() { mini.toggle(); },
   map() { if (orbit.on && !ret.on) orbit.nextMap(); },
   names() { G.names = !G.names; document.querySelector('#more [data-act=names]').textContent = 'Crater names: ' + (G.names ? 'on' : 'off'); },
   rescue() {                                            // never stranded: the base station brings both vehicles home
@@ -856,7 +861,7 @@ const ACT = { fire, fly, grab: () => rover.grab(), dig, hop, flip, deploy: () =>
     toast('Brought back to Tranquility Base.\nStay close to the station to recharge.', 4500); buildActs(); },
   layers() { G.overlay = !G.overlay; clip.setOverlay(G.overlay); rocks.rebuild(rocks.cx, rocks.cy); $('legend').classList.toggle('open', G.overlay); document.querySelector('[data-act=layers]').classList.toggle('on', G.overlay); if (G.overlay) toast('Shape of the ground:\ngrey = measured · cyan = inferred from the photo · orange = predicted', 4500); },
   info() { sheet('info'); }, help() { sheet('help'); }, more() { sheet('more'); },
-  cam() { G.cam = (G.cam + 1) % 3; document.querySelector('#more [data-act=cam]').textContent = 'Camera: ' + ['follow', 'rover mast', 'from above'][G.cam]; },
+  cam() { G.cam = (G.cam + 1) % VIEWS.length; const n = VIEWS[G.cam].n; document.querySelector('#more [data-act=cam]').textContent = 'Camera: ' + n; toast('Camera: ' + n, 1400); },
   sound() { G.soundOn = !G.soundOn; document.querySelector('#more [data-act=sound]').textContent = 'Sound: ' + (G.soundOn ? 'on' : 'off'); if (sfx.ctx) sfx.out.gain.value = G.soundOn ? 0.5 : 0; },
   fullscreen() { const d = document.documentElement, f = document.fullscreenElement || document.webkitFullscreenElement; if (f) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = d.requestFullscreen || d.webkitRequestFullscreen; if (r) r.call(d); else toast('On iPhone: Share → Add to Home Screen opens it full screen', 5000); } },
   reset() { if (confirm('Erase your points and start again?')) { try { localStorage.removeItem('lunar-rover-v1'); } catch (_) {} location.reload(); } },
@@ -866,7 +871,7 @@ document.addEventListener('click', e => {
   const c = e.target.closest('[data-close]'); if (c) { c.closest('.sheet').classList.remove('open'); return; }
   const b = e.target.closest('[data-act]'); if (!b || b.dataset.hold) return; sfx.kick(); b.blur(); ACT[b.dataset.act]?.();
 });
-const KEYMAP = { Space: 'fire', KeyE: 'grab', KeyQ: 'dig', KeyH: 'hop', KeyT: 'flip', Enter: 'deploy', KeyL: 'deploy', KeyV: 'layers', KeyI: 'info', KeyG: 'help', KeyC: 'cam', KeyM: 'sound', KeyN: 'names', KeyB: 'rescue', KeyX: 'map', KeyY: 'fly' };
+const KEYMAP = { Space: 'fire', KeyE: 'grab', KeyQ: 'dig', KeyH: 'hop', KeyT: 'flip', Enter: 'deploy', KeyL: 'deploy', KeyV: 'layers', KeyI: 'info', KeyG: 'help', KeyC: 'cam', KeyM: 'sound', KeyN: 'names', KeyB: 'rescue', KeyX: 'map', KeyY: 'fly', KeyZ: 'bigmap' };
 addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return; sfx.kick();
   if (/^(Arrow|Page|Space)/.test(e.code)) e.preventDefault();
@@ -992,7 +997,7 @@ function fillSheets() {
   <table>
     <tr><td><b>Energy</b></td><td>Everything the rover does uses it. Sunlight gives a trickle; the base station recharges to 100; thorium ore adds ${COST.thorium} each, with no upper limit. If it runs flat the rover only crawls — press <b>Back to base</b>.</td></tr>
     <tr><td><b>Goal</b></td><td>Capture ${LAUNCH.toLocaleString('en-US')} units of energy (the EARTH bar). Then press <b>B</b> to return to base, board the lander, climb above 100 km and press <b>Return to Earth</b>.</td></tr>
-    <tr><td><b>Map</b></td><td>Top right: the whole Moon — but it starts almost blank. It is uncovered as you travel, more widely the higher you fly; faint dots hint at deposits a little further off, and grow brighter as you approach. Coloured patches are the deposits you have found, where one mineral is plentiful — <span style="color:var(--emer)">green thorium</span>, <span style="color:var(--blue)">blue ilmenite</span>, <span style="color:#ffd84a">yellow armalcolite</span>. The white square is the base, the red circle is you; the arrows point to the base and to the lander. Click the map to enlarge it.</td></tr>
+    <tr><td><b>Map</b></td><td>Top right: the whole Moon — but it starts almost blank. It is uncovered as you travel, more widely the higher you fly; faint dots hint at deposits a little further off, and grow brighter as you approach. Coloured patches are the deposits you have found, where one mineral is plentiful — <span style="color:var(--emer)">green thorium</span>, <span style="color:var(--blue)">blue ilmenite</span>, <span style="color:#ffd84a">yellow armalcolite</span>. The white square is the base, the red circle is you; the arrows and distances point to the base, the lander and the nearest deposit of each mineral. From ${SURVEY} units of energy the whole survey is shown. Click the map${touchUI ? '' : ' (or press Z)'} to open it large, with a close-up of your region; click again to close.</td></tr>
     <tr><td><b>Detector</b></td><td>Ticks faster, and the THORIUM bar fills, as you approach a rock that holds thorium ore.</td></tr>
     <tr><td><b>Grab</b></td><td>The arm picks up a gem within reach — the only way to take the large bright ones. With no gem in reach it lifts the nearest rock and throws it aside.</td></tr>
     <tr><td><b>Gun</b></td><td>Aims at the nearest rock ahead. Any rock can be destroyed; big ones take several rounds. The ore drops out.</td></tr>
@@ -1002,6 +1007,7 @@ function fillSheets() {
     <tr><td><b>Drive</b></td><td>${touchUI ? 'Left stick' : 'Arrow keys or W A S D'}. Hit a rock at speed and the rover jumps — slowly, this is the Moon.</td></tr>
     <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs. Above 100 km you see the whole Moon: move the circle anywhere, then come down to descend there. <b>Map</b> shows where orbiters measured more thorium or titanium — the places richest in ore. Come down and slow down to land, on ground that is not too steep.</td></tr>
     <tr><td><b>Names</b></td><td>Official IAU names of craters and other features point the way, with distances. ${touchUI ? '☰ → Crater names' : 'N'} turns them off.</td></tr>
+    <tr><td><b>Camera</b></td><td>The <b>Camera</b> button${touchUI ? '' : ' (or C)'} changes the view: from behind, from the front, from either side, straight down from 15, 60 or 250 m, and the rover's own webcam on its mast.</td></tr>
     <tr><td><b>View</b></td><td>Drag to look round, ${touchUI ? 'pinch' : 'scroll'} to zoom.</td></tr>
   </table>`;
 }
@@ -1020,33 +1026,57 @@ function mineralCanvas(W, H) {
   return b;
 }
 const mini = {
-  bg: null, known: null, full: null, W: 440, H: 220, local: null, last: null,
+  bg: null, known: null, full: null, W: 1024, H: 512, local: null, last: null, all: false,
   build() { const mk = () => { const c = document.createElement('canvas'); c.width = this.W; c.height = this.H; return c; }; const b = this.bg = mk(), x = b.getContext('2d'); x.drawImage(terrain.texGlobal.image, 0, 0, this.W, this.H); x.fillStyle = 'rgba(0,0,0,.42)'; x.fillRect(0, 0, this.W, this.H);
     this.known = mk(); this.full = lp.g ? mineralCanvas(this.W, this.H) : mk(); this.reveal(BASE.ll[0], BASE.ll[1], 90, true);
-    $('mini').addEventListener('click', () => $('mini').classList.toggle('big')); },
+    $('mini').addEventListener('click', () => this.toggle()); },
+  toggle() { $('mini').classList.toggle('big'); this.draw(); },
+  /* from 500 units of energy the whole survey is handed over */
+  revealAll() { this.all = true; const x = this.known.getContext('2d'); x.clearRect(0, 0, this.W, this.H); x.fillStyle = 'rgba(190,225,235,.10)'; x.fillRect(0, 0, this.W, this.H); x.drawImage(this.full, 0, 0); for (const d of lp.deposits) d.seen = true; if (orbit.maps[1]) orbit.maps[1].needsUpdate = true; },
   /* uncover what lies within r km of a place: the colours of the map, and any deposit there */
   reveal(lat, lon, r, quiet) {
+    this.last = [lat, lon, r]; if (this.all) return;
     const x = this.known.getContext('2d'), W = this.W, H = this.H, px = (lon + 180) / 360 * W, py = (90 - lat) / 180 * H, ry = r / 30.32 / 180 * H, rx = ry / Math.max(0.2, Math.cos(lat * D2R));
     for (const off of [0, -W, W]) { x.save(); x.beginPath(); x.ellipse(px + off, py, rx, ry, 0, 0, 6.3); x.clip(); x.fillStyle = 'rgba(190,225,235,.10)'; x.clearRect(0, 0, W, H); x.fillRect(0, 0, W, H); x.drawImage(this.full, 0, 0); x.restore(); }
     let found = null; for (const d of lp.deposits) if (!d.seen && gc(lat, lon, d.lat, d.lon).d < (r + d.rad * 0.5) * 1000) { d.seen = true; found = d; }
     if (found && !quiet) { sfx.bell(1319, 0, 0.8, 0.25); sfx.bell(1760, 0.12, 0.9, 0.22); toast(`New on the map: a deposit of ${GEM[found.type].name}`, 3500); }
-    if (orbit.maps[1]) orbit.maps[1].needsUpdate = true; this.last = [lat, lon, r];
+    if (orbit.maps[1]) orbit.maps[1].needsUpdate = true;
   },
+  COL: ['', '#4aa8ff', '#35e39a', '#ffd84a'],
   draw() {
-    if (!this.bg) return; const x = $('miniC').getContext('2d'), W = this.W, H = this.H;
-    if (this.local) return this.local(x, W, H);
-    const veh = G.mode === 'lander' ? lander : rover, cur = orbit.on ? [orbit.lat, orbit.lon] : terrain.toLatLon(veh.pos.x, veh.pos.y), P = ll => [(ll[1] + 180) / 360 * W, (90 - ll[0]) / 180 * H];
+    if (!this.bg) return; const x = $('miniC').getContext('2d'), W = this.W, H = this.H, big = $('mini').classList.contains('big');
+    if (this.local) { x.save(); x.scale(W / 440, H / 220); this.local(x, 440, 220); x.restore(); return; }
+    const veh = G.mode === 'lander' ? lander : rover, cur = orbit.on ? [orbit.lat, orbit.lon] : terrain.toLatLon(veh.pos.x, veh.pos.y), P = ll => [(ll[1] + 180) / 360 * W, (90 - ll[0]) / 180 * H], k = big ? 1.3 : 2.3;      // marker size: the small map is drawn at more than twice its screen size
     const hKm = orbit.on ? 0 : (G.mode === 'lander' ? Math.max(0, lander.pos.z - clip.ground(lander.pos.x, lander.pos.y)) : rover.fly ? rover.agl : 0) / 1000, r = orbit.on ? 300 : Math.min(500, 90 + 9 * hKm);       // the higher you are, the more you survey
     if (!this.last || r > this.last[2] * 1.25 || gc(cur[0], cur[1], this.last[0], this.last[1]).d > r * 350) this.reveal(cur[0], cur[1], r);
     x.drawImage(this.bg, 0, 0); x.drawImage(this.known, 0, 0);
-    // deposits a little beyond what has been surveyed show first as faint dots, brighter as you approach
-    for (const d of lp.deposits) { if (d.seen) continue; const lim = Math.max(650, r * 2.6) + d.rad, dd = gc(cur[0], cur[1], d.lat, d.lon).d / 1000; if (dd < lim) { const q = P([d.lat, d.lon]); x.globalAlpha = clamp(1.2 - dd / lim, 0.2, 0.7); x.fillStyle = ['', '#4aa8ff', '#35e39a', '#ffd84a'][d.type]; x.beginPath(); x.arc(q[0], q[1], 3.4, 0, 6.3); x.fill(); x.globalAlpha = 1; } }
-    const dot = (ll, col, rr, sq) => { const q = P(ll); x.fillStyle = col; x.strokeStyle = '#000'; x.lineWidth = 2; x.beginPath(); sq ? x.rect(q[0] - rr, q[1] - rr, 2 * rr, 2 * rr) : x.arc(q[0], q[1], rr, 0, 6.3); x.fill(); x.stroke(); };
-    dot(BASE.ll, '#ffffff', 5, true); const q = P(cur); x.strokeStyle = '#ff3b30'; x.lineWidth = 2.5; x.beginPath(); x.arc(q[0], q[1], 11, 0, 6.3); x.stroke(); dot(cur, '#ff3b30', 4);
+    const near = [], hint = [];                             // deposits known, nearest first; and those only hinted at
+    for (const d of lp.deposits) { const g = gc(cur[0], cur[1], d.lat, d.lon); if (d.seen) near.push({ d, g }); else if (g.d / 1000 < Math.max(650, r * 2.6) + d.rad) hint.push({ d, g, a: clamp(1.2 - g.d / 1000 / (Math.max(650, r * 2.6) + d.rad), 0.2, 0.7) }); }
+    near.sort((a, b) => a.g.d - b.g.d);
+    for (const h of hint) { const q = P([h.d.lat, h.d.lon]); x.globalAlpha = h.a; x.fillStyle = this.COL[h.d.type]; x.beginPath(); x.arc(q[0], q[1], 3.4 * k, 0, 6.3); x.fill(); } x.globalAlpha = 1;
+    if (this.all) for (const n of near) { const q = P([n.d.lat, n.d.lon]); x.strokeStyle = 'rgba(0,0,0,.7)'; x.lineWidth = 1.2 * k; x.fillStyle = this.COL[n.d.type]; x.beginPath(); x.arc(q[0], q[1], 2.6 * k, 0, 6.3); x.fill(); x.stroke(); }      // a crisp dot on every deposit, so that none is lost in the colours
+    const dot = (ll, col, rr, sq) => { const q = P(ll); x.fillStyle = col; x.strokeStyle = '#000'; x.lineWidth = 2 * k; x.beginPath(); sq ? x.rect(q[0] - rr, q[1] - rr, 2 * rr, 2 * rr) : x.arc(q[0], q[1], rr, 0, 6.3); x.fill(); x.stroke(); };
+    dot(BASE.ll, '#ffffff', 4 * k, true); const q = P(cur); x.strokeStyle = '#ff3b30'; x.lineWidth = 2.5 * k; x.beginPath(); x.arc(q[0], q[1], 9 * k, 0, 6.3); x.stroke(); dot(cur, '#ff3b30', 3 * k);
     const head = orbit.on ? 0 : G.mode === 'lander' ? lander.yaw : rover.heading(), km = d => d < 1000 ? fm(d, 0) + ' m' : fm(d / 1000, d < 20000 ? 1 : 0) + ' km', arrow = (brg) => `<span class="arr" style="transform:rotate(${((brg - head) * R2D).toFixed(0)}deg)">↑</span>`;
     const b = gc(cur[0], cur[1], BASE.ll[0], BASE.ll[1]); let t = `<span>■ Base ${km(b.d)} ${arrow(b.brg)}</span>`;
     if (G.mode === 'rover' && !orbit.on) { const ll = terrain.toLatLon(lander.pos.x, lander.pos.y), l = gc(cur[0], cur[1], ll[0], ll[1]); t += `<span style="color:#ffd84a">▲ Lander ${km(l.d)} ${arrow(l.brg)}</span>`; }
+    for (let ty = 1; ty <= 3; ty++) { const n = near.find(q => q.d.type === ty); if (n) t += `<span class="dep" style="color:${this.COL[ty]}">● ${GEM[ty].name} ${n.g.d < n.d.rad * 1000 ? 'here' : km(n.g.d)} ${n.g.d < n.d.rad * 1000 ? '' : arrow(n.g.brg)}</span>`; }
     if ($('miniTxt')._t !== t) { $('miniTxt')._t = t; $('miniTxt').innerHTML = t; }
+    if (big) this.zoom(cur, head, near, hint);
+  },
+  /* close-up of the region round the vehicle, shown when the map is opened: deposits at their true size, with names and distances */
+  zoom(cur, head, near, hint) {
+    const c = $('miniZ'), x = c.getContext('2d'), W = c.width, H = c.height, im = terrain.texGlobal.image, R = clamp((near[2] ? near[2].g.d / 1000 : near[0] ? near[0].g.d / 1000 : 100) * 1.35, 45, 2500), dLat = R / 30.32, dLon = 2 * R / (30.32 * Math.max(0.2, Math.cos(cur[0] * D2R)));
+    x.fillStyle = '#0a0d10'; x.fillRect(0, 0, W, H); x.imageSmoothingQuality = 'high'; x.drawImage(im, (cur[1] - dLon + 180) / 360 * im.width, (90 - cur[0] - dLat) / 180 * im.height, 2 * dLon / 360 * im.width, 2 * dLat / 180 * im.height, 0, 0, W, H); x.fillStyle = 'rgba(0,0,0,.38)'; x.fillRect(0, 0, W, H);
+    const P = (lat, lon) => [W / 2 + wrap180(lon - cur[1]) / dLon * W / 2, H / 2 - (lat - cur[0]) / dLat * H / 2], km = d => d < 1000 ? fm(d, 0) + ' m' : fm(d / 1000, d < 20000 ? 1 : 0) + ' km'; x.font = '600 20px ui-monospace,Menlo,Consolas,monospace'; x.textBaseline = 'middle';
+    for (const h of hint) { const q = P(h.d.lat, h.d.lon); x.globalAlpha = h.a; x.fillStyle = this.COL[h.d.type]; x.beginPath(); x.arc(q[0], q[1], 9, 0, 6.3); x.fill(); } x.globalAlpha = 1;
+    for (const n of near) { const q = P(n.d.lat, n.d.lon), rr = Math.max(7, n.d.rad / R * H / 2); if (q[0] < -rr || q[0] > W + rr || q[1] < -rr || q[1] > H + rr) continue;
+      x.globalAlpha = 0.35; x.fillStyle = this.COL[n.d.type]; x.beginPath(); x.arc(q[0], q[1], rr, 0, 6.3); x.fill(); x.globalAlpha = 1; x.strokeStyle = this.COL[n.d.type]; x.lineWidth = 3; x.stroke();
+      const lab = `${GEM[n.d.type].name} ${km(n.g.d)}`; x.lineWidth = 5; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(lab, q[0] + rr + 8, q[1]); x.fillStyle = '#fff'; x.fillText(lab, q[0] + rr + 8, q[1]); }
+    const mark = (ll, col, lab, sq) => { const q = P(ll[0], ll[1]); x.fillStyle = col; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); sq ? x.rect(q[0] - 8, q[1] - 8, 16, 16) : (x.moveTo(q[0], q[1] - 11), x.lineTo(q[0] + 10, q[1] + 8), x.lineTo(q[0] - 10, q[1] + 8), x.closePath()); x.fill(); x.stroke(); x.lineWidth = 5; x.strokeStyle = 'rgba(0,0,0,.85)'; x.strokeText(lab, q[0] + 14, q[1] - 16); x.fillStyle = col; x.fillText(lab, q[0] + 14, q[1] - 16); };
+    mark(BASE.ll, '#ffffff', 'Base', true); if (G.mode === 'rover' && !orbit.on) mark(terrain.toLatLon(lander.pos.x, lander.pos.y), '#ffd84a', 'Lander');
+    x.save(); x.translate(W / 2, H / 2); x.rotate(head); x.fillStyle = '#ff3b30'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(0, -20); x.lineTo(13, 14); x.lineTo(0, 7); x.lineTo(-13, 14); x.closePath(); x.fill(); x.stroke(); x.restore();
+    const nice = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].reduce((a, v) => v <= R * 0.5 ? v : a, 1), bw = nice / R * H / 2; x.strokeStyle = '#fff'; x.lineWidth = 4; x.beginPath(); x.moveTo(24, H - 26); x.lineTo(24 + bw, H - 26); x.stroke(); x.fillStyle = '#fff'; x.fillText(nice + ' km', 30 + bw, H - 26); x.fillText('N ↑', W - 70, 28);
   },
 };
 
@@ -1397,17 +1427,18 @@ const ret = {
     const head = G.mode === 'rover' ? rover.heading() : lander.yaw, moving = G.mode === 'rover' ? rover.vel.length() > 0.4 : !lander.landed;
     if (G.t - camS.userT > 2.5 && moving) camS.off *= Math.max(0, 1 - dt * 1.5);
     let dy = head - camS.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); camS.yaw += dy * Math.min(1, dt * 3);
-    const yaw = camS.yaw + camS.off, look = tmp.a.copy(focus).addScaledVector(Z, G.mode === 'rover' ? 0.5 : 1.6);
-    if (G.cam === 1 && G.mode === 'rover') { camera.position.copy(tmp.b.set(-0.28, 0.45, 1.0).applyQuaternion(rover.q).add(rover.pos)); camera.up.copy(rover.up()); camera.lookAt(tmp.c.copy(rover.fwd).multiplyScalar(6).add(camera.position).addScaledVector(Z, -1.2)); }
+    const view = VIEWS[G.cam], web = !!view.web && G.mode === 'rover' && !rover.fly, look = tmp.a.copy(focus).addScaledVector(Z, G.mode === 'rover' ? 0.5 : 1.6);
+    document.body.classList.toggle('webcam', web);
+    if (web) { camera.position.copy(tmp.b.set(-0.3, 0.42, 1.12).applyQuaternion(rover.q).add(rover.pos)); camera.up.copy(rover.up()); camera.lookAt(tmp.c.copy(rover.fwd).multiplyScalar(6).add(camera.position).addScaledVector(Z, -1.6)); }      // the mast camera: it sees the arm, the gun and the ground ahead
     else {
-      const hi = air;             // from high up: stand farther back and look further down, so the ground stays in view
-      const pit = G.cam === 2 ? 1.25 : Math.max(camS.pitch, Math.min(1.2, hi / 900)), dist = (G.cam === 2 ? Math.max(camS.dist, 30) : camS.dist) * (1 + hi / 500), cp = Math.cos(pit);
+      const hi = air;                                    // from high up: stand farther back and look further down, so the ground stays in view
+      const yaw = camS.yaw + camS.off + (view.yaw || 0), pit = view.top ? 1.5 : Math.max(view.pit !== undefined ? view.pit + camS.pitch - 0.32 : camS.pitch, Math.min(1.2, hi / 900)), dist = (view.top ? view.top * camS.dist / 6.5 : camS.dist) * (1 + hi / 500), cp = Math.cos(pit);
       camS.pos.set(look.x - Math.sin(yaw) * cp * dist, look.y - Math.cos(yaw) * cp * dist, look.z + Math.sin(pit) * dist);
       const gz = clip.ground(camS.pos.x, camS.pos.y) + 0.35; if (camS.pos.z < gz) camS.pos.z = gz;
       camera.position.copy(camS.pos); camera.up.copy(Z); camera.lookAt(look);
     }
     if (G.shake > 0.001) { camera.position.x += (Math.random() - 0.5) * G.shake; camera.position.z += (Math.random() - 0.5) * G.shake; G.shake *= Math.exp(-dt * 7); }
-    camera.near = clamp(Math.max(camS.dist * 0.03, agl * 0.01), 0.12, 60); camera.updateProjectionMatrix();
+    camera.near = web ? 0.08 : clamp(Math.max(camS.dist * 0.03, agl * 0.01), 0.12, 60); camera.fov = web ? 78 : 55; camera.updateProjectionMatrix();
     clip.update(focus.x, focus.y, air / 120); aimSun(focus, air > 0 ? clamp(air * 1.5, 40, 160) : G.mode === 'rover' ? 22 : 40);
     hudT += dt; if (hudT > 0.15) { hudT = 0; hudStat(agl); hudScore(); mini.draw();
       if (G.points >= LAUNCH && G.t > remindT) { remindT = G.t + 80; if (G.mode === 'rover') toast('You have enough energy for the Earth.\nPress B to return to base and take off.', 6000); } if ((saveT += 0.15) > 5) { saveT = 0; save(); } const d = document.querySelector('#acts [data-act=deploy]'); if (d) d.classList.toggle('locked', G.mode === 'lander' ? !lander.landed : Math.hypot(rover.pos.x - lander.pos.x, rover.pos.y - lander.pos.y) > 8); }
@@ -1430,7 +1461,7 @@ const ret = {
     if (orbit.on) { $('tag').style.display = 'none'; orbit.draw(); return; }
     const tag = $('tag'), de = camera.position.distanceTo(eagle.position);       // label on the descent stage
     if (de < 150) { const p = tmp.b.set(eagle.position.x, eagle.position.y, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
-    labels.frame();
+    labels.frame(); if (document.body.classList.contains('webcam')) $('webTime').textContent = new Date().toISOString().slice(11, 19) + ' UTC';
     renderer.render(scene, camera);
   }
   window.__game = { labels, base, sfx, need, COST, orbit, ret, lp, FLY, GEM, mini, music, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };

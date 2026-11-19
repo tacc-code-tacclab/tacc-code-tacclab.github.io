@@ -64,6 +64,19 @@
   @media (orientation:landscape) and (max-height:460px){ #mini{width:128px !important;top:calc(56px + env(safe-area-inset-top))} #miniLeg{display:none} #br{display:none} }
   #pts.pop{animation:pop .5s ease-out} @keyframes pop{0%{transform:scale(1);color:#fff}30%{transform:scale(1.25);color:#ffe680;text-shadow:0 0 12px #ffc040}100%{transform:scale(1)}} #pts{transform-origin:left center;display:inline-block}
   @media (prefers-reduced-motion:reduce){ #pts.pop{animation:none} }
+  #miniZ{display:none}
+  #miniTxt{flex-wrap:wrap}
+  #mini.big{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(97vw,1280px);max-height:92vh;overflow:auto;padding:8px;background:rgba(4,10,14,.94);border-color:var(--hot)}
+  #mini.big #miniZ{display:block;width:100%;border-radius:3px} #mini.big #miniTxt,#mini.big #miniLeg{grid-column:1 / -1;font-size:13px;justify-content:flex-start;gap:6px 18px}
+  body.touch #mini.big{width:97vw}
+  @media (max-width:760px){ #mini.big{grid-template-columns:1fr} }
+  body.touch #mini:not(.big) .dep{display:none}
+  /* the rover's own camera */
+  #webcam{position:fixed;inset:0;display:none;pointer-events:none;box-shadow:inset 0 0 140px 40px rgba(0,0,0,.75);font-size:12px;letter-spacing:.08em;color:#fff;text-shadow:0 0 3px #000}
+  body.webcam #webcam{display:block} body.ret #webcam, body.orbit #webcam{display:none}
+  #webcam span{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom))} #webcam .rec{left:50%;transform:translateX(-160px);color:#ff4a3a} #webcam .lab{left:50%;transform:translateX(-50%)} #webcam .tc{left:50%;transform:translateX(90px);white-space:nowrap}
+  #webcam::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+  @media (max-width:560px){ #top{grid-template-columns:repeat(3,auto) !important} }
   #stat{white-space:pre;color:var(--ink)}
   #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
 
@@ -131,8 +144,9 @@
   <div id="stat"></div>
 </div>
 <div id="names"></div>
-<div id="mini" class="glass" title="Click to enlarge"><canvas id="miniC" width="440" height="220"></canvas><div id="miniTxt"></div><div id="miniLeg"><i style="background:var(--blue)"></i>ilmenite<i style="background:var(--emer)"></i>thorium<i style="background:#ffd84a"></i>armalcolite</div></div>
+<div id="mini" class="glass" title="Click to enlarge"><canvas id="miniC" width="1024" height="512"></canvas><canvas id="miniZ" width="1024" height="512"></canvas><div id="miniTxt"></div><div id="miniLeg"><i style="background:var(--blue)"></i>ilmenite<i style="background:var(--emer)"></i>thorium<i style="background:#ffd84a"></i>armalcolite</div></div>
 <div id="cross"></div>
+<div id="webcam"><span class="rec">● REC</span><span class="lab">ROVER CAM 1 · MAST</span><span class="tc" id="webTime"></span></div>
 <div id="heat"></div>
 <div id="guide" class="glass"></div>
 <div id="bar"><i></i><b></b></div>
@@ -144,6 +158,7 @@
 </div>
 
 <div id="top">
+  <button type="button" data-act="cam" title="Change the camera view ( C )">Camera</button>
   <button type="button" data-act="layers" title="Show which parts of the ground are measured, inferred or predicted ( V )">Layers</button>
   <button type="button" data-act="info" title="How the ground is predicted ( I )">Science</button>
   <button type="button" data-act="help" title="How to play ( G )">Help</button>

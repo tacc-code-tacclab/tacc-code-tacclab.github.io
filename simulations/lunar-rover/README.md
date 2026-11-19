@@ -7,6 +7,12 @@ floors (the game does not say so); the journey home has four checkpoints - a fas
 a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
 A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
+**Version 2.3** (19 November 2026): eight camera views (button Camera or C): from behind, from the front, from
+either side, straight down from 15, 60 and 250 m, and the rover's own mast webcam. The map is drawn sharper; clicking
+it (or Z) opens it large, next to a close-up of the region with the deposits at true size, their names and
+distances; the line under it gives distance and direction of the base, the lander and the nearest deposit of each
+mineral. From 500 units of energy the whole survey is shown.
+
 **Version 2.2** (19 November 2026): more to hear and see, and a clearer goal.
 * Each mineral has its own, louder sound when collected (a chime, a counter burst with a rising run, a fanfare).
 * The gun fires tracer rounds with a muzzle flash; from level 6 it becomes a laser (an instant, straight beam).
