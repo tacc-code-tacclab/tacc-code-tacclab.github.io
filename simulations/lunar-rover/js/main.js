@@ -1091,6 +1091,7 @@ const ret = {
     const sc2 = this.shipC = new THREE.Group(); sc2.add(makeLander()); const can = canvasTex(256, 8, (x, w, h) => { for (let i = 0; i < 16; i++) { x.fillStyle = i % 2 ? '#f4f4f0' : '#e2581c'; x.fillRect(i * 16, 0, 16, h); } });
     const dome = new THREE.Mesh(new THREE.SphereGeometry(4.6, 24, 10, 0, 6.2832, 0, 1.25), new THREE.MeshBasicMaterial({ map: can, side: THREE.DoubleSide })); dome.geometry.rotateX(Math.PI / 2); dome.position.z = 9.5; sc2.add(dome);
     for (let i = 0; i < 8; i++) { const a = i * 0.785; sc2.add(strut(V(Math.cos(a) * 4.3, Math.sin(a) * 4.3, 10.9), V(0, 0, 3.4), 0.02, new THREE.MeshBasicMaterial({ color: 0xdddddd }))); }
+    sc2.traverse(o => { o.renderOrder = 10; });           // the ground layers are painted in order without depth; the ship is drawn after them
     C.add(sc2, new THREE.AmbientLight(0xffffff, 2.2)); { const d = new THREE.DirectionalLight(0xffffff, 2.5); d.position.set(-0.4, -0.5, 0.8); C.add(d); } C.environment = scene.environment;
     this.camC = new THREE.PerspectiveCamera(55, 1, 0.004, 3000); this.camC.up.set(0, 0, 1);
   },
@@ -1169,7 +1170,7 @@ const ret = {
     if (this.ph === 'lap') { const c = this.camA; c.aspect = asp; c.updateProjectionMatrix(); renderer.render(this.sA, c); }
     else if (this.ph === 'cape' || this.ph === 'done') { const c = this.camC, alt = this.ph === 'done' ? 0 : this.alt, d = clamp(0.25 + 0.55 * alt, 0.25, 7), fx = Math.sin(this.psi), fy = Math.cos(this.psi), sc = d * 0.011;
       this.shipC.position.set(this.px, this.py, alt + 0.01); this.shipC.scale.setScalar(sc); this.shipC.rotation.set(0, 0, -this.psi); this.shipC.rotateY(this.bank || 0);
-      const k = 0.35 + alt * 0.22; this.mark3.scale.set(this.TOL, this.TOL, 1); this.beam.scale.set(k * 1.6 / this.TOL, k * 1.6 / this.TOL, Math.max(0.5, alt * 1.2 + 1.5)); this.beam.position.z = Math.max(0.5, alt * 1.2 + 1.5) / 2;
+      const k = 0.35 + alt * 0.22; this.mark3.scale.set(this.TOL, this.TOL, 1); this.beam.scale.set(k * 0.6 / this.TOL, k * 0.6 / this.TOL, Math.max(0.5, alt * 1.2 + 1.5)); this.beam.position.z = Math.max(0.5, alt * 1.2 + 1.5) / 2;
       c.aspect = asp; c.updateProjectionMatrix(); c.position.set(this.px - fx * d, this.py - fy * d, alt + 0.42 * d + 0.03); c.lookAt(this.px + fx * d * 1.6, this.py + fy * d * 1.6, Math.max(0, alt - 0.5 * d)); renderer.render(this.sC, c); }
     else { const c = this.camN, sp = this.ship.position; c.aspect = asp; c.updateProjectionMatrix(); c.position.set(sp.x * 0.6 + (Math.random() - 0.5) * sh, -15, sp.z * 0.6 + 4 + (Math.random() - 0.5) * sh); c.up.set(0, 0, 1); c.lookAt(sp.x * 0.8, 40, sp.z * 0.8); renderer.render(this.sN, c); }
   },
