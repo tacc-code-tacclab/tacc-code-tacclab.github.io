@@ -7,6 +7,10 @@ floors (the game does not say so); the journey home has four checkpoints - a fas
 a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
 A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
+**Version 2.1** (19 November 2026): nothing is stored between visits, so reloading the page resets every counter;
+the goal is 10,000; minerals are no longer plentiful in one place but in deposits scattered over the Moon; from
+level 8 (2,000 captured) the rover can fly to another region, at a high cost in energy.
+
 A browser game that starts beside a base station 130 m from the Apollo 11 landing site. A lander flies anywhere on
 the Moon between 82 deg north and south, up to 100 km high, and lands; a rover drives out, lifts rocks with its arm
 and analyses them, destroys the big ones with a gun, digs, and turns two ores into energy.
@@ -26,7 +30,18 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 * The arm picks up a gem within reach; with none in reach it lifts the nearest rock and throws it aside.
 * Energy runs every rover function; sunlight gives a trickle (real rovers are solar); the base station recharges to
   100; with a flat battery the rover only crawls and can be brought back to base.
-* The total energy captured sets the level (speed, grip, gun, scoop, hop). At 20,000 the journey to the Earth opens.
+* The total energy captured sets the level (speed, grip, gun, scoop, hop, flight). At 10,000 the journey to the
+  Earth opens.
+* Deposits: 93 patches, 9 to 90 km across, each rich in one mineral, placed pseudo-randomly over the globe (three
+  within 40 km of the base) and drawn on the map in the mineral's colour. They are invented. Underneath, a gentle
+  background still follows the measured thorium and titanium maps. A census of generated rocks: at the base
+  13% hold ilmenite, 4.5% thorium ore, 1.2% armalcolite; in the nearby deposits 60% ilmenite, 29% thorium ore
+  and 6.5% armalcolite respectively; on empty far-side highland 3.5%, 1.8% and 0.3%.
+* Flying rover: invented. It needs 150 units in the battery to lift off, flies like the lander up to 30 km, and
+  drains 3 to about 12 units per second depending on height and effort; near empty it lands by itself. The lander
+  stays where it was left and the map points to it.
+* Counters were checked against an instrumented session: energy captured equals 10 x ilmenite + 40 x thorium +
+  150 x armalcolite finds, rocks broken and gems taken equal the events that actually happened.
 * Digging: each dig deepens the hole (to about 2 m). The chance of a find grows with depth and with how far the
   spot lies below the ground around it. In a test, 12 crater floors gave 20 finds in 108 digs, 12 ordinary spots 4.
 * How rich a region is follows real measurements: the Lunar Prospector gamma-ray spectrometer maps of thorium and
@@ -42,7 +57,7 @@ and analyses them, destroys the big ones with a gun, digs, and turns two ores in
 
 ## The journey home
 
-With 20,000 units of energy captured: `B` to base, board the lander, climb above 100 km, "Return to Earth".
+With 10,000 units of energy captured: `B` to base, board the lander, climb above 100 km, "Return to Earth".
 
 | Checkpoint | What the player does | Real | Changed |
 |---|---|---|---|
@@ -154,8 +169,7 @@ G help, C camera, M sound. Touch: stick and buttons.
 
 Tested in a headless desktop browser and an emulated phone (game logic stepped directly; rendering by software).
 Not yet tested on a real phone or a real GPU, so performance there is unknown; the page lowers its own quality if
-frames take too long. The sounds have not been listened to by a person yet. Points and energy are kept in the
-browser's local storage.
+frames take too long. The sounds have not been listened to by a person yet. Nothing is kept between visits.
 
 Graphics: the lander is modelled on the Apollo lunar module (descent stage in gold and black blankets, four
 legs with struts and footpads, ladder, ascent stage with windows, tanks, thrusters and antennas) at 0.6 scale, with
