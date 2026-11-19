@@ -10,8 +10,9 @@ A mistake restarts the checkpoint where it happened. Version 1 is in the git his
 **Version 2.2** (19 November 2026): more to hear and see, and a clearer goal.
 * Each mineral has its own, louder sound when collected (a chime, a counter burst with a rising run, a fanfare).
 * The gun fires tracer rounds with a muzzle flash; from level 6 it becomes a laser (an instant, straight beam).
-* The map starts almost blank and is uncovered as the player travels, more widely from higher up; a deposit is
-  announced when it first appears.
+* The map starts almost blank and is uncovered as the player travels (90 km around the rover, up to 500 km from
+  high up); deposits within about 650 km (or 2.6 times the surveyed radius) show first as faint dots that brighten on approach, and a deposit is
+  announced when it is fully uncovered.
 * The mission is stated at the start, and at 1,000, 3,000, 5,000 and 8,000 a fanfare repeats what to do at 10,000.
 * Journey: the burn window lasts 0.22 s of a 7 s orbit; the ship's engine burns on the way to the Earth; the
   meteoroid field is wider and denser and one hit destroys the ship in a fireball of wreckage; in the atmosphere

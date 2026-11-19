@@ -992,7 +992,7 @@ function fillSheets() {
   <table>
     <tr><td><b>Energy</b></td><td>Everything the rover does uses it. Sunlight gives a trickle; the base station recharges to 100; thorium ore adds ${COST.thorium} each, with no upper limit. If it runs flat the rover only crawls — press <b>Back to base</b>.</td></tr>
     <tr><td><b>Goal</b></td><td>Capture ${LAUNCH.toLocaleString('en-US')} units of energy (the EARTH bar). Then press <b>B</b> to return to base, board the lander, climb above 100 km and press <b>Return to Earth</b>.</td></tr>
-    <tr><td><b>Map</b></td><td>Top right: the whole Moon — but it starts almost blank. It is uncovered as you travel, more widely the higher you fly. Coloured patches are the deposits you have found, where one mineral is plentiful — <span style="color:var(--emer)">green thorium</span>, <span style="color:var(--blue)">blue ilmenite</span>, <span style="color:#ffd84a">yellow armalcolite</span>. The white square is the base, the red circle is you; the arrows point to the base and to the lander. Click the map to enlarge it.</td></tr>
+    <tr><td><b>Map</b></td><td>Top right: the whole Moon — but it starts almost blank. It is uncovered as you travel, more widely the higher you fly; faint dots hint at deposits a little further off, and grow brighter as you approach. Coloured patches are the deposits you have found, where one mineral is plentiful — <span style="color:var(--emer)">green thorium</span>, <span style="color:var(--blue)">blue ilmenite</span>, <span style="color:#ffd84a">yellow armalcolite</span>. The white square is the base, the red circle is you; the arrows point to the base and to the lander. Click the map to enlarge it.</td></tr>
     <tr><td><b>Detector</b></td><td>Ticks faster, and the THORIUM bar fills, as you approach a rock that holds thorium ore.</td></tr>
     <tr><td><b>Grab</b></td><td>The arm picks up a gem within reach — the only way to take the large bright ones. With no gem in reach it lifts the nearest rock and throws it aside.</td></tr>
     <tr><td><b>Gun</b></td><td>Aims at the nearest rock ahead. Any rock can be destroyed; big ones take several rounds. The ore drops out.</td></tr>
@@ -1022,7 +1022,7 @@ function mineralCanvas(W, H) {
 const mini = {
   bg: null, known: null, full: null, W: 440, H: 220, local: null, last: null,
   build() { const mk = () => { const c = document.createElement('canvas'); c.width = this.W; c.height = this.H; return c; }; const b = this.bg = mk(), x = b.getContext('2d'); x.drawImage(terrain.texGlobal.image, 0, 0, this.W, this.H); x.fillStyle = 'rgba(0,0,0,.42)'; x.fillRect(0, 0, this.W, this.H);
-    this.known = mk(); this.full = lp.g ? mineralCanvas(this.W, this.H) : mk(); this.reveal(BASE.ll[0], BASE.ll[1], 45, true);
+    this.known = mk(); this.full = lp.g ? mineralCanvas(this.W, this.H) : mk(); this.reveal(BASE.ll[0], BASE.ll[1], 90, true);
     $('mini').addEventListener('click', () => $('mini').classList.toggle('big')); },
   /* uncover what lies within r km of a place: the colours of the map, and any deposit there */
   reveal(lat, lon, r, quiet) {
@@ -1036,9 +1036,11 @@ const mini = {
     if (!this.bg) return; const x = $('miniC').getContext('2d'), W = this.W, H = this.H;
     if (this.local) return this.local(x, W, H);
     const veh = G.mode === 'lander' ? lander : rover, cur = orbit.on ? [orbit.lat, orbit.lon] : terrain.toLatLon(veh.pos.x, veh.pos.y), P = ll => [(ll[1] + 180) / 360 * W, (90 - ll[0]) / 180 * H];
-    const hKm = orbit.on ? 0 : (G.mode === 'lander' ? Math.max(0, lander.pos.z - clip.ground(lander.pos.x, lander.pos.y)) : rover.fly ? rover.agl : 0) / 1000, r = orbit.on ? 150 : Math.min(320, 45 + 6 * hKm);       // the higher you are, the more you survey
+    const hKm = orbit.on ? 0 : (G.mode === 'lander' ? Math.max(0, lander.pos.z - clip.ground(lander.pos.x, lander.pos.y)) : rover.fly ? rover.agl : 0) / 1000, r = orbit.on ? 300 : Math.min(500, 90 + 9 * hKm);       // the higher you are, the more you survey
     if (!this.last || r > this.last[2] * 1.25 || gc(cur[0], cur[1], this.last[0], this.last[1]).d > r * 350) this.reveal(cur[0], cur[1], r);
     x.drawImage(this.bg, 0, 0); x.drawImage(this.known, 0, 0);
+    // deposits a little beyond what has been surveyed show first as faint dots, brighter as you approach
+    for (const d of lp.deposits) { if (d.seen) continue; const lim = Math.max(650, r * 2.6) + d.rad, dd = gc(cur[0], cur[1], d.lat, d.lon).d / 1000; if (dd < lim) { const q = P([d.lat, d.lon]); x.globalAlpha = clamp(1.2 - dd / lim, 0.2, 0.7); x.fillStyle = ['', '#4aa8ff', '#35e39a', '#ffd84a'][d.type]; x.beginPath(); x.arc(q[0], q[1], 3.4, 0, 6.3); x.fill(); x.globalAlpha = 1; } }
     const dot = (ll, col, rr, sq) => { const q = P(ll); x.fillStyle = col; x.strokeStyle = '#000'; x.lineWidth = 2; x.beginPath(); sq ? x.rect(q[0] - rr, q[1] - rr, 2 * rr, 2 * rr) : x.arc(q[0], q[1], rr, 0, 6.3); x.fill(); x.stroke(); };
     dot(BASE.ll, '#ffffff', 5, true); const q = P(cur); x.strokeStyle = '#ff3b30'; x.lineWidth = 2.5; x.beginPath(); x.arc(q[0], q[1], 11, 0, 6.3); x.stroke(); dot(cur, '#ff3b30', 4);
     const head = orbit.on ? 0 : G.mode === 'lander' ? lander.yaw : rover.heading(), km = d => d < 1000 ? fm(d, 0) + ' m' : fm(d / 1000, d < 20000 ? 1 : 0) + ' km', arrow = (brg) => `<span class="arr" style="transform:rotate(${((brg - head) * R2D).toFixed(0)}deg)">↑</span>`;
