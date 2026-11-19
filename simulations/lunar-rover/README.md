@@ -7,6 +7,28 @@ floors (the game does not say so); the journey home has four checkpoints - a fas
 a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
 A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
+## Version 3 (`v3.html`) - NASA's 3-D models
+
+`v3.html` is a separate page; `index.html` (version 2) is unchanged in behaviour and the two share the same code,
+switched by `data-v="3"` on the page. Version 3 replaces the hand-built vehicles with models from the NASA 3D
+Resources collection (github.com/nasa/NASA-3D-Resources, "free and without copyright"), copied into `data/models/`:
+
+| Used as | NASA model | Note |
+|---|---|---|
+| lander, and the ship of the journey home | Apollo Lunar Module | at 0.6 scale for play |
+| descent stage at the landing site | the same, real size | everything above the descent stage is hidden, as the ascent stage left in 1969 |
+| rover | Mars 2020 Perseverance Rover | a Mars rover: the most detailed rover model NASA publishes, nothing like it has driven on the Moon; its wheels do not turn here, and the working arm, gun and scoop are the game's own |
+| base | Habitat Demonstration Unit (parts 1 and 2) | a ground prototype |
+| figure by the base | Astronaut | decoration |
+
+Rendering in version 3: filmic (ACES) tone mapping, a larger shadow map, a soft glow round the brightest things
+(desktop only) and a vignette. The models' painted colours are toned down by a fixed factor so that they do not
+burn out under a Sun set for the dark lunar soil. It downloads about 8 MB more than version 2. If the models fail
+to load, the built-in ones are used. Use of the models does not imply endorsement by NASA.
+
+What it is not: photographs, or hardware modelled for this game. The limits are those of NASA's models (the lunar
+module has flat colours, not real foil) and of real-time rendering in a browser.
+
 **Version 2.3** (19 November 2026): eight camera views (button Camera or C): from behind, from the front, from
 either side, straight down from 15, 60 and 250 m, and the rover's own mast webcam. The map is drawn sharper; clicking
 it (or Z) opens it large, next to a close-up of the region with the deposits at true size, their names and

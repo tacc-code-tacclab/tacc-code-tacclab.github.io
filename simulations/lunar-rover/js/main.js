@@ -12,14 +12,19 @@ const fm = (x, d = 1) => x.toLocaleString('en-US', { minimumFractionDigits: d, m
 const params = new URLSearchParams(location.search);
 const touchUI = params.has('touch') || matchMedia('(hover: none) and (pointer: coarse)').matches;
 if (touchUI) document.body.classList.add('touch');
+/* Version 3 (v3.html) swaps the hand-built vehicles for NASA's own 3-D models and adds film-like rendering.
+   Everything else is shared, and without this flag the page behaves exactly as version 2. */
+const V3 = document.documentElement.dataset.v === '3';
 
 /* ====================================================================== renderer, scene, light */
 const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, touchUI ? 1.5 : 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+if (V3) { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12; }
+let composer = null;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(55, 1, 0.15, 900000);
-function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+function resize() { renderer.setSize(innerWidth, innerHeight, false); if (composer) composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 
 /* Sun where it was in the LRO photo: azimuth fitted from the data (see tools/shape_from_shading.py), elevation
@@ -27,7 +32,7 @@ addEventListener('resize', resize); resize();
 const SUN_AZ = 272.5 * D2R, SUN_EL = 18 * D2R;
 const sunDir = V(Math.sin(SUN_AZ) * Math.cos(SUN_EL), Math.cos(SUN_AZ) * Math.cos(SUN_EL), Math.sin(SUN_EL));
 const sun = new THREE.DirectionalLight(0xfff6e8, 6.0); sun.castShadow = true;
-sun.shadow.mapSize.set(touchUI ? 1024 : 2048, touchUI ? 1024 : 2048);
+sun.shadow.mapSize.set(touchUI ? 1024 : V3 ? 4096 : 2048, touchUI ? 1024 : V3 ? 4096 : 2048);
 sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 /* Fill light stands in for two things: sunlight scattered by the surrounding ground, and the fact that lunar soil
@@ -74,6 +79,22 @@ function legs(g, rBody, zBody, rPad, n, m) {
     g.add(at(cyl(0.28, 0.3, 0.08, 14, FOIL), c * rPad, s * rPad, 0.04));
   }
 }
+/* ---- version 3: NASA's 3-D models (github.com/nasa/NASA-3D-Resources, free and without copyright) ---- */
+const MODELS = {};
+async function loadModels(onStep) {
+  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/loaders/DRACOLoader.js')]);
+  const draco = new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/'); const L = new GLTFLoader(); L.setDRACOLoader(draco);
+  for (const [key, file, label] of [['lm', 'apollo_lunar_module.glb', 'Apollo lunar module'], ['rover', 'perseverance_rover.glb', 'rover'], ['hab1', 'habitat_1.glb', 'habitat'], ['hab2', 'habitat_2.glb', 'habitat'], ['astro', 'astronaut.glb', 'astronaut']]) {
+    onStep(label); const g = await L.loadAsync('data/models/' + file); MODELS[key] = g.scene;
+    g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; for (const m of [].concat(o.material)) if (m && !m.userData.fitted) { m.userData.fitted = true; m.envMapIntensity = 1; if (m.transmission) m.transmission = 0; if (m.color) m.color.multiplyScalar(0.42); if (key.startsWith('hab')) { m.metalness = 0; m.roughness = 0.9; } } } });      // the Sun here is set for the dark lunar soil: painted surfaces are toned down so that they do not burn out
+  }
+}
+/* bring a model into the game's frame: z up, standing on z = 0, centred, scaled so that its width (or height) has the given size */
+function fit(src, size, by = 'w', yaw = 0) {
+  const piv = new THREE.Group(), g = new THREE.Group(); piv.add(src); piv.rotation.x = Math.PI / 2; g.add(piv); g.updateMatrixWorld(true);
+  let b = new THREE.Box3().setFromObject(g), sz = b.getSize(V()); piv.scale.setScalar(size / (by === 'h' ? sz.z : Math.max(sz.x, sz.y))); g.updateMatrixWorld(true);
+  b = new THREE.Box3().setFromObject(g); const c = b.getCenter(V()); piv.position.set(-c.x, -c.y, -b.min.z); g.rotation.z = yaw; const out = new THREE.Group(); out.add(g); out.userData.h = b.max.z - b.min.z; return out;
+}
 /* Apollo lunar module, descent stage: octagonal body in gold and black blankets, four legs with primary and secondary
    struts and dished footpads, ladder and porch on the front leg, engine skirt. Proportions follow the real one (4.2 m
    across the body, 9.4 m across the pads); details are simplified. */
@@ -96,7 +117,14 @@ function descentStage() {
   g.add(at(box(0.95, 0.7, 0.05, ALU), 0, 2.15, 2.72));                                                 // porch
   return g;
 }
-function makeEagle() { return descentStage(); }          // what is left at Tranquility Base: the descent stage, real position
+function makeEagle() {
+  if (V3 && MODELS.lm) {                                // the real module at its real size; the ascent stage left in 1969, so everything above the descent stage is hidden
+    const g = fit(MODELS.lm.clone(true), 9.4, 'w', V3YAW.lm); g.updateMatrixWorld(true); const H = g.userData.h, b = new THREE.Box3(), c = V();
+    g.traverse(o => { if (o.isMesh) { b.setFromObject(o); b.getCenter(c); if (c.z > H * 0.5 && b.min.z > H * 0.36) o.visible = false; } }); return g;
+  }
+  return descentStage();
+}
+const V3YAW = { lm: 0, rover: Math.PI, hab: 0 };          // what is left at Tranquility Base: the descent stage, real position
 function ascentStage() {                                 // crew cabin: faceted pressure hull, windows, hatch, tanks, thrusters, antennas
   const g = new THREE.Group();
   const cg = new THREE.CylinderGeometry(1.16, 1.16, 2.3, 10); cg.rotateZ(Math.PI / 2); const cab = new THREE.Mesh(cg, ALU); cab.castShadow = true; g.add(at(cab, 0, 0.55, 4.1));
@@ -114,6 +142,8 @@ function ascentStage() {                                 // crew cabin: faceted 
   return g;
 }
 function makeLander() {                                  // the player's vehicle: a lunar module at 0.6 scale, with a ramp for the rover (the ramp is invented)
+  if (V3 && MODELS.lm) { const g = new THREE.Group(); g.add(fit(MODELS.lm.clone(true), 5.7, 'w', V3YAW.lm));
+    const flame = cyl(0.04, 0.42, 1.5, 16, new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.5, depthWrite: false })); flame.castShadow = false; flame.position.z = -0.45; flame.visible = false; g.add(flame); g.userData.flame = flame; return g; }
   const g = new THREE.Group(), s = new THREE.Group(); s.add(descentStage(), ascentStage()); s.scale.setScalar(0.6); g.add(s);
   const ramp = box(0.9, 1.9, 0.05, ALU); ramp.position.set(0, 2.45, 0.42); ramp.rotation.x = -0.42; g.add(ramp);
   const flame = cyl(0.04, 0.42, 1.5, 16, new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.5, depthWrite: false })); flame.castShadow = false; flame.position.z = -0.55; flame.visible = false; g.add(flame); g.userData.flame = flame;
@@ -157,9 +187,17 @@ function makeRover() {
   u.grip = new THREE.Group(); u.grip.position.y = ARM_L; u.elbow.add(u.grip); u.grip.add(ball(0.035, DARK, 8));
   for (let i = 0; i < 3; i++) { const a = i * 2.094, f = box(0.022, 0.15, 0.022, GREY); f.position.set(Math.cos(a) * 0.055, 0.07, Math.sin(a) * 0.055); f.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35); u.grip.add(f); }
   u.scoop = box(0.95, 0.06, 0.26, mat(0xc8a030, { metalness: 0.8, roughness: 0.4 })); u.scoop.position.set(0, 0.74, -0.18); u.scoop.rotation.x = 0.35; u.scoop.visible = false; g.add(u.scoop);
+  if (V3 && MODELS.rover) {                             // NASA's Perseverance model takes the place of the hand-built body; the working arm, gun and scoop stay
+    for (const c of g.children) if (c !== u.armBase && c !== u.turret && c !== u.scoop) c.visible = false;
+    const m = fit(MODELS.rover, 2.15, 'w', V3YAW.rover); m.scale.setScalar(0.74); m.position.z = -0.57; g.add(m); u.nasa = m;
+    u.armBase.position.set(-0.32, 0.72, 0.18); u.turret.position.set(0.34, 0.5, 0.42);
+  }
   return g;
 }
 function makeBase() {                                    // the station that stays at Tranquility Base: habitat, solar wings, dish. Invented.
+  if (V3 && MODELS.hab1) { const both = new THREE.Group(); both.add(MODELS.hab1, MODELS.hab2); const g = new THREE.Group(); g.add(fit(both, 9.5, 'w', V3YAW.hab));        // NASA's Habitat Demonstration Unit
+    if (MODELS.astro) { const a = fit(MODELS.astro, 1.85, 'h', 2.4); a.position.set(3.2, -6.4, 0); g.add(a); }
+    g.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0x66ff99 })), 0, 0, g.children[0].userData.h + 0.3)); return g; }
   const g = new THREE.Group();
   const hg = new THREE.CylinderGeometry(1.35, 1.35, 3.2, 20); hg.rotateZ(Math.PI / 2); const hab = new THREE.Mesh(hg, WHITE); hab.castShadow = true; g.add(at(hab, 0, 0, 1.95));
   for (const sx of [-1, 1]) { g.add(at(ball(1.35, WHITE, 20), sx * 1.6, 0, 1.95)); const wing = box(3.4, 0.04, 1.5, PANEL); wing.position.set(sx * 4.6, 0, 3.0); wing.rotation.y = sx * 0.45; g.add(wing, strut(V(sx * 2.4, 0, 2.6), V(sx * 3.1, 0, 2.95), 0.05, ALU)); }
@@ -857,7 +895,7 @@ const ACT = { fire, fly, grab: () => rover.grab(), dig, hop, flip, deploy: () =>
     if (G.points >= LAUNCH && !G.flat) setTimeout(() => toast('At base. Now: Enter to board the lander,\nhold ▲ to climb above 100 km, then “Return to Earth”.', 9000), 300);
     if (rover.arm.rock) { rover.arm.rock.held = false; rover.arm.rock = null; rover.arm.phase = 'idle'; }
     rover.fly = false; rover.landing = false; setAnchorAt(terrain.site.lat, terrain.site.lon); clip.update(BASE.x, BASE.y); lander.obj.visible = true;
-    lander.place(BASE.x + 11, BASE.y + 5); lander.yaw = 1.2; rover.place(BASE.x + 6.5, BASE.y - 1, 0.6); rover.obj.visible = true; G.mode = 'rover'; G.energy = Math.max(G.energy, 30); G.flat = false; camS.dist = 6.5; camS.off = 2.3; camS.userT = G.t;
+    lander.place(BASE.x + (V3 ? 15 : 11), BASE.y + (V3 ? 6 : 5)); lander.yaw = 1.2; rover.place(BASE.x + (V3 ? 9.5 : 6.5), BASE.y - (V3 ? 0.5 : 1), 0.6); rover.obj.visible = true; G.mode = 'rover'; G.energy = Math.max(G.energy, 30); G.flat = false; camS.dist = 6.5; camS.off = 2.3; camS.userT = G.t;
     toast('Brought back to Tranquility Base.\nStay close to the station to recharge.', 4500); buildActs(); },
   layers() { G.overlay = !G.overlay; clip.setOverlay(G.overlay); rocks.rebuild(rocks.cx, rocks.cy); $('legend').classList.toggle('open', G.overlay); document.querySelector('[data-act=layers]').classList.toggle('on', G.overlay); if (G.overlay) toast('Shape of the ground:\ngrey = measured · cyan = inferred from the photo · orange = predicted', 4500); },
   info() { sheet('info'); }, help() { sheet('help'); }, more() { sheet('more'); },
@@ -992,6 +1030,7 @@ function fillSheets() {
   <ul><li>Minerals as glowing gems (real ilmenite and armalcolite are dull, dark grains), minerals as fuel, the gun, unlimited propellant for the lander.</li>
   <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
   <li>The Apollo 11 descent stage stands at its real position; its shape is illustrative. Tools are locked within ${KEEP_OUT} m of it, in the spirit of NASA's guidelines for protecting the Apollo sites.</li></ul>`;
+  if (V3) $('infoBody').innerHTML += `<h3>Version 3: the models</h3><p>The lunar module, the rover, the habitat and the astronaut are NASA's own 3-D models, from the NASA 3D Resources collection (free and without copyright). The module is the Apollo lunar module; at the landing site only its descent stage is shown, as it was left. The rover is NASA's model of <b>Perseverance</b> — a Mars rover, used here because it is the most detailed rover model NASA publishes; nothing like it has driven on the Moon. Its wheels do not turn in this version, and the arm, gun and scoop added to it are the game's. The habitat is the Habitat Demonstration Unit, a ground prototype. Their use here does not imply any endorsement by NASA.</p>`;
   $('helpBody').innerHTML = `
   <p>You start in the lander beside the base station at Tranquility Base. <b>Deploy</b> the rover, prospect, and <b>Board</b> again to fly anywhere on the Moon.</p>
   <table>
@@ -1365,7 +1404,9 @@ const ret = {
     clip = new Clipmap(terrain, scene, { terrainShadows: !touchUI });
     // tone: bring the regional mosaic to the brightness of the local photo
     clip.uniforms.uGain.value.set(1.0, 1.0);
-    load.textContent = 'Loading the element maps (Lunar Prospector)…'; await lp.load(); load.textContent = 'Building the ground…';
+    load.textContent = 'Loading the element maps (Lunar Prospector)…'; await lp.load();
+    if (V3) { try { await loadModels(n => { load.textContent = 'Loading NASA 3-D models…\n' + n; }); } catch (e) { console.warn('NASA models not loaded, using the built-in ones:', e.message); for (const k in MODELS) delete MODELS[k]; } }
+    load.textContent = 'Building the ground…';
     particles = new Particles(touchUI ? 900 : 1800); rocks = new Rocks(); rover = new Rover(); lander = new Lander();
     eagle = makeEagle(); scene.add(eagle); base = makeBase(); scene.add(base);
     BASE.ll = terrain.toLatLon(BASE.x, BASE.y);
@@ -1373,6 +1414,10 @@ const ret = {
     lander.place(sx, sy); lander.yaw = 68 * D2R; rocks.rebuild(sx, sy); labels.load(); mini.build();
     for (const q of G.savedGems || []) if (q && q[2] >= 1 && q[2] <= 3) rocks.gemLL(q[0], q[1], q[2]);
     camS.yaw = lander.yaw; buildActs(); hudScore(); fillSheets();
+    if (V3 && !touchUI) try {                               // a soft glow round the brightest things: gems, the laser, flames, sunlit metal
+      const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all([import('three/addons/postprocessing/EffectComposer.js'), import('three/addons/postprocessing/RenderPass.js'), import('three/addons/postprocessing/UnrealBloomPass.js'), import('three/addons/postprocessing/OutputPass.js')]);
+      composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.45, 1.7)); composer.addPass(new OutputPass()); composer.setSize(innerWidth, innerHeight);
+    } catch (e) { console.warn('no bloom:', e.message); composer = null; }
     load.style.display = 'none';
     toast(`YOUR MISSION\nCapture ${LAUNCH.toLocaleString('en-US')} units of energy from the Moon's minerals.\nThen press B, board the lander and fly home to the Earth.\nStart: press Deploy to let the rover out.`, 11000);
   } catch (err) { console.error(err); load.textContent = 'Could not start: ' + err.message; return; }
@@ -1402,7 +1447,7 @@ const ret = {
       if (keys.has('Space') || held.has('fire')) fire();
       if (rover.pos.z < clip.ground(rover.pos.x, rover.pos.y) - 1.5) flip();
       if (rover.rolled > 2.0) { flip(); rover.rolled = 0; toast('Rolled over — set back on its wheels', 2000); }
-      for (const [o, r] of [[lander.pos, 2.9], [eagle.position, 5.2], [base.position, 3.4]]) {      // cannot drive through the lander or the descent stage
+      for (const [o, r] of [[lander.pos, 2.9], [eagle.position, 5.2], [base.position, V3 ? 6.2 : 3.4]]) {      // cannot drive through the lander or the descent stage
         const dx = rover.pos.x - o.x, dy = rover.pos.y - o.y, d = Math.hypot(dx, dy); if (d >= r || d < 1e-6) continue;
         const nx = dx / d, ny = dy / d, vn = rover.vel.x * nx + rover.vel.y * ny; rover.pos.x += nx * (r - d); rover.pos.y += ny * (r - d); if (vn < 0) { rover.vel.x -= nx * vn; rover.vel.y -= ny * vn; }
       }
@@ -1429,7 +1474,7 @@ const ret = {
     let dy = head - camS.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); camS.yaw += dy * Math.min(1, dt * 3);
     const view = VIEWS[G.cam], web = !!view.web && G.mode === 'rover' && !rover.fly, look = tmp.a.copy(focus).addScaledVector(Z, G.mode === 'rover' ? 0.5 : 1.6);
     document.body.classList.toggle('webcam', web);
-    if (web) { camera.position.copy(tmp.b.set(-0.3, 0.42, 1.12).applyQuaternion(rover.q).add(rover.pos)); camera.up.copy(rover.up()); camera.lookAt(tmp.c.copy(rover.fwd).multiplyScalar(6).add(camera.position).addScaledVector(Z, -1.6)); }      // the mast camera: it sees the arm, the gun and the ground ahead
+    if (web) { camera.position.copy((V3 ? tmp.b.set(0, 0.78, 0.62) : tmp.b.set(-0.3, 0.42, 1.12)).applyQuaternion(rover.q).add(rover.pos)); camera.up.copy(rover.up()); camera.lookAt(tmp.c.copy(rover.fwd).multiplyScalar(6).add(camera.position).addScaledVector(Z, -1.6)); }      // the mast camera: it sees the arm, the gun and the ground ahead
     else {
       const hi = air;                                    // from high up: stand farther back and look further down, so the ground stays in view
       const yaw = camS.yaw + camS.off + (view.yaw || 0), pit = view.top ? 1.5 : Math.max(view.pit !== undefined ? view.pit + camS.pitch - 0.32 : camS.pitch, Math.min(1.2, hi / 900)), dist = (view.top ? view.top * camS.dist / 6.5 : camS.dist) * (1 + hi / 500), cp = Math.cos(pit);
@@ -1462,8 +1507,8 @@ const ret = {
     const tag = $('tag'), de = camera.position.distanceTo(eagle.position);       // label on the descent stage
     if (de < 150) { const p = tmp.b.set(eagle.position.x, eagle.position.y, eagle.position.z + 4).project(camera); if (p.z < 1 && Math.abs(p.x) < 1 && Math.abs(p.y) < 1) { tag.style.display = 'block'; tag.style.left = ((p.x + 1) * innerWidth / 2) + 'px'; tag.style.top = ((1 - p.y) * innerHeight / 2) + 'px'; tag.textContent = 'Apollo 11 descent stage — real position, illustrative model'; } else tag.style.display = 'none'; } else tag.style.display = 'none';
     labels.frame(); if (document.body.classList.contains('webcam')) $('webTime').textContent = new Date().toISOString().slice(11, 19) + ' UTC';
-    renderer.render(scene, camera);
+    composer ? composer.render() : renderer.render(scene, camera);
   }
-  window.__game = { labels, base, sfx, need, COST, orbit, ret, lp, FLY, GEM, mini, music, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
+  window.__game = { V3, MODELS, labels, base, sfx, need, COST, orbit, ret, lp, FLY, GEM, mini, music, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
   requestAnimationFrame(frame);
 })();
