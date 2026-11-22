@@ -1374,7 +1374,7 @@ const ret = {
     const o = 4 * (clamp(Math.floor((90 - lat) / 180 * 512), 0, 511) * 1024 + ((Math.floor((lon + 180) / 360 * 1024) % 1024) + 1024) % 1024), p = this.globePx; return p[o + 2] > p[o] * 1.25 && p[o + 2] > p[o + 1];
   },
   say(n, text) { $('guide').innerHTML = `<b>CHECKPOINT ${n} OF 4</b>${text}`; $('guide').style.display = 'block'; },
-  label() { return { lap: 'Burn engine', coast: 'Steer with the arrows', fire: 'Steer away from the red', done: 'Back to the Moon' }[this.ph] || '…'; },
+  label() { return { lap: 'Burn engine', coast: 'Steer with the arrows', fire: 'Steer away from the red', done: 'New mission, from zero' }[this.ph] || '…'; },
   async start() { if (!this.sA) { toast('Preparing the journey…', 2500); try { await this.build(); } catch (e) { return toast('The images of the Earth could not be loaded: ' + e.message, 5000); } } orbit.on = false; document.body.classList.remove('orbit'); document.body.classList.add('ret'); for (const e of labels.pool) e.style.display = 'none'; for (const id of ['bigmsg', 'radio']) { const e = $(id); if (e) e.classList.remove('on'); } clearTimeout(bigT); $('msg').style.opacity = 0; this.on = true; this.go('lap'); },
   quit() { this.on = false; music.stop(); mini.local = null; $('mini').classList.remove('show'); document.body.classList.remove('ret'); $('guide').style.display = 'none'; $('bar').style.display = 'none'; $('heat').style.opacity = 0; ACT.rescue(); },
   go(ph) {
@@ -1387,7 +1387,7 @@ const ret = {
     if (ph === 'fire') { music.play('fire'); sfx.fanfare(); toast('ENTERING THE ATMOSPHERE', 4000); this.say(3, 'You are entering the atmosphere at 11 km/s. Yellow is hot; <span style="color:#ff5a3c">red is deadly</span>. <u>Do not touch the red</u>.'); }
     if (ph === 'cape') { music.play('descent'); const s0 = [[-430, -170], [390, 130], [-160, 430], [270, -390]][Math.floor(Math.random() * 4)]; this.px = s0[0]; this.py = s0[1]; this.psi = Math.atan2(-s0[0], -s0[1]) + (Math.random() - 0.5) * 0.8; this.alt = 45; this.vz = 0; this.w0 = Math.random() * 6.28; this.bank = 0;
       this.say(4, 'Through the fire, parachute open, thrusters alive. You can come down anywhere on Earth — but only at the <span style="color:#ff5a3c">red marker on the coast of Florida</span>, Cape Canaveral, is the cooling foam waiting. <u>Land inside the red ring.</u> ← → turn, ↑ ↓ speed, ▲ ▼ height (higher is faster).'); mini.local = (x, W, H) => this.map(x, W, H); $('mini').classList.add('show'); }
-    if (ph === 'done') { music.stop(); G.home = (G.home || 0) + 1; sfx.rare(); setTimeout(() => sfx.fanfare(), 900); this.foam.visible = true; $('guide').innerHTML = `<b>MISSION COMPLETE</b>Touchdown at Cape Canaveral, ${fm(this.miss, 0)} m from the centre of the ring: the cooling foam covers the ship. Aboard: ${G.stats.il} ilmenite, ${G.stats.th} thorium and ${G.stats.ar || 0} armalcolite finds. You brought it home.`; }
+    if (ph === 'done') { music.stop(); G.home = (G.home || 0) + 1; sfx.rare(); setTimeout(() => sfx.fanfare(), 900); this.foam.visible = true; $('guide').innerHTML = `<b>MISSION COMPLETE</b>Touchdown at Cape Canaveral, ${fm(this.miss, 0)} m from the centre of the ring: the cooling foam covers the ship. Aboard: ${G.stats.il} ilmenite, ${G.stats.th} thorium and ${G.stats.ar || 0} armalcolite finds. You brought it home. Press <u>New mission</u> to start again on the Moon, from zero.`; }
     buildActs();
   },
   /* the ship is destroyed: a ball of fire, wreckage flying apart, and the checkpoint starts again */
@@ -1461,7 +1461,7 @@ const ret = {
         hud = row('TO TARGET', d < 1 ? fm(d * 1000, 0) + ' m' : fm(d, d < 10 ? 1 : 0) + ' km', d < this.TOL ? 'ok' : '') + row('HEIGHT', this.alt < 1 ? fm(this.alt * 1000, 0) + ' m' : fm(this.alt, 1) + ' km', this.alt < 1.5 ? 'warn' : '') + row('SPEED', v < 0.28 ? fm(v * 3600, 0) + ' km/h' : fm(v, 2) + ' km/s') + row('WIND', `${fm(ws * 3600, 0)} km/h <span class="arr" style="display:inline-block;transform:rotate(${rel.toFixed(0)}deg)">↑</span>`) + row('BELOW', this.water(this.px, this.py) ? 'water' : 'land');
         if (this.alt <= 0) { this.miss = d * 1000; this.flameC.visible = false; if (d <= this.TOL) return this.go('done'); this.wet = this.water(this.px, this.py); this.down = 3; this.sink = 0; sfx.thud(4); toast(this.wet ? 'Splashdown — but there is no recovery ship here…' : 'Down — but there is no cooling foam here…', 3000); }
       }
-    } else if (this.ph === 'done') { hud = row('MISSION', 'complete', 'ok') + row('MISS', fm(this.miss, 0) + ' m') + row('RETURNS', String(G.home || 1)); if (edge) return this.quit(); }
+    } else if (this.ph === 'done') { hud = row('MISSION', 'complete', 'ok') + row('MISS', fm(this.miss, 0) + ' m') + row('RETURNS', String(G.home || 1)); if (edge) { location.reload(); return; } }      // a completed mission ends the game: a new one starts from zero (nothing is kept between games)
     this.hT = (this.hT || 0) - dt; if (this.hT <= 0) { this.hT = 0.12; $('stat').innerHTML = hud; hudScore(); mini.draw(); }
   },
   draw() {

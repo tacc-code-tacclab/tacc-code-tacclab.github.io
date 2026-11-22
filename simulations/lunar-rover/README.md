@@ -35,6 +35,10 @@ A separate page built on version 3 (`data-v="4"`); versions 2 and 3 are unchange
   In a test, a pilot that dodges only marked rocks once they are 60 m away survived 5 of 6 crossings; with no
   steering at all, none.
 
+Fixed in all versions on 22 November: after a completed landing at Cape Canaveral the button took the player back
+to the Moon with the 10,000 still counted, so the way home was open at once. It now starts a new game from zero
+("New mission, from zero"). Giving up during the journey still returns to the Moon with the energy kept, to try again.
+
 Fixed in all versions on 20 November: since 19 November the meteoroids had no shape at all (the list of shapes was
 built with `map(asteroidGeo)`, which passed the index as the number of segments), so they could not be seen.
 
