@@ -30,6 +30,10 @@ A separate page built on version 3 (`data-v="4"`); versions 2 and 3 are unchange
   guide at the top names the next of four steps (B to base, Enter to board, climb above 100 km, Return to Earth).
   Meteoroids are 3.5-8 m, lit, slower (55-95 m/s), seen from above and behind the ship, with the Earth moved aside;
   a red ring marks each one on a collision course.
+  Later the same day: fewer meteoroids and fewer aimed at the ship, a smaller hit radius, the ship moves about twice
+  as fast with the arrows (also in the fire level), and the Earth starts larger, in view, and grows on approach.
+  In a test, a pilot that dodges only marked rocks once they are 60 m away survived 5 of 6 crossings; with no
+  steering at all, none.
 
 Fixed in all versions on 20 November: since 19 November the meteoroids had no shape at all (the list of shapes was
 built with `map(asteroidGeo)`, which passed the index as the number of segments), so they could not be seen.
