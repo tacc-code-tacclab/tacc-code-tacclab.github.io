@@ -7,6 +7,25 @@ floors (the game does not say so); the journey home has four checkpoints - a fas
 a denser meteoroid field, a fire level, and a steered parachute descent to Cape Canaveral over real NASA images.
 A mistake restarts the checkpoint where it happened. Version 1 is in the git history.
 
+## Version 4 (`v4.html`) - veins, a return window, Houston on the radio
+
+A separate page built on version 3 (`data-v="4"`); versions 2 and 3 are unchanged.
+
+* More and richer deposits: 168 scattered over the Moon instead of 90, 40-120 km across, plus three close to the
+  base - ilmenite at its doorstep, thorium 2 km north, armalcolite 2.5 km east. Rocks are a third more numerous,
+  ore odds are 1.8 times higher, and in a deposit at most half the rocks hold ore.
+* Veins (invented): narrow winding bands inside deposits where four rocks in five hold ore and spill 2 to 5 pieces;
+  vein rocks carry a tint of their mineral. A census of rocks big enough to shoot (12 cm and more), with the expected
+  energy per rock: base deposit 12, thorium deposit 33, armalcolite deposit 46, a large far deposit 16, ordinary
+  ground 3. At 20 to 40 rocks a minute that is roughly 250-1,800 energy a minute in a deposit, 60-120 outside.
+* P pauses the game, the clock and the sound.
+* Return window: 30 minutes of play to capture 10,000 and start the journey home; Houston calls at 25, 20, 15, 10,
+  5, 2 and 1 minutes and 30 seconds, when the energy is reached and when the first vein is found. The calls open and
+  close with the real Apollo Quindar tones (2,525 and 2,475 Hz). When the window closes the mission fails and the
+  page offers to start again. The clock stops once the journey home begins.
+* Sound: a long synthesised echo on every sound, a louder mix, heavier engine and gun, and slow music on the Moon.
+* Gems no longer carry their own light, which keeps many of them affordable to draw.
+
 ## Version 3 (`v3.html`) - NASA's 3-D models
 
 `v3.html` is a separate page; `index.html` (version 2) is unchanged in behaviour and the two share the same code,

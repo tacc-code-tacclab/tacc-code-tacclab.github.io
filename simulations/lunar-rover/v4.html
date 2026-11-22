@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" data-v="4">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Lunar Rover 4 — veins, a return window, Houston on the radio</title>
+<meta name="description" content="Drive a rover on the Moon near the Apollo 11 landing site. The ground combines measured LRO elevation, relief inferred from the real photographs, and a statistical prediction of what lies below their resolution.">
+<style>
+  :root{--ink:#d6f3f7;--dim:#7fb6c4;--line:rgba(120,200,220,.38);--glass:rgba(4,10,14,.66);--hot:#9fe3f2;
+        --meas:#c9d2d6;--infer:#48d6e8;--pred:#ff9a3c;--blue:#4aa8ff;--emer:#2fe08a}
+  html,body{margin:0;height:100%;background:#000;color:var(--ink);overflow:hidden;overscroll-behavior:none;
+    font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;-webkit-text-size-adjust:100%}
+  *{touch-action:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+  body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+  button{font:inherit;color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:6px;margin:0;padding:0 10px;
+    min-height:44px;min-width:44px;cursor:pointer;text-shadow:0 0 2px #000}
+  button:hover,button.on{border-color:var(--hot);background:rgba(40,120,140,.5);color:#fff}
+  button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+  button[disabled]{opacity:.38;cursor:default}
+  .glass{background:var(--glass);border:1px solid rgba(120,200,220,.28);border-radius:6px;text-shadow:0 0 2px #000}
+
+  /* score / status, top left */
+  #hud{position:fixed;left:calc(8px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));padding:8px 10px;min-width:176px;pointer-events:none}
+  #pts{font-size:20px;color:#fff;letter-spacing:.02em}
+  #pts small{font-size:11px;color:var(--dim);margin-left:6px}
+  #lvl{display:flex;align-items:center;gap:8px;margin:4px 0 6px}
+  #lvlBar{flex:1;height:6px;border-radius:3px;background:rgba(120,200,220,.18);overflow:hidden}
+  #lvlFill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--emer));transition:width .4s}
+  #en{display:flex;align-items:center;gap:6px;margin:0 0 6px;color:#ffd060}
+  #enBar{flex:1;height:8px;border-radius:4px;background:rgba(255,208,96,.16);overflow:hidden}
+  #enFill{height:100%;width:0;background:linear-gradient(90deg,#ffb030,#ffe680);transition:width .25s} #enFill.low{background:#ff5a3c}
+  #en b{color:#fff;font-weight:400;min-width:24px;text-align:right} #en small{color:var(--emer)}
+  #names{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+  .nm{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;color:#eaffff;padding:0 4px 2px 9px;text-shadow:0 0 3px #000,0 0 2px #000,0 1px 1px #000;will-change:transform}
+  .nm::before{content:"";position:absolute;left:-3px;top:-3px;width:5px;height:5px;border:1px solid var(--hot);border-radius:50%;background:rgba(4,10,14,.5)}
+  body.touch .nm{font-size:10px}
+  #cross{position:fixed;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:1.5px solid var(--hot);border-radius:50%;display:none;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+  #cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:var(--hot)}
+  body.orbit #cross{display:block}
+  #guide{position:fixed;display:none;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top));width:min(92vw,560px);padding:9px 13px;font-size:12.5px;line-height:1.45;border-color:var(--hot);pointer-events:none;white-space:normal}
+  #guide b{display:block;color:var(--hot);letter-spacing:.1em;font-size:11px;margin-bottom:2px} #guide u{color:#fff;text-decoration:none;font-weight:600}
+  #bar{position:fixed;display:none;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom));width:min(80vw,420px);height:18px;border:1px solid var(--line);border-radius:9px;background:rgba(4,10,14,.7);pointer-events:none}
+  #bar i{position:absolute;top:0;bottom:0;background:rgba(73,255,138,.45);border-left:1px solid #49ff8a;border-right:1px solid #49ff8a}
+  #bar b{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:#fff;border-radius:2px;box-shadow:0 0 6px #fff}
+  #heat{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;background:radial-gradient(ellipse at 50% 60%,rgba(255,170,60,0) 25%,rgba(255,110,30,.55) 70%,rgba(255,60,10,.85) 100%)}
+  body.ret #top{opacity:.55}
+  @media (orientation:landscape) and (max-height:460px){ #guide{top:calc(6px + env(safe-area-inset-top));width:min(56vw,520px);font-size:11px} #bar{bottom:calc(8px + env(safe-area-inset-bottom));width:34vw} }
+  #goal{display:flex;align-items:center;gap:6px;margin:0 0 5px;font-size:10px;color:var(--dim)}
+  #goalBar{flex:1;height:6px;border-radius:3px;background:rgba(120,200,220,.18);overflow:hidden} #goalFill{height:100%;width:0;background:linear-gradient(90deg,#3d7bd8,#6fd0ff);transition:width .4s}
+  #goal b{font-weight:400;color:var(--ink)} #goal.ready b{color:#8ff0a0} #goal.ready #goalFill{background:#8ff0a0}
+  #mini{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(60px + env(safe-area-inset-top));width:226px;padding:4px;cursor:pointer;font-size:10px}
+  #mini canvas{display:block;width:100%;border-radius:3px}
+  #miniTxt{display:flex;justify-content:space-between;gap:8px;padding:3px 2px 1px;color:#fff;white-space:nowrap} #miniTxt .arr{display:inline-block;font-size:13px;line-height:1;color:var(--hot)}
+  #miniLeg{color:var(--dim);padding:0 2px 1px;white-space:nowrap} #miniLeg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 7px;vertical-align:-1px} #miniLeg i:first-child{margin-left:0}
+  #mini.big{width:min(94vw,760px);right:50%;transform:translateX(50%);top:calc(70px + env(safe-area-inset-top));z-index:6;font-size:12px}
+  body.touch #mini{width:150px} body.touch #mini.big{width:94vw}
+  body.ret #mini{display:none} body.ret #mini.show{display:block} body.ret #miniLeg{display:none}
+  @media (max-width:560px){ #mini{top:calc(96px + env(safe-area-inset-top))} #miniLeg{display:none} #mini.big #miniLeg{display:block} }
+  @media (orientation:landscape) and (max-height:460px){ #mini{width:128px !important;top:calc(56px + env(safe-area-inset-top))} #miniLeg{display:none} #br{display:none} }
+  #pts.pop{animation:pop .5s ease-out} @keyframes pop{0%{transform:scale(1);color:#fff}30%{transform:scale(1.25);color:#ffe680;text-shadow:0 0 12px #ffc040}100%{transform:scale(1)}} #pts{transform-origin:left center;display:inline-block}
+  @media (prefers-reduced-motion:reduce){ #pts.pop{animation:none} }
+  #miniZ{display:none}
+  #miniTxt{flex-wrap:wrap}
+  #mini.big{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(97vw,1280px);max-height:92vh;overflow:auto;padding:8px;background:rgba(4,10,14,.94);border-color:var(--hot)}
+  #mini.big #miniZ{display:block;width:100%;border-radius:3px} #mini.big #miniTxt,#mini.big #miniLeg{grid-column:1 / -1;font-size:13px;justify-content:flex-start;gap:6px 18px}
+  body.touch #mini.big{width:97vw}
+  @media (max-width:760px){ #mini.big{grid-template-columns:1fr} }
+  body.touch #mini:not(.big) .dep{display:none}
+  /* the rover's own camera */
+  #webcam{position:fixed;inset:0;display:none;pointer-events:none;box-shadow:inset 0 0 140px 40px rgba(0,0,0,.75);font-size:12px;letter-spacing:.08em;color:#fff;text-shadow:0 0 3px #000}
+  body.webcam #webcam{display:block} body.ret #webcam, body.orbit #webcam{display:none}
+  #webcam span{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom))} #webcam .rec{left:50%;transform:translateX(-160px);color:#ff4a3a} #webcam .lab{left:50%;transform:translateX(-50%)} #webcam .tc{left:50%;transform:translateX(90px);white-space:nowrap}
+  #webcam::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+  @media (max-width:560px){ #top{grid-template-columns:repeat(3,auto) !important} }
+  #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42) 100%)}
+  #clock{font-size:12px;letter-spacing:.08em;color:#fff;margin:-2px 0 5px} #clock.warn{color:#ff6a4a;animation:blink 1s steps(2) infinite} #clock.done{color:#8ff0a0} @keyframes blink{50%{opacity:.35}}
+  #radio{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));width:min(92vw,560px);padding:9px 14px;border-color:#ffb040;display:none;pointer-events:none;z-index:4}
+  #radio.on{display:block} #radio b{display:block;color:#ffb040;font-size:11px;letter-spacing:.12em;margin-bottom:3px} #radio b::before{content:"● ";animation:blink .8s steps(2) infinite} #radio p{margin:0;font-size:13px;line-height:1.45;color:#fff}
+  #pauseBox,#over{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:8;text-align:center}
+  #pauseBox.on,#over.on{display:flex} #pauseBox div{font-size:34px;letter-spacing:.3em;color:#fff} #pauseBox small{display:block;font-size:12px;letter-spacing:.05em;color:var(--dim);margin-top:10px}
+  #over div{background:rgba(4,10,14,.95);border:1px solid #ff6a4a;border-radius:6px;padding:22px 26px;max-width:min(90vw,460px)} #over b{color:#ff6a4a;letter-spacing:.2em;font-size:16px} #over p{color:#fff;margin:12px 0 16px;line-height:1.5}
+  @media (prefers-reduced-motion:reduce){ #clock.warn,#radio b::before{animation:none} }
+  #stat{white-space:pre;color:var(--ink)}
+  #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
+
+  /* top right */
+  #top{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;gap:6px}
+  #top button{font-size:11px}
+
+  /* layer legend (shown with the layer view) */
+  #legend{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));padding:6px 10px;display:none;gap:12px;font-size:11px;white-space:nowrap}
+  #legend.open{display:flex}
+  #legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+  /* action buttons, bottom right */
+  #acts{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:grid;
+    grid-template-columns:repeat(3,64px);gap:8px;justify-items:stretch}
+  #acts button{height:56px;padding:0 4px;font-size:11px;line-height:1.15}
+  #acts button b{display:block;font-size:17px;font-weight:400}
+  #acts button kbd{display:block;font:inherit;font-size:9px;color:var(--dim)}
+  #acts .wide{grid-column:1 / -1}
+  body.touch #acts button kbd{display:none}
+  #acts button.locked{opacity:.4}
+  #acts button.cool{border-color:rgba(120,200,220,.15)}
+
+  /* virtual stick, bottom left (touch only) */
+  #stick{position:fixed;display:none;left:calc(16px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;
+    background:rgba(4,10,14,.45);border:1px solid rgba(120,200,220,.45)}
+  body.touch #stick{display:block}
+  #knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(60,150,170,.55);border:1px solid var(--hot);pointer-events:none}
+  #keys{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));padding:6px 10px;color:var(--dim);pointer-events:none;max-width:46vw}
+  body.touch #keys{display:none}
+
+  #msg{position:fixed;left:50%;top:24%;transform:translateX(-50%);padding:9px 14px;font-size:13px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;
+    white-space:pre-line;max-width:min(90vw,460px);border-color:var(--hot)}
+  #tag{position:fixed;left:0;top:0;padding:3px 7px;font-size:10px;pointer-events:none;display:none;white-space:nowrap;transform:translate(-50%,-140%)}
+
+  .sheet{position:fixed;display:none;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:min(94vw,560px);max-height:88vh;overflow:auto;
+    padding:16px 18px;background:rgba(4,10,14,.95);border:1px solid var(--hot);border-radius:6px;font-size:12px;line-height:1.5;touch-action:pan-y}
+  .sheet *{touch-action:pan-y}
+  .sheet.open{display:block}
+  .sheet h2{font-size:13px;letter-spacing:.1em;color:var(--hot);margin:0 0 8px;font-weight:600}
+  .sheet h3{font-size:12px;margin:14px 0 4px;color:#fff;font-weight:600}
+  .sheet p{margin:6px 0;color:var(--ink)} .sheet .dim{color:var(--dim)}
+  .sheet ul{margin:6px 0;padding-left:18px} .sheet li{margin:3px 0}
+  .sheet .tagm{color:var(--meas)} .sheet .tagi{color:var(--infer)} .sheet .tagp{color:var(--pred)}
+  .sheet .close{float:right;min-height:36px;margin:-6px -6px 6px 10px}
+  .sheet table{border-collapse:collapse;margin:6px 0;width:100%} .sheet td{padding:3px 8px 3px 0;vertical-align:top;border-top:1px solid rgba(120,200,220,.15)}
+
+  #load{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:13px;z-index:9;white-space:pre-line}
+
+  @media (max-width:560px){ #top{display:grid;grid-template-columns:repeat(2,auto)} #top button{padding:0 8px;min-height:38px} #hud{min-width:150px;font-size:11px} #pts{font-size:17px} #legend{top:calc(96px + env(safe-area-inset-top));font-size:10px;gap:8px} }
+  @media (orientation:landscape) and (max-height:460px){
+    #acts{grid-template-columns:repeat(4,58px);gap:6px} #acts button{height:46px} #stick{width:112px;height:112px}
+    #hud{font-size:10px;padding:6px 8px} #pts{font-size:15px} #msg{top:14%}
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="glass">
+  <div id="pts">0<small>energy captured</small></div>
+  <div id="lvl"><span id="lvlTxt">Level 1</span><div id="lvlBar"><div id="lvlFill"></div></div></div>
+  <div id="clock"></div>
+  <div id="goal" title="Energy captured, towards the journey to the Earth"><span>EARTH</span><div id="goalBar"><div id="goalFill"></div></div><b id="goalTxt"></b></div>
+  <div id="en" title="Energy"><span>&#9889;</span><div id="enBar"><div id="enFill"></div></div><b id="enTxt">0</b><small id="enOver"></small></div>
+  <div id="stat"></div>
+</div>
+<div id="names"></div>
+<div id="mini" class="glass" title="Click to enlarge"><canvas id="miniC" width="1024" height="512"></canvas><canvas id="miniZ" width="1024" height="512"></canvas><div id="miniTxt"></div><div id="miniLeg"><i style="background:var(--blue)"></i>ilmenite<i style="background:var(--emer)"></i>thorium<i style="background:#ffd84a"></i>armalcolite</div></div>
+<div id="cross"></div>
+<div id="webcam"><span class="rec">● REC</span><span class="lab">ROVER CAM 1 · MAST</span><span class="tc" id="webTime"></span></div>
+<div id="heat"></div>
+<div id="guide" class="glass"></div>
+<div id="bar"><i></i><b></b></div>
+
+<div id="legend" class="glass">
+  <span><i style="background:var(--meas)"></i>measured</span>
+  <span><i style="background:var(--infer)"></i>inferred from the photo</span>
+  <span><i style="background:var(--pred)"></i>predicted</span>
+</div>
+
+<div id="top">
+  <button type="button" data-act="pause" title="Pause ( P )" aria-label="Pause">&#10074;&#10074;</button>
+  <button type="button" data-act="cam" title="Change the camera view ( C )">Camera</button>
+  <button type="button" data-act="layers" title="Show which parts of the ground are measured, inferred or predicted ( V )">Layers</button>
+  <button type="button" data-act="info" title="How the ground is predicted ( I )">Science</button>
+  <button type="button" data-act="help" title="How to play ( G )">Help</button>
+  <button type="button" data-act="more" aria-label="More">&#9776;</button>
+</div>
+
+<div id="acts"></div>
+<div id="stick"><div id="knob"></div></div>
+<div id="keys" class="glass"></div>
+<div id="msg" class="glass"></div>
+<div id="tag" class="glass"></div>
+
+<div id="more" class="sheet" style="width:min(92vw,300px)">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>OPTIONS</h2>
+  <p><button type="button" data-act="names">Crater names: on</button></p>
+  <p><button type="button" data-act="cam">Camera: follow</button></p>
+  <p><button type="button" data-act="sound">Sound: on</button></p>
+  <p><button type="button" data-act="fullscreen">Full screen</button></p>
+  <p><button type="button" data-act="reset">Start again</button></p>
+  <p><a href="v3.html" style="color:var(--hot)">Version 3 — no time limit</a></p>
+  <p><a href="./" style="color:var(--hot)">Version 2 — the hand-built models (lighter)</a></p>
+  <p><a href="../lunar-flight/" style="color:var(--hot)">Lunar Flight — the whole Moon, measured data only</a></p>
+</div>
+
+<div id="help" class="sheet">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>HOW TO PLAY</h2>
+  <div id="helpBody"></div>
+</div>
+
+<div id="info" class="sheet">
+  <button type="button" class="close" data-close>Close</button>
+  <h2>WHAT IS REAL HERE, AND WHAT IS A PREDICTION</h2>
+  <div id="infoBody"></div>
+</div>
+
+<div id="vig"></div>
+<div id="radio" class="glass"><b>HOUSTON · CAPCOM</b><p></p></div>
+<div id="pauseBox"><div>PAUSED<small>press P, or the pause button, to continue — the clock is stopped</small></div></div>
+<div id="over"><div><b>MISSION FAILED</b><p id="overTxt"></p><button type="button" onclick="location.reload()">Start again</button></div></div>
+<div id="load">Loading lunar data…</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -14,7 +14,9 @@ const touchUI = params.has('touch') || matchMedia('(hover: none) and (pointer: c
 if (touchUI) document.body.classList.add('touch');
 /* Version 3 (v3.html) swaps the hand-built vehicles for NASA's own 3-D models and adds film-like rendering.
    Everything else is shared, and without this flag the page behaves exactly as version 2. */
-const V3 = document.documentElement.dataset.v === '3';
+const V3 = ['3', '4'].includes(document.documentElement.dataset.v);
+/* Version 4 (v4.html): richer deposits with veins, a pause key, a return window with radio calls from Houston, bigger sound. */
+const V4 = document.documentElement.dataset.v === '4';
 
 /* ====================================================================== renderer, scene, light */
 const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance' });
@@ -244,7 +246,7 @@ function makeGem(type) {
   if (type === 1) for (let i = 0; i < 6; i++) { const m = add(new THREE.Mesh(GEMGEO[1], GEMMAT[1])); m.position.set((r() - 0.5) * 0.12, (r() - 0.5) * 0.12, i * 0.022); m.rotation.set(Math.PI / 2 + (r() - 0.5) * 0.9, (r() - 0.5) * 0.9, r() * 3); m.scale.setScalar(0.7 + r() * 0.6); }      // ilmenite: stacked hexagonal plates
   else if (type === 2) for (let i = 0; i < 8; i++) { const m = add(new THREE.Mesh(GEMGEO[2], GEMMAT[2])), a = r() * 6.283, t = 0.15 + r() * 0.75; m.position.set(Math.sin(t) * Math.cos(a) * 0.07, Math.sin(t) * Math.sin(a) * 0.07, Math.cos(t) * 0.07); m.quaternion.setFromUnitVectors(V(0, -1, 0), V(Math.sin(t) * Math.cos(a), Math.sin(t) * Math.sin(a), Math.cos(t))); m.scale.set(1, 0.6 + r() * 0.8, 1); }   // thorium ore: a spray of prisms
   else { add(new THREE.Mesh(GEMGEO[3], GEMMAT[3])).scale.setScalar(1.5); for (let i = 0; i < 14; i++) { const m = add(new THREE.Mesh(GEMGEO[3], GEMMAT[3])), d = V(r() - 0.5, r() - 0.5, r() * 0.9).normalize(); m.position.copy(d).multiplyScalar(0.11); m.quaternion.setFromUnitVectors(V(0, 1, 0), d); m.scale.set(0.35, 1.6 + r() * 1.6, 0.35); }      // armalcolite: radiating golden blades
-    const L = new THREE.PointLight(0xffc860, 2.2, 7, 2); L.position.z = 0.25; g.add(L); }
+    if (!V4) { const L = new THREE.PointLight(0xffc860, 2.2, 7, 2); L.position.z = 0.25; g.add(L); } }      // version 4 finds many more: lights would slow it down
   const sp = new THREE.Sprite(HALO[type]); sp.scale.setScalar(type === 3 ? 1.5 : 0.55); sp.position.z = 0.05; g.add(sp);
   g.scale.setScalar(GEM[type].scale); return g;
 }
@@ -297,7 +299,10 @@ const sfx = {
   kick() { if (!G.soundOn) return; if (!this.ctx) this.build(); if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
   build() {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; let c; try { c = this.ctx = new AC(); } catch (_) { return; }
-    const comp = c.createDynamicsCompressor(); this.out = c.createGain(); this.out.gain.value = 0.7; this.out.connect(comp).connect(c.destination);
+    const comp = c.createDynamicsCompressor(); this.out = c.createGain(); this.out.gain.value = V4 ? 0.95 : 0.7; this.out.connect(comp).connect(c.destination);
+    if (V4) {                                             // a long, dark echo gives every sound the size of the place
+      const n = Math.floor(3.2 * c.sampleRate), ir = c.createBuffer(2, n, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); let lp = 0; for (let i = 0; i < n; i++) { lp = 0.82 * lp + 0.18 * (Math.random() * 2 - 1); d[i] = lp * Math.pow(1 - i / n, 2.6) * (i < 400 ? i / 400 : 1); } }
+      const cv = c.createConvolver(), wet = c.createGain(); cv.buffer = ir; wet.gain.value = 0.55; this.out.connect(cv).connect(wet).connect(comp); }
     const n = 2 * c.sampleRate, mk = brown => { const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); let v = 0; for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; if (brown) { v = 0.99 * v + 0.12 * w; d[i] = v * 1.6; } else d[i] = w; } return b; };
     this.white = mk(false); this.brown = mk(true);
     const loop = (buf, type, f, q) => { const s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain(); s.buffer = buf; s.loop = true; fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = 0; s.connect(fl).connect(g).connect(this.out); s.start(); return { f: fl, g }; };
@@ -310,8 +315,8 @@ const sfx = {
   /* continuous sounds follow the state of the vehicles */
   frame(dt, st) {
     const c = this.ctx; if (!c || c.state !== 'running') return; const t = c.currentTime, on = G.soundOn ? 1 : 0;
-    this.eng.g.gain.setTargetAtTime(0.55 * st.thrust * on, t, 0.12); this.eng.f.frequency.setTargetAtTime(70 + 260 * st.thrust, t, 0.2);
-    this.hiss.g.gain.setTargetAtTime(0.05 * st.thrust * on, t, 0.1);
+    this.eng.g.gain.setTargetAtTime((V4 ? 0.95 : 0.55) * st.thrust * on, t, 0.12); this.eng.f.frequency.setTargetAtTime(70 + 260 * st.thrust, t, 0.2);
+    this.hiss.g.gain.setTargetAtTime((V4 ? 0.09 : 0.05) * st.thrust * on, t, 0.1);
     const w = Math.min(1.4, st.wheel);
     this.mot.g.gain.setTargetAtTime((0.012 + 0.035 * Math.abs(st.throttle)) * (w > 0.02 || st.throttle ? 1 : 0) * on, t, 0.08);
     this.mot.o1.frequency.setTargetAtTime(38 + 150 * w, t, 0.1); this.mot.o2.frequency.setTargetAtTime((38 + 150 * w) * 3.02, t, 0.1); this.mot.lp.frequency.setTargetAtTime(300 + 900 * w, t, 0.1);
@@ -323,7 +328,9 @@ const sfx = {
   tone(f0, f1, dur, type = 'sine', vol = 0.3) { const c = this.ctx; if (!c || !G.soundOn) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur); o.connect(g).connect(this.out); o.start(t); o.stop(t + dur + 0.02); },
   tick(v) { this.nz(0.006, 'highpass', 3000, 3000, v); },                                    // one count of the detector
-  shot() { this.nz(0.045, 'bandpass', 1800, 500, 0.5); this.tone(150, 55, 0.07, 'triangle', 0.5); },   // the action cycling and the recoil thump
+  shot() { this.nz(0.045, 'bandpass', 1800, 500, 0.5); this.tone(150, 55, 0.07, 'triangle', 0.5); if (V4) { this.tone(70, 28, 0.3, 'sine', 0.7); this.nz(0.09, 'lowpass', 600, 80, 0.4, this.brown); } },
+  quindar(f) { this.tone(f, f, 0.25, 'sine', 0.16); },     // the Apollo radio tones: 2525 Hz before a call, 2475 Hz after
+  static(dur) { this.nz(dur, 'bandpass', 2200, 1600, 0.035); },   // the action cycling and the recoil thump
   chip() { this.nz(0.05, 'bandpass', 2600, 900, 0.18); },
   boom(k = 1) { this.tone(75, 26, 0.45 + 0.25 * k, 'sine', 0.7); this.nz(0.3 + 0.15 * k, 'lowpass', 420, 60, 0.6, this.brown); for (let i = 1; i <= 4; i++) setTimeout(() => this.nz(0.03, 'bandpass', 900, 400, 0.12), 180 * i + Math.random() * 200); },   // felt through the ground, then fragments rattling off the chassis
   servo(dur = 0.45) { const c = this.ctx; if (!c || !G.soundOn) return; const t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(170, t); o.frequency.linearRampToValueAtTime(260, t + dur * 0.5); o.frequency.linearRampToValueAtTime(190, t + dur);
@@ -358,6 +365,8 @@ const music = {
   low(n, t, dur, vol) { const c = sfx.ctx, o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.value = this.N(n); lp.type = 'lowpass'; lp.frequency.value = 260; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(lp).connect(g).connect(this.g); o.start(t); o.stop(t + dur + 0.05); },
   hat(t, vol) { const c = sfx.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = sfx.white; f.type = 'highpass'; f.frequency.value = 6000; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + 0.05); s.connect(f).connect(g).connect(this.g); s.start(t, Math.random()); s.stop(t + 0.08); },
   T: {
+    moon: { len: 8, play(m, i, t) { const ch = [[38, 45, 50, 53, 57], [36, 43, 48, 52, 55], [34, 41, 46, 50, 53], [33, 40, 45, 48, 52]][i % 4];      // slow, wide chords and a few distant bells, for the hours on the surface
+        m.pad(ch, t, 8, 0.035, 520 + 160 * Math.sin(i * 0.9)); m.low(ch[0] - 12, t, 7.5, 0.09); if (i % 2 === 0) m.note(ch[4] + 24, t + 2 + (i % 3), 5, 0.035, 'sine'); if (i % 3 === 1) m.note(ch[2] + 31, t + 5, 4, 0.02, 'sine'); } },
     space: { len: 4.8, play(m, i, t) { const ch = [[45, 52, 57, 60, 64], [41, 48, 57, 60, 65], [48, 55, 60, 64, 67], [40, 47, 55, 59, 64]][i % 4], mel = [[76, 0, 74, 72], [72, 0, 69, 0], [67, 0, 72, 76], [74, 0, 71, 0]][i % 4];
         m.pad(ch, t, 4.8, 0.05, 800 + 250 * Math.sin(i * 0.7)); m.low(ch[0] - 12, t, 4.5, 0.16); mel.forEach((n, k) => { if (n) { m.note(n, t + k * 1.2, 2.4, 0.07, 'sine'); m.note(n + 12, t + k * 1.2, 1.6, 0.018, 'sine'); } }); } },
     fire: { len: 1.714, play(m, i, t) { const up = Math.floor(i / 4) % 4, root = 38 + up; for (let k = 0; k < 8; k++) m.low(root + (k === 6 ? 1 : 0), t + k * 0.214, 0.2, 0.2); if (i % 2 === 0) m.pad([root + 12, root + 15, root + 18], t, 3.4, 0.045, 1300); for (let k = 0; k < 16; k++) if (k % 4 !== 0) m.hat(t + k * 0.107, 0.035); m.note(root + 24 + [0, 3, 6, 3][i % 4], t, 0.5, 0.05, 'square'); } },
@@ -383,8 +392,8 @@ const lp = {
   /* Deposits: patches 30-90 km across where the game makes one mineral plentiful, scattered over the whole Moon so that
      no single region has everything. They are invented; only the gentle background underneath follows the orbital maps.
      Three of them are placed within reach of the base, in different directions. */
-  deposits: (() => { const r = rng(20261119), d = [{ type: 1, lat: 0.9, lon: 24.0, rad: 9, k: 4 }, { type: 2, lat: 1.5, lon: 22.7, rad: 12, k: 5 }, { type: 3, lat: -0.5, lon: 23.9, rad: 10, k: 6 }];
-    for (let type = 1; type <= 3; type++) for (let i = 0; i < 30; i++) d.push({ type, lat: Math.asin(2 * r() - 1) * R2D * 0.86, lon: r() * 360 - 180, rad: 30 + r() * 60, k: 2.5 + r() * 3.5 }); return d; })(),
+  deposits: (() => { const r = rng(20261119), d = [{ type: 1, lat: 0.9, lon: 24.0, rad: 9, k: 4 }, { type: 2, lat: 1.5, lon: 22.7, rad: 12, k: 5 }, { type: 3, lat: -0.5, lon: 23.9, rad: 10, k: 6 }].concat(V4 ? [{ type: 1, lat: 0.666, lon: 23.457, rad: 0.7, k: 6 }, { type: 2, lat: 0.74, lon: 23.47, rad: 1.0, k: 7 }, { type: 3, lat: 0.66, lon: 23.555, rad: 1.0, k: 7 }] : []);
+    for (let type = 1; type <= 3; type++) for (let i = 0; i < (V4 ? 55 : 30); i++) d.push({ type, lat: Math.asin(2 * r() - 1) * R2D * 0.86, lon: r() * 360 - 180, rad: V4 ? 40 + r() * 80 : 30 + r() * 60, k: V4 ? 4 + r() * 5 : 2.5 + r() * 3.5 }); return d; })(),
   boost(lat, lon) { const b = [0, 0, 0, 0], c = Math.cos(lat * D2R); for (const d of this.deposits) { const dy = (lat - d.lat) * 30.32, dx = wrap180(lon - d.lon) * 30.32 * c, q = (dx * dx + dy * dy) / (d.rad * d.rad); if (q < 6) b[d.type] += d.k * Math.exp(-q); } return b; },
   inDeposit(lat, lon) { const c = Math.cos(lat * D2R); let best = null; for (const d of this.deposits) { const dy = (lat - d.lat) * 30.32, dx = wrap180(lon - d.lon) * 30.32 * c; if (dx * dx + dy * dy < d.rad * d.rad && (!best || d.k > best.k)) best = d; } return best; },
   /* how likely thorium ore, ilmenite and armalcolite are here, relative to plain ground at Tranquility Base */
@@ -421,6 +430,10 @@ class Particles {
 /* ---------------------------------------------------------------------- rocks: predicted from the rock-size statistics; each can be pushed, lifted or blown up */
 /* A rock is drawn while it is nearer than VIS times its own size, i.e. while it covers about three pixels or more. So rocks
    never appear or vanish at a size you can see: the big ones are there from far away, the small ones fill in as you come. */
+function vnoise(x, y, sd) { const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), h = (a, b) => hash3(a, b, sd) / 4294967296; return (h(ix, iy) * (1 - sx) + h(ix + 1, iy) * sx) * (1 - sy) + (h(ix, iy + 1) * (1 - sx) + h(ix + 1, iy + 1) * sx) * sy; }
+/* which mineral's vein runs here (0 = none): only inside a deposit, along a winding line of the noise field */
+function veinAt(X, Y, b) { let t = 0; for (let q = 1; q <= 3; q++) if (b[q] > (t ? b[t] : 0)) t = q; if (!t || b[t] < 0.6) return 0; const w = 0.007 + 0.006 * Math.min(1, b[t] / 6); /* the noise sits mostly near 0.5, so the band is kept narrow: a few metres wide */ return Math.abs(vnoise(X / 70, Y / 70, 500 + t) - 0.5) < w ? t : 0; }
+const VEINCOL = [null, [0.78, 0.92, 1.3], [0.82, 1.22, 0.92], [1.3, 1.12, 0.7]];
 const BUCKET = 2, VIS = touchUI ? 170 : 220, CAP = touchUI ? 500 : 800;
 const RCLASS = [{ p: 'a', cell: 8, d0: 0.08, d1: 0.16 }, { p: 'b', cell: 16, d0: 0.16, d1: 0.4 }, { p: 'c', cell: 64, d0: 0.4, d1: 1.0 }];
 const GEM = [null, { name: 'ilmenite', scale: 1.2, e: () => COST.ilmenite }, { name: 'thorium ore', scale: 1.5, e: () => COST.thorium }, { name: 'armalcolite', scale: 2.2, e: () => COST.armalcolite }];
@@ -451,16 +464,19 @@ class Rocks {
     const key = c.p + ci + ',' + cj; let list = this.cells.get(key); if (list) return list;
     list = []; const r = rng(hash3(ci, cj, 4242 + c.cell)), K = RULES.rocks, x0 = ci * c.cell - terrain.ax, y0 = cj * c.cell - terrain.ay;      // cells are fixed to the Moon, not to the map
     const slope = terrain.slopeDeg(x0 + c.cell / 2, y0 + c.cell / 2, 3), mult = 1 + Math.min(5, (slope / 7) ** 2);   // assumption: fresher, steeper ground exposes more blocks
-    const mean = c.cell * c.cell * K.k * Math.pow(c.d0, K.g) * mult;
+    const mean = c.cell * c.cell * K.k * Math.pow(c.d0, K.g) * mult * (V4 ? 1.35 : 1);
     const cl = terrain.toLatLon(x0 + c.cell / 2, y0 + c.cell / 2), [fTh, fTi, fAr] = lp.factors(cl[0], cl[1]);      // richer or poorer ground: orbital maps and deposits
+    const boost = V4 ? lp.boost(cl[0], cl[1]) : null;
     const n = Math.max(0, Math.round(mean + Math.sqrt(mean) * (r() + r() + r() - 1.5) * 2));
     for (let i = 0; i < n; i++) {
       let x = x0 + r() * c.cell, y = y0 + r() * c.cell; const D = c.d0 * Math.pow(1 - r(), 1 / K.g), u1 = r(), u2 = r(), u3 = r(), u4 = r(), u5 = r(), u6 = r(), id = key + ',' + i;
       if (D > c.d1 || this.removed.has(id) || (x - terrain.sx) ** 2 + (y - terrain.sy) ** 2 < 81) continue;      // larger sizes belong to the next class; keep the descent stage clear
       const a = D / 2, sx = a * (0.8 + 0.4 * u1), sy = a * (0.8 + 0.4 * u2), sz = a * (0.5 + 0.4 * u3); let bury = 0.12 + 0.4 * u4;
-      const gemU = u5 / (1 + 2.5 * D), gem = D >= 0.4 && u6 < Math.min(0.6, 0.006 * (1 + 4 * D) * fAr) ? 3 : gemU < Math.min(0.45, 0.022 * fTh) ? 2 : gemU < Math.min(0.45, 0.022 * fTh) + Math.min(0.45, 0.06 * fTi) ? 1 : 0;      // 3 armalcolite (rare, large rocks only), 2 thorium-bearing, 1 ilmenite
+      const gemU = u5 / (1 + 2.5 * D), R4 = V4 ? 1.8 : 1; let pTh = Math.min(V4 ? 0.35 : 0.45, 0.022 * R4 * fTh), pIl = Math.min(V4 ? 0.35 : 0.45, 0.06 * R4 * fTi); if (V4 && pTh + pIl > 0.5) { const q = 0.5 / (pTh + pIl); pTh *= q; pIl *= q; }      // version 4: at most half the rocks hold ore, even in the richest ground
+      let gem = D >= 0.4 && u6 < Math.min(0.6, 0.006 * R4 * (1 + 4 * D) * fAr) ? 3 : gemU < pTh ? 2 : gemU < pTh + pIl ? 1 : 0;      // 3 armalcolite (rare, large rocks only), 2 thorium-bearing, 1 ilmenite
       const mv = this.moved.get(id); if (mv) { const q = terrain.fromLatLon(mv[0], mv[1]); x = q[0]; y = q[1]; bury = 0.05; }     // a rock that was pushed or thrown stays where it ended up
-      list.push({ id, x, y, z: 0, D, sx, sy, sz, bury, hr: 2 * sz * (1 - bury), yaw: u6 * 6.283, tilt: (u1 - 0.5) * 0.5, v: (u2 * 4) | 0, shade: 0.17 + 0.13 * u3, gem, mass: 3000 * 4.19 * sx * sy * sz, dyn: null, held: false, hp: 0 });
+      let vein = 0, gemN = 1; if (V4 && boost) { vein = veinAt(x + terrain.ax, y + terrain.ay, boost); if (vein && u4 < 0.8) { gem = vein; gemN = 2 + Math.floor(u1 * 3.99); } }
+      list.push({ id, vein, gemN, x, y, z: 0, D, sx, sy, sz, bury, hr: 2 * sz * (1 - bury), yaw: u6 * 6.283, tilt: (u1 - 0.5) * 0.5, v: (u2 * 4) | 0, shade: 0.17 + 0.13 * u3, gem, mass: 3000 * 4.19 * sx * sy * sz, dyn: null, held: false, hp: 0 });
     }
     for (const k of list) k.z = terrain.height(k.x, k.y) + k.sz * (1 - 2 * k.bury);
     this.cells.set(key, list);
@@ -490,7 +506,7 @@ class Rocks {
     tmp.q.setFromEuler(new THREE.Euler(k.tilt, k.tilt * 0.7, k.yaw, 'ZYX')); tmp.m.compose(tmp.a.set(k.x, k.y, k.z), tmp.q, tmp.s.set(k.sx, k.sy, k.sz));
     const im = this.meshes[k.v]; if (k.ii === undefined || k.ii >= CAP) return; im.setMatrixAt(k.ii, tmp.m);
     const c = im.instanceColor.array, o = 3 * k.ii, ov = G.overlay;
-    const sh = V3 && SOIL.map ? k.shade * 3.0 : k.shade; c[o] = ov ? 1.0 : sh; c[o + 1] = ov ? 0.55 : sh; c[o + 2] = ov ? 0.2 : sh * 0.97;
+    const sh = V3 && SOIL.map ? k.shade * 3.0 : k.shade, tc = k.vein ? VEINCOL[k.vein] : [1, 1, 0.97]; c[o] = ov ? 1.0 : sh * tc[0]; c[o + 1] = ov ? 0.55 : sh * tc[1]; c[o + 2] = ov ? 0.2 : sh * tc[2];
     im.instanceMatrix.needsUpdate = true;
   }
   near(x, y, r, fn) {                                     // visit rocks whose centre is within r (+ their own size) of a point
@@ -518,6 +534,8 @@ class Rocks {
   }
   explode(k, power) {
     if (k.dead) return;
+    if (k.gem && !k.gemOut && k.gemN > 1) { k.gemOut = true; for (let i = 0; i < k.gemN; i++) { const a = i / k.gemN * 6.283 + Math.random(), rr = 0.35 + Math.random() * 0.5; this.gem(k.x + Math.cos(a) * rr, k.y + Math.sin(a) * rr, k.gem); }
+      if (!G.veinSeen) { G.veinSeen = true; radio(`That rock was part of a vein of ${GEM[k.gem].name}. Veins run in lines — look for rocks with the same tint along it and break every one.`); } }
     if (k.gem && !k.gemOut) { k.gemOut = true; this.gem(k.x, k.y, k.gem); if (k.gem === 3) toast('Something large and bright was inside.\nPick it up with the arm (Grab).', 4000); }
     this.remove(k);
     const n = Math.round(clamp(5 + k.D * 26, 6, 26));
@@ -883,7 +901,7 @@ function dig() {
   holes.set(key, n); terrain.addCrater(x, y, 0.55 + 0.05 * n, 0.2 + 0.03 * n); settle(x, y, 2); rover.cool = 0.7;
   particles.burst(x, y, clip.ground(x, y), 60 + 10 * n, 0.6, 3.2 + 0.2 * n, 35, 75); sfx.dig();
   const depth = -terrain.made(x, y), dl = terrain.toLatLon(x, y), [fTh, fTi, fAr] = lp.factors(dl[0], dl[1]);
-  const p = clamp((n < 3 ? 0.015 : 0.07 + 0.06 * (n - 3)) * (0.2 + clamp(bowl / 0.2, 0, 3.2)), 0, 0.85);
+  const p = clamp((n < 3 ? 0.015 : 0.07 + 0.06 * (n - 3)) * (0.2 + clamp(bowl / 0.2, 0, 3.2)) * (V4 ? 1.6 : 1), 0, 0.9);
   if (Math.random() < p) {
     const u = Math.random(), type = n >= 5 && bowl > 0.35 && u < Math.min(0.6, 0.2 * fAr) ? 3 : Math.random() < fTh / (fTh + 1.6 * fTi) ? 2 : 1;
     rocks.gem(x, y, type); holes.set(key, Math.max(0, n - 3)); sfx.chip(); toast(type === 3 ? 'The scoop struck something large and bright' : 'Something glints at the bottom of the hole', 2600);
@@ -910,7 +928,22 @@ const keys = new Set(), stick = { x: 0, y: 0 }, held = new Set();
 /* camera views: round the vehicle at ground level, straight down from three heights, and the rover's own camera */
 const VIEWS = [{ n: 'from behind', yaw: 0 }, { n: 'from the front', yaw: Math.PI }, { n: 'from the left side', yaw: -Math.PI / 2, pit: 0.14 }, { n: 'from the right side', yaw: Math.PI / 2, pit: 0.14 },
   { n: 'from above, 15 m', top: 15 }, { n: 'from above, 60 m', top: 60 }, { n: 'from above, 250 m', top: 250 }, { n: 'rover webcam', web: true }];
-const ACT = { fire, fly, grab: () => rover.grab(), dig, hop, flip, deploy: () => orbit.on ? ACT.earth() : deployOrBoard(),
+/* ---- version 4: pause, the return window, calls from Houston ---- */
+const DEADLINE = 30 * 60;                                   // seconds of play to capture the energy and launch
+const CALLS = [[25 * 60, 'Twenty-five minutes left in your return window. The coloured patches on your map are the richest ground.'], [20 * 60, 'Twenty minutes. Rocks tinted blue, green or gold sit on veins: each one holds several pieces.'],
+  [15 * 60, 'Halfway through the window. Keep that energy coming.'], [10 * 60, 'Ten minutes, Tranquility Base. Start thinking about the launch.'], [5 * 60, 'Five minutes. If you have the energy: B, board, climb, and go.'],
+  [2 * 60, 'Two minutes. Launch now or we lose the window.'], [60, 'One minute. Tranquility Base, do you copy? One minute.'], [30, 'Thirty seconds.']];
+let radioT = 0;
+function radio(text, ms = 9000) {
+  if (!V4) return; const e = $('radio'); if (!e) return; e.querySelector('p').textContent = text; e.classList.add('on'); clearTimeout(radioT);
+  sfx.quindar(2525); setTimeout(() => sfx.static(Math.min(4, ms / 1000 - 1)), 280); radioT = setTimeout(() => { e.classList.remove('on'); sfx.quindar(2475); }, ms);
+}
+function gameOver() {
+  G.over = true; music.stop(); sfx.tone(220, 110, 2.5, 'sine', 0.4); sfx.quindar(2475); $('over').classList.add('on');
+  $('overTxt').textContent = `The return window has closed. You captured ${G.points.toLocaleString('en-US')} of the ${LAUNCH.toLocaleString('en-US')} units needed to launch.`;
+}
+function togglePause() { if (!V4 || G.over) return; G.userPause = !G.userPause; $('pauseBox').classList.toggle('on', G.userPause); if (sfx.ctx) G.userPause ? sfx.ctx.suspend() : sfx.ctx.resume(); keys.clear(); held.clear(); }
+const ACT = { fire, fly, pause: togglePause, grab: () => rover.grab(), dig, hop, flip, deploy: () => orbit.on ? ACT.earth() : deployOrBoard(),
   earth() { if (!orbit.on) return; if (G.points < LAUNCH) return toast(`The journey to the Earth needs ${LAUNCH} units of energy captured.\nYou have ${G.points}.`, 3500); ret.start(); },
   abort() { if (ret.on) ret.quit(); },
   bigmap() { mini.toggle(); },
@@ -935,9 +968,10 @@ document.addEventListener('click', e => {
   const c = e.target.closest('[data-close]'); if (c) { c.closest('.sheet').classList.remove('open'); return; }
   const b = e.target.closest('[data-act]'); if (!b || b.dataset.hold) return; sfx.kick(); b.blur(); ACT[b.dataset.act]?.();
 });
-const KEYMAP = { Space: 'fire', KeyE: 'grab', KeyQ: 'dig', KeyH: 'hop', KeyT: 'flip', Enter: 'deploy', KeyL: 'deploy', KeyV: 'layers', KeyI: 'info', KeyG: 'help', KeyC: 'cam', KeyM: 'sound', KeyN: 'names', KeyB: 'rescue', KeyX: 'map', KeyY: 'fly', KeyZ: 'bigmap' };
+const KEYMAP = { KeyP: 'pause', Space: 'fire', KeyE: 'grab', KeyQ: 'dig', KeyH: 'hop', KeyT: 'flip', Enter: 'deploy', KeyL: 'deploy', KeyV: 'layers', KeyI: 'info', KeyG: 'help', KeyC: 'cam', KeyM: 'sound', KeyN: 'names', KeyB: 'rescue', KeyX: 'map', KeyY: 'fly', KeyZ: 'bigmap' };
 addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return; sfx.kick();
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (G.userPause && e.code !== 'KeyP' && e.code !== 'Escape') return; sfx.kick();
   if (/^(Arrow|Page|Space)/.test(e.code)) e.preventDefault();
   keys.add(e.code); if (e.repeat || !rover) return;
   if (e.code === 'Escape') { for (const s of document.querySelectorAll('.sheet')) s.classList.remove('open'); return; }
@@ -982,6 +1016,7 @@ function buildActs() {
   $('keys').textContent = ret.on ? 'Follow the instructions at the top · Space = the action button · arrows steer' : orbit.on ? '↑↓←→ move over the Moon · R / F higher, lower · come down to 100 km to descend at the circle' : G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : (rover && rover.fly ? '↑↓ fly · ←→ turn · R / F up, down · Y land' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · Y fly · B base · Enter board');
 }
 function hudScore() {
+  if (V4) { const L = Math.max(0, G.left === undefined ? DEADLINE : G.left), e = $('clock'); e.textContent = `RETURN WINDOW ${String(Math.floor(L / 60)).padStart(2, '0')}:${String(Math.floor(L % 60)).padStart(2, '0')}`; e.className = ret.on ? 'done' : L < 300 ? 'warn' : ''; if (ret.on) e.textContent = 'RETURN WINDOW — launched'; }
   $('goalFill').style.width = clamp(G.points / LAUNCH, 0, 1) * 100 + '%'; $('goalTxt').textContent = G.points >= LAUNCH ? 'ready — press B' : `${G.points.toLocaleString('en-US')} / ${LAUNCH.toLocaleString('en-US')}`; $('goal').classList.toggle('ready', G.points >= LAUNCH);
   $('enTxt').textContent = fm(Math.max(0, G.energy), 0); $('enFill').style.width = clamp(G.energy, 0, 100) + '%'; $('enFill').classList.toggle('low', G.energy < 12); $('enOver').textContent = G.energy > 100 ? '+' + fm(G.energy - 100, 0) : '';
   $('pts').firstChild.textContent = G.points.toLocaleString('en-US');
@@ -1056,6 +1091,7 @@ function fillSheets() {
   <ul><li>Minerals as glowing gems (real ilmenite and armalcolite are dull, dark grains), minerals as fuel, the gun, unlimited propellant for the lander.</li>
   <li><b>The lander's speed.</b> It grows with height so the Moon can be crossed in a minute; at altitude it reaches tens of kilometres per second, with accelerations no vehicle or crew could take. The HUD marks it "theoretical".</li>
   <li>The Apollo 11 descent stage stands at its real position; its shape is illustrative. Tools are locked within ${KEEP_OUT} m of it, in the spirit of NASA's guidelines for protecting the Apollo sites.</li></ul>`;
+  if (V4) $('infoBody').innerHTML += `<h3>Version 4: veins, the return window, the radio</h3><p><b>Veins</b> are a game element. On Earth ore veins form mostly from hot water flowing through cracks; the Moon has had almost no water, so its minerals are concentrated in layers, lava flows and crater ejecta rather than veins. Deposits here are also richer than any real ones.</p><p><b>The return window</b> stands for something real: Apollo crews could stay only as long as their consumables lasted — Apollo 11 spent about 21 hours on the surface, Apollo 17 about 75 — and lift-off had to be timed to meet the command module as it passed overhead, every two hours or so. Thirty minutes is the game's version.</p><p><b>The radio calls</b> begin and end with the real Apollo "Quindar" tones, 2,525 Hz and 2,475 Hz, a quarter of a second each, which keyed the transmitters on and off. The words are invented. Figures here are quoted from memory.</p>`;
   if (V3) $('infoBody').innerHTML += `<h3>Version 3: the models</h3><p>The lunar module, the rover, the habitat and the astronaut are NASA's own 3-D models, from the NASA 3D Resources collection (free and without copyright). The module is the Apollo lunar module; at the landing site only its descent stage is shown, as it was left. The rover is NASA's model of <b>Perseverance</b> — a Mars rover, used here because it is the most detailed rover model NASA publishes; nothing like it has driven on the Moon. Its wheels do not turn in this version, and the arm, gun and scoop added to it are the game's. The habitat is the Habitat Demonstration Unit, a ground prototype. The lunar module's blankets are given the look of creased metal foil by the page (NASA's model paints them flat). The rocks and the soil close to the rover wear a real photograph: undisturbed soil from the Apollo 11 picture of a bootprint, taken at this very site. The shapes of the rocks are still generated — NASA's free collection has no scanned lunar rocks. Their use here does not imply any endorsement by NASA.</p>`;
   $('helpBody').innerHTML = `
   <p>You start in the lander beside the base station at Tranquility Base. <b>Deploy</b> the rover, prospect, and <b>Board</b> again to fly anywhere on the Moon.</p>
@@ -1068,6 +1104,7 @@ function fillSheets() {
     <tr><td><b>Gun</b></td><td>Aims at the nearest rock ahead. Any rock can be destroyed; big ones take several rounds. The ore drops out.</td></tr>
     <tr><td><b>Gems</b></td><td>They appear only when a rock is broken, and stay until you take them. <span style="color:var(--blue)">Ilmenite</span> +${COST.ilmenite} and <span style="color:var(--emer)">thorium ore</span> +${COST.thorium}: drive over them. <span style="color:#ffe9a0">Armalcolite</span> +${COST.armalcolite}: larger, brighter, rare, only in big rocks, and only the arm can lift it.</td></tr>
     <tr><td><b>Levels</b></td><td>By total energy captured:<br>${PERKS.slice(2).map((p, i) => `L${i + 2} (${LEVELS[i + 1]}): ${p.name}`).join('<br>')}<br>${LAUNCH}: ready for the Earth</td></tr>
+    ${V4 ? `<tr><td><b>Time</b></td><td>You have 30 minutes of play to capture ${LAUNCH.toLocaleString('en-US')} units and start the journey home; Houston calls as the time runs down. <b>P</b> pauses the game and the clock. Rocks tinted blue, green or gold lie on veins and hold several pieces each.</td></tr>` : ''}
     <tr><td><b>Fly</b></td><td>From level 8 the rover can lift off (<b>Fly</b>${touchUI ? '' : ', key Y'}) and travel fast to another region: ${touchUI ? '▲ ▼' : 'R / F'} for height, the higher the faster. It needs ${FLY.min} units of energy to start and uses it quickly; near empty it lands by itself.</td></tr>
     <tr><td><b>Drive</b></td><td>${touchUI ? 'Left stick' : 'Arrow keys or W A S D'}. Hit a rock at speed and the rover jumps — slowly, this is the Moon.</td></tr>
     <tr><td><b>Lander</b></td><td>${touchUI ? '▲ ▼ and the stick' : 'R / F (or PgUp / PgDn) and the arrow keys'}. The higher you are, the faster it flies and climbs. Above 100 km you see the whole Moon: move the circle anywhere, then come down to descend there. <b>Map</b> shows where orbiters measured more thorium or titanium — the places richest in ore. Come down and slow down to land, on ground that is not too steep.</td></tr>
@@ -1446,7 +1483,7 @@ const ret = {
       composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.4, 2.4)); composer.addPass(new OutputPass()); composer.setSize(innerWidth, innerHeight);
     } catch (e) { console.warn('no bloom:', e.message); composer = null; }
     load.style.display = 'none';
-    toast(`YOUR MISSION\nCapture ${LAUNCH.toLocaleString('en-US')} units of energy from the Moon's minerals.\nThen press B, board the lander and fly home to the Earth.\nStart: press Deploy to let the rover out.`, 11000);
+    if (!V4) toast(`YOUR MISSION\nCapture ${LAUNCH.toLocaleString('en-US')} units of energy from the Moon's minerals.\nThen press B, board the lander and fly home to the Earth.\nStart: press Deploy to let the rover out.`, 11000);
   } catch (err) { console.error(err); load.textContent = 'Could not start: ' + err.message; return; }
 
   let last = performance.now(), hudT = 0, slow = 0, quality = 0, detT = 0, saveT = 0, anchorT = 0, poleT = 0, remindT = 20;
@@ -1455,6 +1492,13 @@ const ret = {
     G.t += dt;
     const ax = clamp(kd('ArrowRight', 'KeyD') - kd('ArrowLeft', 'KeyA') + stick.x, -1, 1), ay = clamp(kd('ArrowUp', 'KeyW') - kd('ArrowDown', 'KeyS') + stick.y, -1, 1);
     const vzIn = kd('KeyR', 'PageUp') - kd('KeyF', 'PageDown') + (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
+    if (V4 && !ret.on) {                                 // the return window runs while on the Moon; it stops once the journey home begins
+      if (!G.left) G.left = DEADLINE; G.left -= dt; if (!G.call0 && G.t > 4) { G.call0 = true; radio(`Tranquility Base, Houston. Your return window closes in 30 minutes. Capture ${LAUNCH.toLocaleString('en-US')} units of energy and launch before then. P pauses the clock. Over.`, 12000); }
+      G.ci = G.ci || 0; while (G.ci < CALLS.length && G.left <= CALLS[G.ci][0]) { const c = CALLS[G.ci++]; if (G.left > c[0] - 5) radio('Houston: ' + c[1] + (G.points >= LAUNCH ? '' : ` You have ${G.points.toLocaleString('en-US')} of ${LAUNCH.toLocaleString('en-US')}.`)); }
+      if (G.points >= LAUNCH && !G.callReady) { G.callReady = true; radio('Houston: you have the energy. Press B, board the lander, climb above 100 kilometres and launch for home. The window will not wait.', 11000); }
+      if (G.left <= 0) { gameOver(); return; }
+      if (sfx.ctx && sfx.ctx.state === 'running' && !music.on && G.soundOn) music.play('moon');
+    }
     if (ret.on) { ret.step(dt, ax, ay, keys.has('Space') || held.has('burn'), vzIn); return; }
     if (orbit.on) { orbit.step(dt, ax, ay, vzIn); return; }
     let focus, agl = 0;
@@ -1527,7 +1571,7 @@ const ret = {
   function frame(now) {
     requestAnimationFrame(frame);
     const real = (now - last) / 1000; last = now; if (real <= 0) return;
-    if (!G.paused) tick(Math.min(0.05, real));
+    if (!G.paused && !G.userPause && !G.over) tick(Math.min(0.05, real));
     adapt(real);
     if (ret.on) { $('tag').style.display = 'none'; ret.draw(); return; }
     if (orbit.on) { $('tag').style.display = 'none'; orbit.draw(); return; }
@@ -1536,6 +1580,6 @@ const ret = {
     labels.frame(); if (document.body.classList.contains('webcam')) $('webTime').textContent = new Date().toISOString().slice(11, 19) + ' UTC';
     composer ? composer.render() : renderer.render(scene, camera);
   }
-  window.__game = { V3, MODELS, labels, base, sfx, need, COST, orbit, ret, lp, FLY, GEM, mini, music, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
+  window.__game = { V3, V4, togglePause, radio, MODELS, labels, base, sfx, need, COST, orbit, ret, lp, FLY, GEM, mini, music, reanchor, setAnchorAt, LAUNCH, LEVELS, G, terrain, clip, rocks, rover, lander, camS, ACT, perk, addPoints, keys, stick, held, particles, shots, THREE, camera, tick, get quality() { return quality; } };
   requestAnimationFrame(frame);
 })();
