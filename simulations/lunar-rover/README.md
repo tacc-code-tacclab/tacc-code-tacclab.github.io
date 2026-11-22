@@ -25,6 +25,14 @@ A separate page built on version 3 (`data-v="4"`); versions 2 and 3 are unchange
   page offers to start again. The clock stops once the journey home begins.
 * Sound: a long synthesised echo on every sound, a louder mix, heavier engine and gun, and slow music on the Moon.
 * Gems no longer carry their own light, which keeps many of them affordable to draw.
+* Added on 20 November: the energy for the Earth is a large red bar that fills up and turns green at 10,000; from
+  then a large message repeats every minute ("THE WAY HOME IS OPEN - press B"), a pulsing button appears, and a
+  guide at the top names the next of four steps (B to base, Enter to board, climb above 100 km, Return to Earth).
+  Meteoroids are 3.5-8 m, lit, slower (55-95 m/s), seen from above and behind the ship, with the Earth moved aside;
+  a red ring marks each one on a collision course.
+
+Fixed in all versions on 20 November: since 19 November the meteoroids had no shape at all (the list of shapes was
+built with `map(asteroidGeo)`, which passed the index as the number of segments), so they could not be seen.
 
 ## Version 3 (`v3.html`) - NASA's 3-D models
 

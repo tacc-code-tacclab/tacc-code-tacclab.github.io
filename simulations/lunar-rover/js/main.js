@@ -280,7 +280,8 @@ const perk = () => PERKS[G.level];
 function addPoints(n, why) {
   G.points += n; G.energy += n; save();
   const nl = levelOf(G.points);
-  if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH.toLocaleString('en-US')} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\nPress B to return to base, board the lander and climb to orbit.`, 12000); sfx.level(); }
+  if (!G.ready && G.points >= LAUNCH && V4) { G.ready = true; sfx.fanfare(); bigNews(); buildActs(); }
+  else if (!G.ready && G.points >= LAUNCH) { G.ready = true; toast(`${LAUNCH.toLocaleString('en-US')} units of energy captured.\nNOW YOU ARE READY TO TAKE OFF FOR THE EARTH.\nPress B to return to base, board the lander and climb to orbit.`, 12000); sfx.level(); }
   else if (nl > G.level) { G.level = nl; toast(`LEVEL ${nl}\n${perk().name}`, 5000); sfx.level(); rover.obj.userData.scoop.visible = !!perk().scoop; buildActs(); }
   else if (why) toast(`+${n} energy\n${why}`, 1800);
   if (G.points >= SURVEY && !mini.all && mini.bg) { mini.revealAll(); setTimeout(() => { sfx.fanfare(); toast(`SURVEY DATA UNLOCKED\nThe map now shows every deposit on the Moon.\nClick the map${touchUI ? '' : ' (or press Z)'} to enlarge it.`, 8000); }, 1700); }
@@ -954,7 +955,7 @@ const ACT = { fire, fly, pause: togglePause, grab: () => rover.grab(), dig, hop,
     if (G.points >= LAUNCH && !G.flat) setTimeout(() => toast('At base. Now: Enter to board the lander,\nhold ▲ to climb above 100 km, then “Return to Earth”.', 9000), 300);
     if (rover.arm.rock) { rover.arm.rock.held = false; rover.arm.rock = null; rover.arm.phase = 'idle'; }
     rover.fly = false; rover.landing = false; setAnchorAt(terrain.site.lat, terrain.site.lon); clip.update(BASE.x, BASE.y); lander.obj.visible = true;
-    lander.place(BASE.x + (V3 ? 15 : 11), BASE.y + (V3 ? 6 : 5)); lander.yaw = 1.2; rover.place(BASE.x + (V3 ? 9.5 : 6.5), BASE.y - (V3 ? 0.5 : 1), 0.6); rover.obj.visible = true; G.mode = 'rover'; G.energy = Math.max(G.energy, 30); G.flat = false; camS.dist = 6.5; camS.off = 2.3; camS.userT = G.t;
+    lander.place(BASE.x + (V3 ? 15 : 11), BASE.y + (V3 ? 6 : 5)); lander.yaw = 1.2; rover.place(BASE.x + (V3 ? 11.5 : 6.5), BASE.y + (V3 ? 0.5 : -1), 0.6);      // close enough to board at once rover.obj.visible = true; G.mode = 'rover'; G.energy = Math.max(G.energy, 30); G.flat = false; camS.dist = 6.5; camS.off = 2.3; camS.userT = G.t;
     toast('Brought back to Tranquility Base.\nStay close to the station to recharge.', 4500); buildActs(); },
   layers() { G.overlay = !G.overlay; clip.setOverlay(G.overlay); rocks.rebuild(rocks.cx, rocks.cy); $('legend').classList.toggle('open', G.overlay); document.querySelector('[data-act=layers]').classList.toggle('on', G.overlay); if (G.overlay) toast('Shape of the ground:\ngrey = measured · cyan = inferred from the photo · orange = predicted', 4500); },
   info() { sheet('info'); }, help() { sheet('help'); }, more() { sheet('more'); },
@@ -1006,7 +1007,7 @@ function buildActs() {
   if (ret.on) box.innerHTML = (ret.ph === 'cape' ? b('up', '▲', 'Thrust up', 'R / PgUp', '', true) + b('down', '▼', 'Down', 'F / PgDn', '', true) + b('abort', '⌂', 'Give up', '') : b('burn', '✹', ret.label(), 'Space', 'wide', true) + b('abort', '⌂', 'Give up: back to the Moon', '', 'wide'));
   else if (G.mode === 'lander') box.innerHTML = (orbit.on ? b('earth', '🜨', G.points >= LAUNCH ? 'Return to Earth' : `Return to Earth (needs ${LAUNCH})`, 'Enter', 'wide' + (G.points >= LAUNCH ? '' : ' locked')) : '') + b('up', '▲', 'Up', 'R / PgUp', '', true) + b('down', '▼', 'Down', 'F / PgDn', '', true) + (orbit.on ? b('map', '◐', orbit.mapLabel(), 'X') : b('deploy', '⇣', 'Deploy rover', 'Enter', lander && lander.landed ? '' : 'locked'));
   else if (rover && rover.fly) box.innerHTML = b('up', '▲', 'Up', 'R / PgUp', '', true) + b('down', '▼', 'Down', 'F / PgDn', '', true) + b('fly', '⤓', 'Land', 'Y');
-  else box.innerHTML = (perk().fly ? b('fly', '⤒', 'Fly to another region', 'Y', 'wide') : '') + (G.flat ? b('rescue', '⌂', 'Back to base', 'B', 'wide') : '') + b('fire', '✹', P.blast >= 3 ? 'Laser' : 'Gun ' + ['', 'I', 'II'][P.blast], 'Space', '', true) + b('grab', '✊', 'Grab', 'E') + b('dig', '⛏', 'Dig', 'Q', P.scoop ? '' : 'locked')
+  else box.innerHTML = (V4 && G.ready ? b('rescue', '🜨', 'RETURN TO EARTH — go to base', 'B', 'wide go') : '') + (perk().fly ? b('fly', '⤒', 'Fly to another region', 'Y', 'wide') : '') + (G.flat ? b('rescue', '⌂', 'Back to base', 'B', 'wide') : '') + b('fire', '✹', P.blast >= 3 ? 'Laser' : 'Gun ' + ['', 'I', 'II'][P.blast], 'Space', '', true) + b('grab', '✊', 'Grab', 'E') + b('dig', '⛏', 'Dig', 'Q', P.scoop ? '' : 'locked')
     + b('hop', '⇡', 'Hop', 'H', P.hop ? '' : 'locked') + b('flip', '↻', 'Upright', 'T') + b('deploy', '⇡', 'Board', 'Enter');
   for (const el of box.querySelectorAll('[data-hold]')) {
     const a = el.dataset.act, up = () => { held.delete(a); el.classList.remove('on'); };
@@ -1015,7 +1016,21 @@ function buildActs() {
   }
   $('keys').textContent = ret.on ? 'Follow the instructions at the top · Space = the action button · arrows steer' : orbit.on ? '↑↓←→ move over the Moon · R / F higher, lower · come down to 100 km to descend at the circle' : G.mode === 'lander' ? '↑↓ fly · ←→ turn · R / F up, down · Enter deploy rover · drag to look' : (rover && rover.fly ? '↑↓ fly · ←→ turn · R / F up, down · Y land' : '↑↓ drive · ←→ steer · Space gun · E grab · Q dig · Y fly · B base · Enter board');
 }
+/* version 4: a large announcement, repeated while the way home is open */
+let bigT = 0;
+function bigNews() { const e = $('bigmsg'); if (!e) return; e.classList.add('on'); clearTimeout(bigT); bigT = setTimeout(() => e.classList.remove('on'), 6500); }
+/* version 4: which step of the way home comes next */
+function nextStep() {
+  const e = $('next'); if (!e) return; if (!G.ready || ret.on) { e.style.display = 'none'; return; } e.style.display = 'block'; let n, t;
+  if (orbit.on) { n = 4; t = 'Press <u>RETURN TO EARTH</u> (Enter) — bottom right'; }
+  else if (G.mode === 'lander') { const h = lander.landed ? 0 : lander.pos.z - clip.ground(lander.pos.x, lander.pos.y); n = 3; t = `Hold <u>▲ UP</u> (R or PgUp) to climb above 100 km${h > 1 ? ' — now ' + (h < 1000 ? fm(h, 0) + ' m' : fm(h / 1000, 1) + ' km') : ''}`; }
+  else if (rover.fly) { n = 1; t = 'Land first (Y), then press <u>B</u>'; }
+  else if (Math.hypot(rover.pos.x - lander.pos.x, rover.pos.y - lander.pos.y) > 8) { n = 1; t = 'Press <u>B</u> to go back to base and the lander'; }
+  else { n = 2; t = 'Press <u>ENTER</u> to board the lander'; }
+  const h = `<b>WAY HOME · STEP ${n} OF 4</b>${t}`; if (e._h !== h) { e._h = h; e.innerHTML = h; }
+}
 function hudScore() {
+  if (V4) nextStep();
   if (V4) { const L = Math.max(0, G.left === undefined ? DEADLINE : G.left), e = $('clock'); e.textContent = `RETURN WINDOW ${String(Math.floor(L / 60)).padStart(2, '0')}:${String(Math.floor(L % 60)).padStart(2, '0')}`; e.className = ret.on ? 'done' : L < 300 ? 'warn' : ''; if (ret.on) e.textContent = 'RETURN WINDOW — launched'; }
   $('goalFill').style.width = clamp(G.points / LAUNCH, 0, 1) * 100 + '%'; $('goalTxt').textContent = G.points >= LAUNCH ? 'ready — press B' : `${G.points.toLocaleString('en-US')} / ${LAUNCH.toLocaleString('en-US')}`; $('goal').classList.toggle('ready', G.points >= LAUNCH);
   $('enTxt').textContent = fm(Math.max(0, G.energy), 0); $('enFill').style.width = clamp(G.energy, 0, 100) + '%'; $('enFill').classList.toggle('low', G.energy < 12); $('enOver').textContent = G.energy > 100 ? '+' + fm(G.energy - 100, 0) : '';
@@ -1316,7 +1331,7 @@ const ret = {
     this.dot = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,255,255,1)', 'rgba(255,220,140,.6)'), depthTest: false })); this.dot.scale.setScalar(300); A.add(this.dot);
     this.camA = new THREE.PerspectiveCamera(40, 1, 100, 1e5); this.camA.position.set(0, 0, 7600); this.camA.up.set(0, 1, 0); this.camA.lookAt(0, 0, 0);
     // ---- N: deep space and the fire of the entry
-    const N = this.sN = new THREE.Scene(); N.environment = scene.environment; N.background = new THREE.Color(0); { const d = new THREE.DirectionalLight(0xfff4e6, 4.2); d.position.set(-0.7, -0.35, 0.6); N.add(d, new THREE.AmbientLight(0xffffff, 0.2)); }
+    const N = this.sN = new THREE.Scene(); N.environment = scene.environment; N.background = new THREE.Color(0); { const d = new THREE.DirectionalLight(0xfff4e6, 4.2); d.position.set(-0.7, -0.35, 0.6); N.add(d, new THREE.AmbientLight(0xffffff, V4 ? 0.75 : 0.2)); if (V4) { const f = new THREE.DirectionalLight(0xbfd4ff, 1.6); f.position.set(0.3, -1, 0.2); N.add(f); } }
     this.ship = makeLander(); this.ship.rotation.x = -Math.PI / 2; N.add(this.ship);
     const add = new THREE.SpriteMaterial({ map: glowTex('rgba(235,245,255,1)', 'rgba(90,150,255,.6)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
     this.jet = new THREE.Sprite(add); this.ship.add(this.jet); this.jet.position.set(0, 0, -0.9);            // the glow of the engine at the nozzle
@@ -1327,8 +1342,10 @@ const ret = {
     const mkPts = (n, R, size, col) => { const a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const v = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(R); a.set([v.x, v.y, v.z], 3 * i); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(a, 3)); return new THREE.Points(g, new THREE.PointsMaterial({ color: col, size, sizeAttenuation: false })); };
     this.stars = mkPts(2400, 4000, 1.4, 0xffffff); N.add(this.stars);
     this.dust = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: 0xbdb6aa, size: 0.07, sizeAttenuation: true })); { const a = new Float32Array(300 * 3); for (let i = 0; i < 300; i++) a.set([(Math.random() - 0.5) * 80, Math.random() * 320 - 20, (Math.random() - 0.5) * 50], 3 * i); this.dust.geometry.setAttribute('position', new THREE.BufferAttribute(a, 3)); } this.dust.frustumCulled = false; N.add(this.dust);
-    const geos = [11, 23, 37, 51, 67].map(asteroidGeo), am = [0x6b635a, 0x574f47, 0x7a7167].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.96, metalness: 0.04, bumpMap: crinkle, bumpScale: 2.5, envMapIntensity: 0.15 }));
-    this.rocks = []; for (let i = 0; i < 60; i++) { const m = new THREE.Mesh(geos[i % 5], am[i % 3]); m.visible = false; N.add(m); this.rocks.push({ m, on: false }); }
+    const geos = [11, 23, 37, 51, 67].map(sd => asteroidGeo(sd)),      /* (map would pass the index as the second argument and leave the shapes empty) */ am = [0x6b635a, 0x574f47, 0x7a7167].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.96, metalness: 0.04, bumpMap: crinkle, bumpScale: 2.5, envMapIntensity: 0.15 }));
+    const warnMat = new THREE.SpriteMaterial({ map: canvasTex(128, 128, x => { x.strokeStyle = '#ff3a2a'; x.lineWidth = 7; for (let i = 0; i < 4; i++) { x.beginPath(); x.arc(64, 64, 54, i * 1.571 + 0.25, i * 1.571 + 1.32); x.stroke(); } }), depthTest: false, transparent: true });
+    if (V4) for (const m of am) { m.color.multiplyScalar(1.9); m.emissive = new THREE.Color(0x2c2620); }
+    this.rocks = []; for (let i = 0; i < 60; i++) { const m = new THREE.Mesh(geos[i % 5], am[i % 3]); if (V4) { const w = new THREE.Sprite(warnMat); w.scale.setScalar(3.2); w.visible = false; w.renderOrder = 30; m.add(w); m.userData.warn = w; } m.visible = false; N.add(m); this.rocks.push({ m, on: false }); }
     const hot = new THREE.SpriteMaterial({ map: glowTex('rgba(255,70,25,1)', 'rgba(190,0,0,.8)'), depthWrite: false, transparent: true }), warm = new THREE.SpriteMaterial({ map: glowTex('rgba(255,235,160,.55)', 'rgba(255,170,40,.28)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
     this.cells = []; for (let i = 0; i < 48; i++) { const m = new THREE.Sprite(hot); m.visible = false; N.add(m); this.cells.push({ m, on: false }); }
     this.wisps = []; for (let i = 0; i < 40; i++) { const m = new THREE.Sprite(warm); m.position.set((Math.random() - 0.5) * 80, Math.random() * 260, (Math.random() - 0.5) * 46); m.scale.setScalar(10 + Math.random() * 16); m.visible = false; N.add(m); this.wisps.push(m); }
@@ -1358,7 +1375,7 @@ const ret = {
   },
   say(n, text) { $('guide').innerHTML = `<b>CHECKPOINT ${n} OF 4</b>${text}`; $('guide').style.display = 'block'; },
   label() { return { lap: 'Burn engine', coast: 'Steer with the arrows', fire: 'Steer away from the red', done: 'Back to the Moon' }[this.ph] || '…'; },
-  async start() { if (!this.sA) { toast('Preparing the journey…', 2500); try { await this.build(); } catch (e) { return toast('The images of the Earth could not be loaded: ' + e.message, 5000); } } orbit.on = false; document.body.classList.remove('orbit'); document.body.classList.add('ret'); for (const e of labels.pool) e.style.display = 'none'; this.on = true; this.go('lap'); },
+  async start() { if (!this.sA) { toast('Preparing the journey…', 2500); try { await this.build(); } catch (e) { return toast('The images of the Earth could not be loaded: ' + e.message, 5000); } } orbit.on = false; document.body.classList.remove('orbit'); document.body.classList.add('ret'); for (const e of labels.pool) e.style.display = 'none'; for (const id of ['bigmsg', 'radio']) { const e = $(id); if (e) e.classList.remove('on'); } clearTimeout(bigT); $('msg').style.opacity = 0; this.on = true; this.go('lap'); },
   quit() { this.on = false; music.stop(); mini.local = null; $('mini').classList.remove('show'); document.body.classList.remove('ret'); $('guide').style.display = 'none'; $('bar').style.display = 'none'; $('heat').style.opacity = 0; ACT.rescue(); },
   go(ph) {
     this.ph = ph; this.t = 0; this.acc = 0; this.was = true; this.dead = 0; this.down = 0; $('bar').style.display = 'none'; $('heat').style.opacity = 0; mini.local = null; $('mini').classList.remove('show');
@@ -1366,7 +1383,7 @@ const ret = {
     const fire = ph === 'fire'; for (const w of this.wisps) w.visible = fire; this.bow.visible = fire; this.earth.visible = ph === 'coast'; this.stars.visible = !fire; this.dust.visible = ph === 'coast'; this.ship.visible = true; this.shipC.visible = true; this.foam.visible = false;
     this.ship.position.set(0, 0, 0); this.ship.rotation.set(-Math.PI / 2, 0, 0); this.sN.background.set(0x000000); this.ship.userData.flame.visible = ph === 'coast'; this.jet.visible = ph === 'coast';
     if (ph === 'lap') { music.play('space'); this.th = 0; this.lock = -1; this.say(1, 'Lunar orbit. After <u>one full orbit</u>, hold <u>Burn</u> exactly while the ship crosses the small <span style="color:#49ff8a">green arc</span> behind the Moon. It lasts a fraction of a second: burn outside it and you must wait for the next orbit.'); }
-    if (ph === 'coast') { music.play('space'); this.say(2, '384,000 km to the Earth, engine burning. <u>Steer with the arrows</u> through the meteoroids — <u>one hit destroys the ship</u>.'); }
+    if (ph === 'coast') { music.play('space'); this.say(2, '384,000 km to the Earth, engine burning. <u>Steer with the arrows</u> through the meteoroids — <u>one hit destroys the ship</u>.' + (V4 ? ' A <span style="color:#ff3a2a">red ring</span> marks every rock on a collision course.' : '')); }
     if (ph === 'fire') { music.play('fire'); sfx.fanfare(); toast('ENTERING THE ATMOSPHERE', 4000); this.say(3, 'You are entering the atmosphere at 11 km/s. Yellow is hot; <span style="color:#ff5a3c">red is deadly</span>. <u>Do not touch the red</u>.'); }
     if (ph === 'cape') { music.play('descent'); const s0 = [[-430, -170], [390, 130], [-160, 430], [270, -390]][Math.floor(Math.random() * 4)]; this.px = s0[0]; this.py = s0[1]; this.psi = Math.atan2(-s0[0], -s0[1]) + (Math.random() - 0.5) * 0.8; this.alt = 45; this.vz = 0; this.w0 = Math.random() * 6.28; this.bank = 0;
       this.say(4, 'Through the fire, parachute open, thrusters alive. You can come down anywhere on Earth — but only at the <span style="color:#ff5a3c">red marker on the coast of Florida</span>, Cape Canaveral, is the cooling foam waiting. <u>Land inside the red ring.</u> ← → turn, ↑ ↓ speed, ▲ ▼ height (higher is faster).'); mini.local = (x, W, H) => this.map(x, W, H); $('mini').classList.add('show'); }
@@ -1411,11 +1428,11 @@ const ret = {
     } else if (this.ph === 'coast') {
       const T = 42, u = Math.min(1, this.t / T), r = 384400 * (1 - u) + 6700 * u, v = Math.sqrt(2 * 398600 / r + 0.6), sp = this.ship.position;
       sp.x = clamp(sp.x + ax * 14 * dt, -16, 16); sp.z = clamp(sp.z + ay * 11 * dt, -9, 9); this.ship.rotation.y = -ax * 0.4; const fl = this.ship.userData.flame; fl.scale.set(1, 1, 0.9 + Math.random() * 0.5); this.jet.scale.setScalar(2.2 + Math.random() * 0.8);
-      this.earth.position.set(-4, 900, 3); this.earth.scale.setScalar(16 + 430 * u * u * u); this.earth.rotation.z = -0.164 + this.t * 0.004;
+      if (V4) this.earth.position.set(-330, 900, 230); else this.earth.position.set(-4, 900, 3); this.earth.scale.setScalar(16 + 430 * u * u * u);      /* version 4: the Earth off to one side, so that nothing hides behind it */ this.earth.rotation.z = -0.164 + this.t * 0.004;
       const D = this.dust.geometry.attributes.position; for (let i = 0; i < D.count; i++) { let y = D.getY(i) - 170 * dt; if (y < -20) y += 320; D.setY(i, y); } D.needsUpdate = true;
-      if (u < 0.95 && Math.random() < dt * (1.6 + 4.2 * Math.sin(u * Math.PI))) { const k = this.rocks.find(q => !q.on); if (k) { k.on = true; k.m.visible = true; const aim = Math.random() < 0.5; k.m.position.set(aim ? sp.x + (Math.random() - 0.5) * 5 : (Math.random() - 0.5) * 42, 330, aim ? sp.z + (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 24); k.s = 0.5 + Math.random() * Math.random() * 2.6; k.m.scale.setScalar(k.s); k.v = 95 + Math.random() * 80; k.w = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5); k.dx = (Math.random() - 0.5) * 4; } }
-      for (const k of this.rocks) { if (!k.on) continue; const p = k.m.position; p.y -= k.v * dt; p.x += k.dx * dt; k.m.rotation.x += k.w.x * dt * 2.2; k.m.rotation.y += k.w.y * dt * 2.2; k.m.rotation.z += k.w.z * dt * 2.2;
-        if (Math.abs(p.y) < 2.5 && Math.hypot(p.x - sp.x, p.z - sp.z) < 1.0 + 0.8 * k.s && this.t > 1.5) return this.boom('A meteoroid tore the ship apart.');
+      if (u < 0.95 && Math.random() < dt * (V4 ? 0.7 + 1.6 * Math.sin(u * Math.PI) : 1.6 + 4.2 * Math.sin(u * Math.PI))) { const k = this.rocks.find(q => !q.on); if (k) { k.on = true; k.m.visible = true; const aim = Math.random() < 0.5; k.m.position.set(aim ? sp.x + (Math.random() - 0.5) * 5 : (Math.random() - 0.5) * 42, 330, aim ? sp.z + (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 24); k.s = V4 ? 3.5 + Math.random() * 4.5 : 0.5 + Math.random() * Math.random() * 2.6; k.m.scale.setScalar(k.s); k.v = V4 ? 55 + Math.random() * 40 : 95 + Math.random() * 80; k.w = V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5); k.dx = (Math.random() - 0.5) * 4; } }
+      for (const k of this.rocks) { if (!k.on) continue; const p = k.m.position; p.y -= k.v * dt; p.x += k.dx * dt; if (k.m.userData.warn) k.m.userData.warn.visible = p.y > 3 && p.y < 330 && Math.hypot(p.x - sp.x, p.z - sp.z) < 1.2 + 0.5 * k.s + 1.5; k.m.rotation.x += k.w.x * dt * 2.2; k.m.rotation.y += k.w.y * dt * 2.2; k.m.rotation.z += k.w.z * dt * 2.2;
+        if (Math.abs(p.y) < 2.5 && Math.hypot(p.x - sp.x, p.z - sp.z) < (V4 ? 1.2 + 0.5 * k.s : 1.0 + 0.8 * k.s) && this.t > 1.5) return this.boom('A meteoroid tore the ship apart.');
         else if (p.y < -30) { k.on = false; k.m.visible = false; } }
       hud = row('TO EARTH', fm(r, 0) + ' km') + row('SPEED', fm(v, 2) + ' km/s') + row('ENGINE', 'burning', 'ok') + row('TIME', 'about 3 days (here 42 s)');
       if (u >= 1) return this.go('fire');
@@ -1455,7 +1472,8 @@ const ret = {
       const k = Math.max(0.35 + alt * 0.22, dist * 0.02), hgt = Math.max(1.5, alt * 1.3 + 1.5, dist * 0.25); this.ringTrue.scale.setScalar(this.TOL); this.ringFar.visible = dist > 4; this.ringFar.scale.setScalar(k * 3 * (1 + 0.15 * Math.sin(G.t * 4))); this.beam.scale.set(k * 0.08, k * 0.08, hgt); this.beam.position.z = hgt / 2;
       this.foam.position.set(this.px, this.py, 0.001); this.foam.scale.setScalar(d * 0.09); this.sC.fog.far = 700 + alt * 90; this.sC.fog.near = 40 + alt * 6;
       c.aspect = asp; c.updateProjectionMatrix(); c.position.set(this.px - fx * d + (Math.random() - 0.5) * sh * d * 0.1, this.py - fy * d, alt + 0.42 * d + 0.03); c.lookAt(this.px + fx * d * 1.6, this.py + fy * d * 1.6, Math.max(0, alt - 0.5 * d)); renderer.render(this.sC, c); }
-    else { const c = this.camN, sp = this.ship.position; c.aspect = asp; c.updateProjectionMatrix(); c.position.set(sp.x * 0.78 + (Math.random() - 0.5) * sh, -17, sp.z * 0.78 + 4.5 + (Math.random() - 0.5) * sh); c.up.set(0, 0, 1); c.lookAt(sp.x * 0.9, 40, sp.z * 0.9); renderer.render(this.sN, c); }
+    else { const c = this.camN, sp = this.ship.position; c.aspect = asp; c.updateProjectionMatrix(); if (V4) { c.position.set(sp.x * 0.8 + (Math.random() - 0.5) * sh, -20, sp.z * 0.8 + 10 + (Math.random() - 0.5) * sh); c.up.set(0, 0, 1); c.lookAt(sp.x * 0.9, 80, sp.z * 0.9 + 2); }      /* from above and behind: what is coming is not hidden behind the ship */
+      else { c.position.set(sp.x * 0.78 + (Math.random() - 0.5) * sh, -17, sp.z * 0.78 + 4.5 + (Math.random() - 0.5) * sh); c.up.set(0, 0, 1); c.lookAt(sp.x * 0.9, 40, sp.z * 0.9); } renderer.render(this.sN, c); }
   },
 };
 
@@ -1495,6 +1513,7 @@ const ret = {
     if (V4 && !ret.on) {                                 // the return window runs while on the Moon; it stops once the journey home begins
       if (!G.left) G.left = DEADLINE; G.left -= dt; if (!G.call0 && G.t > 4) { G.call0 = true; radio(`Tranquility Base, Houston. Your return window closes in 30 minutes. Capture ${LAUNCH.toLocaleString('en-US')} units of energy and launch before then. P pauses the clock. Over.`, 12000); }
       G.ci = G.ci || 0; while (G.ci < CALLS.length && G.left <= CALLS[G.ci][0]) { const c = CALLS[G.ci++]; if (G.left > c[0] - 5) radio('Houston: ' + c[1] + (G.points >= LAUNCH ? '' : ` You have ${G.points.toLocaleString('en-US')} of ${LAUNCH.toLocaleString('en-US')}.`)); }
+      if (G.points >= LAUNCH && G.mode === 'rover' && G.t > (G.bigAt || 0)) { G.bigAt = G.t + 60; if (G.callReady) { bigNews(); sfx.fanfare(); } }
       if (G.points >= LAUNCH && !G.callReady) { G.callReady = true; radio('Houston: you have the energy. Press B, board the lander, climb above 100 kilometres and launch for home. The window will not wait.', 11000); }
       if (G.left <= 0) { gameOver(); return; }
       if (sfx.ctx && sfx.ctx.state === 'running' && !music.on && G.soundOn) music.play('moon');

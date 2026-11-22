@@ -85,6 +85,20 @@
   #pauseBox.on,#over.on{display:flex} #pauseBox div{font-size:34px;letter-spacing:.3em;color:#fff} #pauseBox small{display:block;font-size:12px;letter-spacing:.05em;color:var(--dim);margin-top:10px}
   #over div{background:rgba(4,10,14,.95);border:1px solid #ff6a4a;border-radius:6px;padding:22px 26px;max-width:min(90vw,460px)} #over b{color:#ff6a4a;letter-spacing:.2em;font-size:16px} #over p{color:#fff;margin:12px 0 16px;line-height:1.5}
   @media (prefers-reduced-motion:reduce){ #clock.warn,#radio b::before{animation:none} }
+  /* version 4: the energy for the Earth, as a red bar that fills up */
+  #goal{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:center;margin:2px 0 8px;font-size:10px;letter-spacing:.06em;color:#ffb0a0}
+  #goal span{grid-column:1} #goal b{grid-column:2;grid-row:1;font-size:12px;color:#fff}
+  #goalBar{grid-column:1 / -1;height:14px;border-radius:7px;background:rgba(255,60,40,.14);border:1px solid rgba(255,90,60,.55);overflow:hidden}
+  #goalFill{height:100%;background:linear-gradient(90deg,#8a0f06,#e0281a 60%,#ff5a3c);box-shadow:0 0 10px rgba(255,60,30,.7);transition:width .5s}
+  #goal.ready #goalFill{background:linear-gradient(90deg,#1b8f45,#3fe07c);box-shadow:0 0 12px rgba(60,230,120,.8)} #goal.ready span,#goal.ready b{color:#8ff0a0}
+  #next{position:fixed;display:none;left:50%;transform:translateX(-50%);top:calc(62px + env(safe-area-inset-top));padding:9px 16px;border:1.5px solid #3fe07c;font-size:15px;color:#fff;text-align:center;pointer-events:none;z-index:3;box-shadow:0 0 18px rgba(60,230,120,.35)}
+  #next b{display:block;font-size:11px;letter-spacing:.14em;color:#8ff0a0;margin-bottom:2px} #next u{text-decoration:none;color:#ffe680;font-weight:700}
+  #bigmsg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:7;opacity:0;transition:opacity .5s}
+  #bigmsg.on{opacity:1} #bigmsg div{background:rgba(4,20,10,.9);border:2px solid #3fe07c;border-radius:8px;padding:22px 30px;text-align:center;color:#fff;font-size:17px;line-height:1.6;max-width:min(92vw,560px);box-shadow:0 0 40px rgba(60,230,120,.45)}
+  #bigmsg b{display:block;font-size:26px;letter-spacing:.14em;color:#8ff0a0;margin-bottom:8px} #bigmsg span{display:block;margin-top:8px} #bigmsg u{text-decoration:none;color:#ffe680;font-weight:700;font-size:22px}
+  #acts button.go{border-color:#3fe07c;background:rgba(20,110,50,.75);color:#fff;animation:pulse 1.4s ease-in-out infinite} @keyframes pulse{50%{box-shadow:0 0 18px rgba(60,230,120,.9)}}
+  @media (prefers-reduced-motion:reduce){ #acts button.go{animation:none} }
+  @media (max-width:560px){ #next{top:calc(140px + env(safe-area-inset-top));font-size:13px;width:92vw} }
   #stat{white-space:pre;color:var(--ink)}
   #stat .k{color:var(--dim)} #stat .warn{color:#ffd060} #stat .ok{color:#8ff0a0}
 
@@ -148,7 +162,7 @@
   <div id="pts">0<small>energy captured</small></div>
   <div id="lvl"><span id="lvlTxt">Level 1</span><div id="lvlBar"><div id="lvlFill"></div></div></div>
   <div id="clock"></div>
-  <div id="goal" title="Energy captured, towards the journey to the Earth"><span>EARTH</span><div id="goalBar"><div id="goalFill"></div></div><b id="goalTxt"></b></div>
+  <div id="goal" title="Energy captured, towards the journey to the Earth"><span>ENERGY TO RETURN TO EARTH</span><div id="goalBar"><div id="goalFill"></div></div><b id="goalTxt"></b></div>
   <div id="en" title="Energy"><span>&#9889;</span><div id="enBar"><div id="enFill"></div></div><b id="enTxt">0</b><small id="enOver"></small></div>
   <div id="stat"></div>
 </div>
@@ -207,6 +221,8 @@
 </div>
 
 <div id="vig"></div>
+<div id="next" class="glass"></div>
+<div id="bigmsg"><div><b>THE WAY HOME IS OPEN</b>You have 10,000 units of energy.<span>Press <u>B</u> to go back to base, board the lander and fly home to the Earth.</span></div></div>
 <div id="radio" class="glass"><b>HOUSTON · CAPCOM</b><p></p></div>
 <div id="pauseBox"><div>PAUSED<small>press P, or the pause button, to continue — the clock is stopped</small></div></div>
 <div id="over"><div><b>MISSION FAILED</b><p id="overTxt"></p><button type="button" onclick="location.reload()">Start again</button></div></div>
